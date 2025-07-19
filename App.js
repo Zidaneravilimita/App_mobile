@@ -1,10 +1,6 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import HomeScreen from './src/screens/HomeScreen'; // Assure-toi que le chemin est correct
 
 export default function App() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Bienvenue Zidane sur ma première appli React Native !</Text>
-    </View>
-  );
+  return <HomeScreen />;
 }
