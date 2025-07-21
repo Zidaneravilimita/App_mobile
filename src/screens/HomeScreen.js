@@ -30,13 +30,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#1a1a1a', // Couleur de fond générale de l'application
+    backgroundColor: '#1a1a1a', 
   },
   container: {
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
   scrollViewContent: {
-    paddingBottom: 20, // Espace en bas pour ne pas que le contenu soit coupé par la navbar
+    paddingBottom: 20, 
   },
 });

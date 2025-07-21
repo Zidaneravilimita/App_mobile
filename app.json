@@ -1,12 +1,7 @@
 {
   "expo": {
-<<<<<<< HEAD
     "name": "MonApp",
     "slug": "MonApp",
-=======
-    "name": "app_mobile",
-    "slug": "app_mobile",
->>>>>>> 75daf5e30bf511ea6061a2885e4bc5dea904c27e
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

@@ -1,56 +1,42 @@
-<<<<<<< HEAD
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
-export default function EventCard({ title, participants, image, onPress }) {
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
-      <Image source={image} style={styles.image} />
-      <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.footer}>
-          <Ionicons name="person" size={16} color="gray" />
-          <Text style={styles.participants}>{participants} participants</Text>
-          <Ionicons name="heart-outline" size={20} color="red" style={{ marginLeft: 'auto' }} />
-        </View>
-      </View>
-=======
-// src/components/EventCard.js
 import React from 'react';
 import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function EventCard({ name, eventType, participants }) {
-  // Utilise une image de fond générique pour l'exemple
-  const backgroundImage = { uri: 'https://via.placeholder.com/350x200/4B0082/FFFFFF?text=Event+Party' };
-  const organizerAvatarImage = { uri: 'https://via.placeholder.com/30' }; // Avatar pour l'organisateur
-  const participantAvatarImage = { uri: 'https://via.placeholder.com/25' }; // Avatar pour les participants
+export default function EventCard({ title, participants, image, onPress }) {
+  // Use the provided image prop for the background.
+  // Fallback to a placeholder if image is not provided or fails to load.
+  const resolvedImage = typeof image === 'number' ? image : { uri: image || 'https://via.placeholder.com/350x200/4B0082/FFFFFF?text=Event+Party' };
+
+  // Placeholder avatars for demonstration, you'd replace these with actual data
+  const organizerAvatarImage = { uri: 'https://placehold.co/30x30/4B0082/FFFFFF?text=Org' };
+  const participantAvatarImage = { uri: 'https://placehold.co/25x25/6A5ACD/FFFFFF?text=P' };
 
   return (
-    <TouchableOpacity style={styles.cardContainer}>
-      <ImageBackground source={backgroundImage} style={styles.imageBackground} imageStyle={styles.imageStyle}>
+    <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
+      <ImageBackground source={resolvedImage} style={styles.imageBackground} imageStyle={styles.imageStyle}>
         <View style={styles.overlay}>
+          {/* Header Section: Organizer Info and More Icon */}
           <View style={styles.headerSection}>
             <Image source={organizerAvatarImage} style={styles.organizerAvatar} />
             <View style={styles.headerText}>
-              <Text style={styles.organizerName}>{name}</Text>
-              <Text style={styles.eventType}>{eventType}</Text>
+              <Text style={styles.organizerName}>{title || "Nom de l'Événement"}</Text>
+              {/* Added a placeholder for eventType, you might want to add a prop for this */}
+              <Text style={styles.eventType}>Soirée / Fête</Text>
             </View>
             <TouchableOpacity style={styles.moreIcon}>
               <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
 
+          {/* Footer Section: Participants and Like Button */}
           <View style={styles.footerSection}>
             <View style={styles.participantsContainer}>
-              {/* Ces images seraient dynamiques dans une vraie app, ici juste pour le visuel */}
+              {/* Dynamic participant avatars - showing placeholders */}
               <Image source={participantAvatarImage} style={styles.participantAvatar} />
               <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlapAvatar]} />
-              {/* Le troisième participant peut être une icône ou une autre image */}
               <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlapAvatar]} />
               <View style={styles.participantBadge}>
-                <Text style={styles.participantText}>+{participants}</Text>
+                <Text style={styles.participantText}>+{participants || 0}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.likeButton}>
@@ -59,50 +45,19 @@ export default function EventCard({ name, eventType, participants }) {
           </View>
         </View>
       </ImageBackground>
->>>>>>> 75daf5e30bf511ea6061a2885e4bc5dea904c27e
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    overflow: 'hidden',
-    marginBottom: 15,
-    elevation: 3,
-  },
-  image: {
-    width: '100%',
-    height: 160,
-  },
-  content: {
-    padding: 12,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  participants: {
-    marginLeft: 4,
-    color: 'gray',
-  },
-});
-=======
   cardContainer: {
     marginHorizontal: 15,
     marginBottom: 15,
     borderRadius: 20,
-    overflow: 'hidden', // Nécessaire pour les coins arrondis
-    height: 250, // Hauteur fixe pour les cartes d'événements
-    elevation: 3, // Ombre pour Android
-    shadowColor: '#000', // Ombre pour iOS
+    overflow: 'hidden', // Necessary for rounded corners
+    height: 250, // Fixed height for event cards
+    elevation: 3, // Shadow for Android
+    shadowColor: '#000', // Shadow for iOS
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -113,7 +68,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   imageStyle: {
-    borderRadius: 20, // Applique le border radius à l'image de fond
+    borderRadius: 20, // Apply border radius to the background image
   },
   overlay: {
     flex: 1,
@@ -122,11 +77,11 @@ const styles = StyleSheet.create({
   headerSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)', // Fond semi-transparent pour le texte
+    backgroundColor: 'rgba(0,0,0,0.4)', // Semi-transparent background for text
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 20,
-    alignSelf: 'flex-start', // Le conteneur ne prend que la largeur de son contenu
+    alignSelf: 'flex-start', // Container only takes content width
   },
   organizerAvatar: {
     width: 30,
@@ -137,7 +92,7 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   headerText: {
-    flex: 1, // Prend l'espace restant
+    flex: 1, // Takes remaining space
   },
   organizerName: {
     color: '#fff',
@@ -155,7 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 'auto', // Pousse le footer en bas
+    marginTop: 'auto', // Pushes the footer to the bottom
   },
   participantsContainer: {
     flexDirection: 'row',
@@ -169,10 +124,10 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   overlapAvatar: {
-    marginLeft: -10, // Pour faire chevaucher les avatars
+    marginLeft: -10, // To overlap avatars
   },
   participantBadge: {
-    backgroundColor: '#8A2BE2', // Couleur violette
+    backgroundColor: '#8A2BE2', // Violet color
     borderRadius: 15,
     width: 40,
     height: 30,
@@ -187,11 +142,10 @@ const styles = StyleSheet.create({
   },
   likeButton: {
     backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 25, // Rendre le bouton rond
+    borderRadius: 25, // Make the button round
     width: 50,
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
 });
->>>>>>> 75daf5e30bf511ea6061a2885e4bc5dea904c27e
