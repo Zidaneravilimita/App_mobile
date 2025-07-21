@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "name": "monapp",
+=======
+  "name": "app_mobile",
+>>>>>>> 75daf5e30bf511ea6061a2885e4bc5dea904c27e
   "license": "0BSD",
   "version": "1.0.0",
   "main": "index.js",
@@ -10,6 +14,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@react-navigation/native": "^7.1.14",
     "@react-navigation/native-stack": "^7.3.21",
     "axios": "^1.10.0",
@@ -30,11 +35,19 @@
     "react-dom": "19.0.0",
     "react-native-web": "^0.20.0",
     "@expo/metro-runtime": "~5.0.4"
+=======
+    "expo": "53.0.20",
+    "expo-status-bar": "~2.2.3",
+    "firebase": "^11.10.0",
+    "react": "19.0.0",
+    "react-native": "0.79.5"
+>>>>>>> 75daf5e30bf511ea6061a2885e4bc5dea904c27e
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
   },
   "private": true,
+<<<<<<< HEAD
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
@@ -42,4 +55,16 @@
       }
     }
   }
+=======
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zidaneravilimita/App_mobile.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zidaneravilimita/App_mobile/issues"
+  },
+  "homepage": "https://github.com/Zidaneravilimita/App_mobile#readme",
+  "description": ""
+>>>>>>> 75daf5e30bf511ea6061a2885e4bc5dea904c27e
 }
