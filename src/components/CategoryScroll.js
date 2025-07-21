@@ -1,15 +1,13 @@
-// src/components/CategoryScroll.js
 import React from 'react';
 import { ScrollView, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 
 // 1. IMPORTEZ VOS IMAGES LOCALES ICI EN UTILISANT require()
-// Le chemin est relatif par rapport à ce fichier (CategoryScroll.js)
-import clubImage from '/assets/images/Club/Club_73.jpg';
-import djImage from '/assets/images/Dj/DJ show img.jpg';
-import bouffImage from '/assets/images/Bouff/Bouff.jpg';
-import colorImage from '/assets/images/Color/Color_Party.jpg';
-import concertImage from '/assets/images/Concert/Concert_pub.jpg';
-import festivalImage from '/assets/images/Festival/festival somaroho 2025.jpg';
+import clubImage from "D:/MonApp/assets/images/Club/Club_73.jpg";
+import djImage from "D:/MonApp/assets/images/Dj/DJ show img.jpg";
+import bouffImage from "D:/MonApp/assets/images/Bouff/Bouff.jpg";
+import colorImage from "D:/MonApp/assets/images/Color/Color_Party.jpg";
+import concertImage from "D:/MonApp/assets/images/Concert/Concert_pub.jpg";
+import festivalImage from "D:/MonApp/assets/images/Festival/festival somaroho 2025.jpg";
 
 // Données pour les catégories
 const categories = [
@@ -33,7 +31,7 @@ export default function CategoryScroll() {
       {categories.map((category) => (
         <TouchableOpacity key={category.id} style={styles.categoryCard}>
           <ImageBackground
-            // 3. PAS BESOIN DE { uri: ... } ICI, LA VARIABLE 'category.image' EST DÉJÀ L'IMPORT
+            
             source={category.image}
             style={styles.categoryImage}
             imageStyle={styles.imageStyle} // Appliquer borderRadius à l'image
