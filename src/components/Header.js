@@ -8,7 +8,7 @@ export default function Header() {
     <View style={styles.headerContainer}>
       <TouchableOpacity>
         <Image
-          source={{ uri: 'https://via.placeholder.com/40' }} // Remplace par l'URL de l'avatar réel
+          source={{ uri: "D:/MonApp/assets/images/Avatar/avatar.jpg" }} 
           style={styles.avatar}
         />
       </TouchableOpacity>

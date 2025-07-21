@@ -3,13 +3,12 @@ import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Image } from
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EventCard({ title, participants, image, onPress }) {
-  // Use the provided image prop for the background.
-  // Fallback to a placeholder if image is not provided or fails to load.
-  const resolvedImage = typeof image === 'number' ? image : { uri: image || 'https://via.placeholder.com/350x200/4B0082/FFFFFF?text=Event+Party' };
+  const defaultEventImage = require('../../assets/images/Event/event_1.jpg'); 
+  const resolvedImage = typeof image === 'number' ? image : defaultEventImage; 
 
-  // Placeholder avatars for demonstration, you'd replace these with actual data
-  const organizerAvatarImage = { uri: 'https://placehold.co/30x30/4B0082/FFFFFF?text=Org' };
-  const participantAvatarImage = { uri: 'https://placehold.co/25x25/6A5ACD/FFFFFF?text=P' };
+  // Placeholder avatars - utilisez require() pour les images locales
+  const organizerAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); // Chemin relatif !
+  const participantAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); // Chemin relatif !
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
@@ -20,7 +19,6 @@ export default function EventCard({ title, participants, image, onPress }) {
             <Image source={organizerAvatarImage} style={styles.organizerAvatar} />
             <View style={styles.headerText}>
               <Text style={styles.organizerName}>{title || "Nom de l'Événement"}</Text>
-              {/* Added a placeholder for eventType, you might want to add a prop for this */}
               <Text style={styles.eventType}>Soirée / Fête</Text>
             </View>
             <TouchableOpacity style={styles.moreIcon}>
@@ -31,7 +29,6 @@ export default function EventCard({ title, participants, image, onPress }) {
           {/* Footer Section: Participants and Like Button */}
           <View style={styles.footerSection}>
             <View style={styles.participantsContainer}>
-              {/* Dynamic participant avatars - showing placeholders */}
               <Image source={participantAvatarImage} style={styles.participantAvatar} />
               <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlapAvatar]} />
               <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlapAvatar]} />
@@ -54,10 +51,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 15,
     borderRadius: 20,
-    overflow: 'hidden', // Necessary for rounded corners
-    height: 250, // Fixed height for event cards
-    elevation: 3, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
+    overflow: 'hidden',
+    height: 250,
+    elevation: 3,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -68,7 +65,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   imageStyle: {
-    borderRadius: 20, // Apply border radius to the background image
+    borderRadius: 20,
   },
   overlay: {
     flex: 1,
@@ -77,11 +74,11 @@ const styles = StyleSheet.create({
   headerSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)', // Semi-transparent background for text
+    backgroundColor: 'rgba(0,0,0,0.4)',
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 20,
-    alignSelf: 'flex-start', // Container only takes content width
+    alignSelf: 'flex-start',
   },
   organizerAvatar: {
     width: 30,
@@ -92,7 +89,7 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   headerText: {
-    flex: 1, // Takes remaining space
+    flex: 1,
   },
   organizerName: {
     color: '#fff',
@@ -110,7 +107,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 'auto', // Pushes the footer to the bottom
+    marginTop: 'auto',
   },
   participantsContainer: {
     flexDirection: 'row',
@@ -124,10 +121,10 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   overlapAvatar: {
-    marginLeft: -10, // To overlap avatars
+    marginLeft: -10,
   },
   participantBadge: {
-    backgroundColor: '#8A2BE2', // Violet color
+    backgroundColor: '#8A2BE2',
     borderRadius: 15,
     width: 40,
     height: 30,
@@ -142,7 +139,7 @@ const styles = StyleSheet.create({
   },
   likeButton: {
     backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 25, // Make the button round
+    borderRadius: 25,
     width: 50,
     height: 50,
     justifyContent: 'center',

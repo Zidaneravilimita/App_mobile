@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     width: 130,
     height: 180,
     borderRadius: 15,
-    overflow: 'hidden', // Important pour que l'image respecte le borderRadius
+    overflow: 'hidden', 
     marginRight: 10,
   },
   categoryImage: {
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   imageStyle: {
-    borderRadius: 15, // Assure que l'image elle-même a des coins arrondis
+    borderRadius: 15, 
   },
   categoryName: {
     color: '#fff',
