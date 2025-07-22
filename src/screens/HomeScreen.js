@@ -20,19 +20,19 @@ export default function HomeScreen() {
           <EventCard
             title="Soirée Club de Richmond" 
             participants={6}
-            image={require('../../assets/images/Club/Club_73.jpg')} // Chemin relatif correct pour l'image
+            image={require('../../assets/images/Club/Club_73.jpg')} 
             onPress={() => console.log('Événement Richmond pressé')}
           />
           <EventCard
             title="Festival de Michael Jean" 
             participants={6}
-            image={require('../../assets/images/Event/event_1.jpg')} // Chemin relatif correct pour l'image
+            image={require('../../assets/images/Event/event_1.jpg')} 
             onPress={() => console.log('Événement Michael pressé')}
           />
           <EventCard
             title="Festival EDM de Sarah" 
             participants={10}
-            image={require('../../assets/images/Club/Club_73.jpg')} // Un autre chemin d'image d'exemple
+            image={require('../../assets/images/Club/Club_73.jpg')} 
             onPress={() => console.log('Événement Sarah pressé')}
           />
           

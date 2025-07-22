@@ -3,18 +3,27 @@ import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Image } from
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EventCard({ title, participants, image, onPress }) {
+  // Assurez-vous que ces chemins relatifs sont corrects par rapport à EventCard.js
   const defaultEventImage = require('../../assets/images/Event/event_1.jpg'); 
-  const resolvedImage = typeof image === 'number' ? image : defaultEventImage; 
+  const organizerAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); 
+  const participantAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); 
 
-  // Placeholder avatars - utilisez require() pour les images locales
-  const organizerAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); // Chemin relatif !
-  const participantAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); // Chemin relatif !
+  // La prop 'image' doit déjà être le résultat d'un require() du composant parent
+  // Si 'image' n'est pas un nombre (résultat de require), nous utilisons l'image par défaut.
+  const resolvedImage = typeof image === 'number' ? image : defaultEventImage; 
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
-      <ImageBackground source={resolvedImage} style={styles.imageBackground} imageStyle={styles.imageStyle}>
-        <View style={styles.overlay}>
-          {/* Header Section: Organizer Info and More Icon */}
+      <ImageBackground
+        source={resolvedImage}
+        style={styles.imageBackground} // Cette imageBackground doit remplir TOUTE la carte
+        imageStyle={styles.imageStyle} // Applique les coins arrondis à l'image
+        resizeMode="cover" // C'est crucial : l'image s'agrandit pour couvrir tout l'espace
+      >
+        {/* L'overlay contient tout le contenu (titre, avatars, bouton like)
+            et gère l'espacement interne pour que le contenu ne touche pas les bords */}
+        <View style={styles.overlay}> 
+          {/* Section du haut : Informations de l'organisateur */}
           <View style={styles.headerSection}>
             <Image source={organizerAvatarImage} style={styles.organizerAvatar} />
             <View style={styles.headerText}>
@@ -26,7 +35,7 @@ export default function EventCard({ title, participants, image, onPress }) {
             </TouchableOpacity>
           </View>
 
-          {/* Footer Section: Participants and Like Button */}
+          {/* Section du bas : Participants et bouton "J'aime" */}
           <View style={styles.footerSection}>
             <View style={styles.participantsContainer}>
               <Image source={participantAvatarImage} style={styles.participantAvatar} />
@@ -37,7 +46,7 @@ export default function EventCard({ title, participants, image, onPress }) {
               </View>
             </View>
             <TouchableOpacity style={styles.likeButton}>
-              <Ionicons name="heart" size={24} color="#fff" />
+              <Ionicons name="heart" size={24} color="#fff" /> 
             </TouchableOpacity>
           </View>
         </View>
@@ -51,8 +60,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 15,
     borderRadius: 20,
-    overflow: 'hidden',
-    height: 250,
+    overflow: 'hidden', 
+    height: 200, // Définit la hauteur de la carte
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -61,20 +70,21 @@ const styles = StyleSheet.create({
   },
   imageBackground: {
     flex: 1,
-    justifyContent: 'space-between',
-    padding: 15,
+    width: 400,
+    height: 200,
   },
   imageStyle: {
-    borderRadius: 20,
+    borderRadius: 20, // Applique des coins arrondis directement à l'image de fond
   },
   overlay: {
-    flex: 1,
-    justifyContent: 'space-between',
+    flex: 1, // L'overlay prend toute la hauteur et largeur de l'ImageBackground
+    justifyContent: 'space-between', // Pousse le header en haut et le footer en bas
+    padding: 15, // C'est ici que l'on définit l'espacement entre le contenu (header/footer) et les bords de la carte
   },
   headerSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.4)', 
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 20,
@@ -144,5 +154,6 @@ const styles = StyleSheet.create({
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 50,
   },
 });
