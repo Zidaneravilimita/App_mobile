@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
 
 // 1. IMPORTEZ VOS IMAGES LOCALES ICI EN UTILISANT require()
 import clubImage from "D:/MonApp/assets/images/Club/Club_73.jpg";
@@ -21,40 +21,52 @@ const categories = [
 
 export default function CategoryScroll() {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.scrollViewContent}
-    >
-      {categories.map((category) => (
-        <TouchableOpacity key={category.id} style={styles.categoryCard}>
-          <ImageBackground
-            
-            source={category.image}
-            style={styles.categoryImage}
-            imageStyle={styles.imageStyle} // Appliquer borderRadius à l'image
-          >
-            <Text style={styles.categoryName}>{category.name}</Text>
-            <Text style={styles.categoryType}>{category.type}</Text>
-          </ImageBackground>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+    // <View> englobant le titre et la ScrollView pour une meilleure organisation
+    <View style={styles.categorySection}>
+      <Text style={styles.categoryTitle}>Catégories</Text> {/* Le nouveau titre */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+      >
+        {categories.map((category) => (
+          <TouchableOpacity key={category.id} style={styles.categoryCard}>
+            <ImageBackground
+              source={category.image}
+              style={styles.categoryImage}
+              imageStyle={styles.imageStyle} // Appliquer borderRadius à l'image
+            >
+              <Text style={styles.categoryName}>{category.name}</Text>
+              <Text style={styles.categoryType}>{category.type}</Text>
+            </ImageBackground>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  categorySection: {
+    paddingHorizontal: 15, // pour aligner le titre et le contenu du carrousel.
+    marginBottom: 10, // Un peu d'espace sous toute la section des catégories si nécessaire
+  },
+  categoryTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10, // Espacement entre le titre et le début des cartes défilantes
+  },
   scrollViewContent: {
-    paddingHorizontal: 15,
     paddingVertical: 10,
     paddingBottom: 30,
   },
   categoryCard: {
-    width: 110,
+    width: 90,
     height: 140,
     borderRadius: 15,
     overflow: 'hidden', 
-    marginRight: 10,
+    marginRight: 15,
   },
   categoryImage: {
     flex: 1,

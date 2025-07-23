@@ -1,6 +1,6 @@
 // src/screens/HomeScreen.js
 import React from 'react';
-import { View, ScrollView, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import { View, ScrollView, StyleSheet, SafeAreaView, StatusBar, Text } from 'react-native'; // Assurez-vous que 'Text' est importé
 
 import Header from '../components/Header';
 import CategoryScroll from '../components/CategoryScroll';
@@ -15,19 +15,21 @@ export default function HomeScreen() {
         <Header />
         
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          {/* Le CategoryScroll aura son propre espacement interne si nécessaire,
-              ou sera espacé par le paddingHorizontal du scrollViewContent */}
+          {/* Section Catégories */}
           <CategoryScroll />
           
-          {/* Les EventCard ont déjà un marginHorizontal et marginBottom dans leur propre style */}
+          {/* Nouveau titre "Populaire" */}
+          <Text style={styles.popularTitle}>Populaire</Text>
+
+          {/* Cartes d'événements populaires */}
           <EventCard
-            title="Soirée Club de Richmond" 
+            title="Soirée à Club 73" 
             participants={6}
             image={require('../../assets/images/Club/Club_73.jpg')} 
             onPress={() => console.log('Événement Richmond pressé')}
           />
           <EventCard
-            title="Festival de Michael Jean" 
+            title="Festival de Music" 
             participants={6}
             image={require('../../assets/images/Event/event_1.jpg')} 
             onPress={() => console.log('Événement Michael pressé')}
@@ -58,6 +60,14 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingBottom: 20,
     paddingTop: 20,
-    paddingHorizontal: 10, //  pour un espacement latéral
+    paddingHorizontal: 10, // Padding général du contenu de la ScrollView
+  },
+  popularTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 20, // Espacement au-dessus du titre par rapport à la section des catégories
+    marginBottom: 10, // Espacement en dessous du titre par rapport à la première carte d'événement
+    paddingHorizontal: 25, // Aligne le titre avec le début réel des EventCard (10 padding de scrollViewContent + 15 margin de EventCard)
   },
 });
