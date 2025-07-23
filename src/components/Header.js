@@ -8,7 +8,7 @@ export default function Header() {
     <View style={styles.headerContainer}>
       <TouchableOpacity>
         <Image
-          source={{ uri: "D:/MonApp/assets/images/Avatar/avatar.jpg" }} 
+          source={require('../../assets/images/Avatar/avatar.jpg')} 
           style={styles.avatar}
         />
       </TouchableOpacity>

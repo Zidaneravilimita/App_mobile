@@ -11,8 +11,6 @@ import festivalImage from "D:/MonApp/assets/images/Festival/festival somaroho 20
 
 // Données pour les catégories
 const categories = [
-  // 2. UTILISEZ LES VARIABLES IMPORTÉES DIRECTEMENT DANS LE TABLEAU
-  // N'utilisez PAS { uri: ... } pour les images locales
   { id: '1', name: 'Soirée night', type: 'Clube', image: clubImage },
   { id: '2', name: 'Soirée night', type: 'DJ', image: djImage },
   { id: '3', name: 'Soirée night', type: 'bouff', image: bouffImage },
@@ -49,10 +47,11 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingHorizontal: 15,
     paddingVertical: 10,
+    paddingBottom: 30,
   },
   categoryCard: {
-    width: 130,
-    height: 180,
+    width: 110,
+    height: 140,
     borderRadius: 15,
     overflow: 'hidden', 
     marginRight: 10,
@@ -61,7 +60,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     padding: 10,
-    // Pour assombrir l'image et améliorer la lisibilité du texte
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   imageStyle: {

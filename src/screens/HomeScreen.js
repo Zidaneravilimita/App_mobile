@@ -13,10 +13,13 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
       <View style={styles.container}>
         <Header />
+        
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          {/* Le CategoryScroll aura son propre espacement interne si nécessaire,
+              ou sera espacé par le paddingHorizontal du scrollViewContent */}
           <CategoryScroll />
           
-          {/* Appel aux EventCard avec les props corrigées, incluant 'image' */}
+          {/* Les EventCard ont déjà un marginHorizontal et marginBottom dans leur propre style */}
           <EventCard
             title="Soirée Club de Richmond" 
             participants={6}
@@ -30,10 +33,10 @@ export default function HomeScreen() {
             onPress={() => console.log('Événement Michael pressé')}
           />
           <EventCard
-            title="Festival EDM de Sarah" 
+            title="Spéctacle public de Hira Gasy" 
             participants={10}
-            image={require('../../assets/images/Club/Club_73.jpg')} 
-            onPress={() => console.log('Événement Sarah pressé')}
+            image={require('../../assets/images/Evenements Culturel/hira gasy.jpg')} 
+            onPress={() => console.log('Événement culturel')}
           />
           
         </ScrollView>
@@ -54,5 +57,7 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     paddingBottom: 20,
+    paddingTop: 20,
+    paddingHorizontal: 10, //  pour un espacement latéral
   },
 });
