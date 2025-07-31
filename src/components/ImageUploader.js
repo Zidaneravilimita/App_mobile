@@ -1,9 +1,9 @@
 // src/components/ImageUploader.js
 import React, { useState } from 'react';
 import { View, Button, Image, Alert, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import * as ImagePicker from 'expo-image-picker'; // Correction de la syntaxe ici
+import * as ImagePicker from 'expo-image-picker';
 // Importez le client Supabase que vous avez initialisé
-import { supabase } from '../config/supabase'; // Chemin correct pour src/components/ vers src/config/
+import { supabase } from '../config/supabase'; // Assurez-vous que le chemin est correct
 
 export default function ImageUploader({ onUploadComplete }) {
   const [imageUri, setImageUri] = useState(null);
@@ -38,13 +38,17 @@ export default function ImageUploader({ onUploadComplete }) {
 
     setUploading(true);
     try {
+      // 1. Convertir l'URI de l'image en Blob
       const response = await fetch(imageUri);
       const blob = await response.blob();
 
+      // 2. Définir un nom de fichier unique pour Supabase Storage
       const fileExtension = imageUri.split('.').pop();
+      // Le chemin sera 'public_images/timestamp.ext' dans le bucket 'images'
       const filename = `public_images/${Date.now()}.${fileExtension}`;
       const bucketName = 'images'; // Nom de votre bucket Supabase
 
+      // 3. Uploader l'image vers Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filename, blob, {
@@ -53,43 +57,59 @@ export default function ImageUploader({ onUploadComplete }) {
         });
 
       if (uploadError) {
-        throw uploadError;
+        // Si l'upload vers le stockage échoue
+        Alert.alert('Erreur d\'Upload (Stockage)', uploadError.message);
+        throw uploadError; // Rejeter l'erreur pour le bloc catch final
       }
 
       console.log('Image téléchargée avec succès vers Supabase Storage !', uploadData);
+      Alert.alert('Upload Réussi', 'Image téléchargée vers le stockage !'); // Notification de succès pour le stockage
 
+      // 4. Obtenir l'URL publique de l'image téléchargée
       const { data: publicUrlData } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filename);
 
       if (!publicUrlData || !publicUrlData.publicUrl) {
+          Alert.alert('Erreur d\'URL', 'Impossible d\'obtenir l\'URL publique de l\'image.');
           throw new Error('Impossible d\'obtenir l\'URL publique de l\'image.');
       }
 
       const url = publicUrlData.publicUrl;
       setDownloadURL(url);
-      Alert.alert('Upload Réussi', 'Image téléchargée et URL obtenue !');
       console.log('URL de téléchargement:', url);
 
+      // 5. Enregistrer l'URL et les métadonnées dans la base de données Supabase (PostgreSQL)
+      // Assurez-vous d'avoir une table 'gallery_images' avec les colonnes 'url' et 'file_name'
+      // Si vous avez une colonne 'created_at' avec DEFAULT NOW() dans votre table, elle sera remplie automatiquement.
       const { error: dbError } = await supabase.from('gallery_images').insert([
         {
           url: url,
           file_name: filename,
+          // Si votre table a une colonne 'user_id' et que vous n'utilisez pas l'authentification,
+          // cette colonne doit être NULLABLE dans la définition de votre table Supabase,
+          // ou avoir une valeur par défaut.
         },
       ]);
 
       if (dbError) {
-        throw dbError;
+        // Si l'insertion en base de données échoue
+        Alert.alert('Erreur d\'Insertion (Base de Données)', dbError.message);
+        throw dbError; // Rejeter l'erreur pour le bloc catch final
       }
+
       console.log('Référence de l\'image ajoutée à la base de données Supabase !');
+      Alert.alert('Insertion BDD Réussie', 'Les informations de l\'image ont été enregistrées en base de données !'); // Notification de succès pour la BDD
 
       if (onUploadComplete) {
         onUploadComplete();
       }
 
     } catch (error) {
-      console.error('Erreur lors de l\'upload ou de l\'ajout à Supabase:', error);
-      Alert.alert('Erreur d\'upload', error.message);
+      // Ce bloc catch attrape toutes les erreurs (upload stockage, URL, insertion BDD)
+      console.error('Erreur générale lors du processus d\'upload:', error);
+      // L'alerte spécifique aura déjà été affichée, mais on peut en ajouter une générique si besoin.
+      // Alert.alert('Échec de l\'Upload', 'Une erreur est survenue: ' + error.message);
     } finally {
       setUploading(false);
     }
