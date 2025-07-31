@@ -3,7 +3,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function BottomNavBar() {
+
+export default function BottomNavBar({ onAddPress }) { // Reçoit onAddPress en prop
   return (
     <View style={styles.navBarContainer}>
       <TouchableOpacity style={styles.navItem}>
@@ -12,7 +13,8 @@ export default function BottomNavBar() {
       <TouchableOpacity style={styles.navItem}>
         <Ionicons name="search" size={24} color="#fff" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.addButton}>
+      {/* Le bouton "Add" appelle la fonction onAddPress passée en prop */}
+      <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem}>

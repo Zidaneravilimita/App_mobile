@@ -1,12 +1,11 @@
 // src/components/ImageUploader.js
 import React, { useState } from 'react';
 import { View, Button, Image, Alert, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { storage, db } from '../config/firebase'; // Assurez-vous d'importer 'storage' et 'db'
+import * as ImagePicker from 'expo-image-picker'; // Correction de la syntaxe ici
+// Importez le client Supabase que vous avez initialisé
+import { supabase } from '../config/supabase'; // Chemin correct pour src/components/ vers src/config/
 
-export default function ImageUploader() {
+export default function ImageUploader({ onUploadComplete }) {
   const [imageUri, setImageUri] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [downloadURL, setDownloadURL] = useState(null);
@@ -42,29 +41,54 @@ export default function ImageUploader() {
       const response = await fetch(imageUri);
       const blob = await response.blob();
 
-      const filename = imageUri.substring(imageUri.lastIndexOf('/') + 1);
-      // Chemin dans Firebase Storage (ex: images/nom_fichier.jpg)
-      const storageRef = ref(storage, `images/${filename}`); 
+      const fileExtension = imageUri.split('.').pop();
+      const filename = `public_images/${Date.now()}.${fileExtension}`;
+      const bucketName = 'images'; // Nom de votre bucket Supabase
 
-      const uploadTask = await uploadBytes(storageRef, blob);
-      console.log('Image téléchargée avec succès vers Storage !');
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(filename, blob, {
+          contentType: blob.type || 'image/jpeg',
+          upsert: false,
+        });
 
-      const url = await getDownloadURL(uploadTask.ref);
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      console.log('Image téléchargée avec succès vers Supabase Storage !', uploadData);
+
+      const { data: publicUrlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filename);
+
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+          throw new Error('Impossible d\'obtenir l\'URL publique de l\'image.');
+      }
+
+      const url = publicUrlData.publicUrl;
       setDownloadURL(url);
       Alert.alert('Upload Réussi', 'Image téléchargée et URL obtenue !');
       console.log('URL de téléchargement:', url);
 
-      // Enregistrer l'URL et les métadonnées dans Firestore
-      await addDoc(collection(db, "gallery_images"), { // 'gallery_images' est le nom de votre collection Firestore
-        url: url,
-        fileName: filename,
-        createdAt: serverTimestamp(), // Ajoute un timestamp du serveur
-        // userId: auth.currentUser?.uid, // Si vous utilisez l'authentification et voulez lier l'image à un utilisateur
-      });
-      console.log('Référence de l\'image ajoutée à Firestore !');
+      const { error: dbError } = await supabase.from('gallery_images').insert([
+        {
+          url: url,
+          file_name: filename,
+        },
+      ]);
+
+      if (dbError) {
+        throw dbError;
+      }
+      console.log('Référence de l\'image ajoutée à la base de données Supabase !');
+
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
 
     } catch (error) {
-      console.error('Erreur lors de l\'upload ou de l\'ajout à Firestore:', error);
+      console.error('Erreur lors de l\'upload ou de l\'ajout à Supabase:', error);
       Alert.alert('Erreur d\'upload', error.message);
     } finally {
       setUploading(false);
