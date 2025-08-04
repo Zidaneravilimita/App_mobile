@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { View, Button, Image, Alert, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-// Importez le client Supabase que vous avez initialisé
-import { supabase } from '../config/supabase'; // Assurez-vous que le chemin est correct
+import { supabase } from '../config/supabase';
 
 export default function ImageUploader({ onUploadComplete }) {
   const [imageUri, setImageUri] = useState(null);
@@ -57,8 +56,20 @@ export default function ImageUploader({ onUploadComplete }) {
       const blob = await response.blob();
       console.log('--- uploadImage: Blob de l\'image créé ---');
 
-      const fileExtension = imageUri.split('.').pop();
-      const filename = `public_images/${Date.now()}.${fileExtension}`;
+      // CORRECTION ICI : Extraction de l'extension à partir du MIME type du blob
+      let fileExtension = 'jpg'; // Valeur par défaut
+      if (blob.type) {
+        const mimeParts = blob.type.split('/');
+        if (mimeParts.length > 1) {
+          fileExtension = mimeParts[1]; // Ex: 'jpeg' de 'image/jpeg'
+          // Gérer les cas spécifiques comme 'image/jpeg' -> 'jpg'
+          if (fileExtension === 'jpeg') {
+            fileExtension = 'jpg';
+          }
+        }
+      }
+      
+      const filename = `public_images/${Date.now()}.${fileExtension}`; // <-- CHEMIN DU FICHIER FIXÉ ICI
       const bucketName = 'images';
       console.log(`--- uploadImage: Préparation upload vers bucket: ${bucketName}, filename: ${filename} ---`);
 
@@ -117,7 +128,6 @@ export default function ImageUploader({ onUploadComplete }) {
 
     } catch (error) {
       console.error('--- uploadImage: Erreur générale capturée dans le catch ---', error);
-      // L'alerte spécifique aura déjà été affichée par les throw, mais on peut en ajouter une générique si aucune n'a été déclenchée.
       if (!error.message.includes('Erreur d\'Upload (Stockage)') && !error.message.includes('Erreur d\'URL') && !error.message.includes('Erreur d\'Insertion (Base de Données)')) {
           Alert.alert('Échec de l\'Upload', 'Une erreur inattendue est survenue: ' + error.message);
       }
