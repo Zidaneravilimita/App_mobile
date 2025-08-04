@@ -272,7 +272,7 @@ export default function ImageUploader({ onUploadComplete }) {
         <Text style={styles.label}>Titre de l'événement :</Text>
         <TextInput
           style={styles.input}
-          placeholder="Ex: Soirée DJ au Club XYZ"
+          placeholder="Ex: Soirée DJ au Club 73"
           placeholderTextColor="#888"
           value={eventTitle}
           onChangeText={setEventTitle}
@@ -286,10 +286,9 @@ export default function ImageUploader({ onUploadComplete }) {
           placeholderTextColor="#888"
           value={eventDate}
           onChangeText={setEventDate}
-          keyboardType="numeric" // Ou 'default' si vous voulez permettre des tirets
+          keyboardType="numeric" 
         />
-        {/* Note: Pour un DatePicker natif, vous auriez besoin d'une bibliothèque comme @react-native-community/datetimepicker */}
-
+        
         {/* Section Description */}
         <Text style={styles.label}>Description :</Text>
         <TextInput
