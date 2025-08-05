@@ -41,7 +41,11 @@ export default function ImageUploader({ onUploadComplete }) {
   // Chargement des types d'événements en fonction de la ville sélectionnée
   useEffect(() => {
     const fetchTypeEvenements = async () => {
-      if (!selectedVilleId) return; // Ne charge pas si aucune ville n'est sélectionnée
+      if (!selectedVilleId) {
+        setTypeEvenements([]); // Réinitialiser si aucune ville n'est sélectionnée
+        setSelectedTypeEventId('');
+        return;
+      }
 
       const { data, error } = await supabase
         .from('type_evenements')
@@ -89,7 +93,6 @@ export default function ImageUploader({ onUploadComplete }) {
     console.log('--- pickImage: Fin ---');
   };
 
-  // Fonction d'upload d'image, modifiée pour retourner l'URL
   const uploadImageToSupabase = async () => {
     if (!imageUri) {
       Alert.alert('Aucune image sélectionnée', 'Veuillez sélectionner une image pour l\'événement.');
@@ -140,8 +143,8 @@ export default function ImageUploader({ onUploadComplete }) {
       }
 
       const url = publicUrlData.publicUrl;
-      setDownloadURL(url); // Mettre à jour l'état de l'URL de téléchargement
-      return url; // Retourner l'URL pour l'insertion en BDD
+      setDownloadURL(url);
+      return url;
 
     } catch (error) {
       console.error('Erreur lors de l\'upload de l\'image:', error);
@@ -152,18 +155,15 @@ export default function ImageUploader({ onUploadComplete }) {
     }
   };
 
-  // Fonction pour publier l'événement
   const handlePublish = async () => {
     setSubmittingForm(true);
 
-    // 1. Validation des champs
     if (!eventTitle || !eventDescription || !eventDate || !selectedVilleId || !selectedTypeEventId || !imageUri) {
       Alert.alert("Champs manquants", "Veuillez remplir tous les champs et sélectionner une image.");
       setSubmittingForm(false);
       return;
     }
 
-    // Validation du format de date simple (YYYY-MM-DD)
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(eventDate)) {
       Alert.alert("Format de date invalide", "Veuillez utiliser le format AAAA-MM-JJ pour la date.");
@@ -171,14 +171,12 @@ export default function ImageUploader({ onUploadComplete }) {
       return;
     }
 
-    // 2. Upload de l'image
     const imageUrl = await uploadImageToSupabase();
     if (!imageUrl) {
       setSubmittingForm(false);
-      return; // L'upload a échoué, l'erreur a déjà été affichée
+      return;
     }
 
-    // 3. Insertion des données de l'événement dans la table 'event'
     try {
       const { error: eventInsertError } = await supabase.from('event').insert([
         {
@@ -194,20 +192,23 @@ export default function ImageUploader({ onUploadComplete }) {
         throw eventInsertError;
       }
 
-      Alert.alert('Succès', 'Votre événement a été publié avec succès !');
-      // Réinitialiser le formulaire après publication réussie
-      setImageUri(null);
-      setDownloadURL(null);
-      setEventTitle('');
-      setEventDescription('');
-      setEventDate('');
-      // selectedVilleId et selectedTypeEventId peuvent être réinitialisés ou laisser la première option par défaut
-      if (villes.length > 0) setSelectedVilleId(villes[0].id_ville);
-      if (typeEvenements.length > 0) setSelectedTypeEventId(typeEvenements[0].id_type_event);
-
-      if (onUploadComplete) {
-        onUploadComplete(); // Appeler la fonction de rappel pour revenir à l'écran précédent
-      }
+      // Notification de succès améliorée
+      Alert.alert('🎉 Succès ! 🎉', 'Votre événement a été publié avec succès !', [
+        { text: 'OK', onPress: () => {
+            // Réinitialiser le formulaire après publication réussie
+            setImageUri(null);
+            setDownloadURL(null);
+            setEventTitle('');
+            setEventDescription('');
+            setEventDate('');
+            if (villes.length > 0) setSelectedVilleId(villes[0].id_ville);
+            if (typeEvenements.length > 0) setSelectedTypeEventId(typeEvenements[0].id_type_event);
+            if (onUploadComplete) {
+              onUploadComplete(); // Appeler la fonction de rappel pour revenir à l'écran précédent
+            }
+          }
+        }
+      ]);
 
     } catch (error) {
       console.error('Erreur lors de la publication de l\'événement:', error.message);
@@ -218,7 +219,6 @@ export default function ImageUploader({ onUploadComplete }) {
   };
 
   const handleCancel = () => {
-    // Réinitialiser tous les champs et l'image sélectionnée
     setImageUri(null);
     setDownloadURL(null);
     setEventTitle('');
@@ -229,7 +229,7 @@ export default function ImageUploader({ onUploadComplete }) {
     setUploading(false);
     setSubmittingForm(false);
     if (onUploadComplete) {
-      onUploadComplete(); // Revenir à l'écran précédent si un callback est fourni
+      onUploadComplete();
     }
   };
 
@@ -245,11 +245,15 @@ export default function ImageUploader({ onUploadComplete }) {
             selectedValue={selectedVilleId}
             onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
             style={styles.picker}
-            itemStyle={styles.pickerItem} // Style pour les éléments du Picker
+            // Note: itemStyle peut ne pas fonctionner sur Android pour le texte des options
           >
-            {villes.map((ville) => (
-              <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
-            ))}
+            {villes.length > 0 ? (
+              villes.map((ville) => (
+                <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+              ))
+            ) : (
+              <Picker.Item label="Chargement des villes..." value="" />
+            )}
           </Picker>
         </View>
 
@@ -260,11 +264,15 @@ export default function ImageUploader({ onUploadComplete }) {
             selectedValue={selectedTypeEventId}
             onValueChange={(itemValue) => setSelectedTypeEventId(itemValue)}
             style={styles.picker}
-            itemStyle={styles.pickerItem}
+            // Note: itemStyle peut ne pas fonctionner sur Android pour le texte des options
           >
-            {typeEvenements.map((type) => (
-              <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
-            ))}
+            {typeEvenements.length > 0 ? (
+              typeEvenements.map((type) => (
+                <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
+              ))
+            ) : (
+              <Picker.Item label="Sélectionnez une ville d'abord..." value="" />
+            )}
           </Picker>
         </View>
 
@@ -286,7 +294,7 @@ export default function ImageUploader({ onUploadComplete }) {
           placeholderTextColor="#888"
           value={eventDate}
           onChangeText={setEventDate}
-          keyboardType="numeric" 
+          keyboardType={Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'default'} // Meilleur pour les tirets sur iOS
         />
         
         {/* Section Description */}
@@ -366,16 +374,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     borderRadius: 8,
     marginBottom: 15,
-    overflow: 'hidden', // Pour s'assurer que le borderRadius est appliqué au Picker
+    overflow: 'hidden', 
+    borderWidth: 1, // Ajout d'une bordure
+    borderColor: '#8A2BE2', // Couleur de la bordure pour la visibilité
   },
   picker: {
     height: 50,
     width: '100%',
-    color: '#fff', // Couleur du texte sélectionné
+    color: '#000',
   },
   pickerItem: {
-    color: '#fff', // Couleur des options (peut ne pas être visible sur toutes les plateformes)
-    backgroundColor: '#333', // Couleur de fond des options (peut ne pas être visible sur toutes les plateformes)
+    color: '#fff', // Texte blanc pour les éléments du Picker (peut varier selon la plateforme)
+    backgroundColor: '#333', // Fond gris foncé pour les éléments du Picker (peut varier selon la plateforme)
   },
   input: {
     width: '100%',
@@ -385,10 +395,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 15,
     fontSize: 16,
+    borderWidth: 1, // Ajout d'une bordure
+    borderColor: '#555', // Couleur de la bordure
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top', // Aligner le texte en haut pour les zones de texte
+    textAlignVertical: 'top',
   },
   imagePreviewContainer: {
     marginTop: 20,
