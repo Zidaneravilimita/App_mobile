@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../config/supabase';
-import { Ionicons } from '@expo/vector-icons'; // <-- AJOUTEZ CETTE LIGNE
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ImageUploader({ onUploadComplete, onClose }) {
   const [imageUri, setImageUri] = useState(null);
@@ -76,7 +76,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
       return;
     }
 
-    if (!eventTitle || !selectedVilleId || !selectedTypeEventId || !eventDate || !eventDescription) {
+    if (!eventTitle || !eventDescription || !selectedVilleId || !selectedTypeEventId || !eventDate) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs du formulaire.');
       return;
     }
@@ -168,6 +168,21 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
         onChangeText={setEventDescription}
         multiline
       />
+      
+      {/* Picker pour les villes */}
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedVilleId}
+          onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+          style={styles.picker}
+          dropdownIconColor="#fff"
+        >
+          <Picker.Item label="Sélectionner une ville" value="" />
+          {villes.map((ville) => (
+            <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+          ))}
+        </Picker>
+      </View>
 
       {/* Bouton pour ouvrir le sélecteur de date */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputButton}>

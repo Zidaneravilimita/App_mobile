@@ -31,6 +31,7 @@ export default function BottomNavBar({ onAddPress, onHomePress }) {
 
 const styles = StyleSheet.create({
   navBarContainer: {
+    height: 80,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
