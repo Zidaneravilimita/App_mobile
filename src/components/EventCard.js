@@ -10,7 +10,7 @@ export default function EventCard({ title, participants, image, onPress }) {
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
       <ImageBackground
-        source={resolvedImage} // Utilise directement l'image passée par HomeScreen
+        source={resolvedImage} 
         style={styles.imageBackground} 
         imageStyle={styles.imageStyle} 
         resizeMode="cover" 
@@ -29,15 +29,13 @@ export default function EventCard({ title, participants, image, onPress }) {
 
           <View style={styles.footerSection}>
             <View style={styles.participantsContainer}>
-              <Image source={participantAvatarImage} style={styles.participantAvatar} />
-              <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlapAvatar]} />
-              <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlapAvatar]} />
-              <View style={styles.participantBadge}>
-                <Text style={styles.participantText}>+{participants || 0}</Text>
-              </View>
+              <Image source={participantAvatarImage} style={[styles.participantAvatar, { zIndex: 3 }]} />
+              <Image source={participantAvatarImage} style={[styles.participantAvatar, { left: -10, zIndex: 2 }]} />
+              <Image source={participantAvatarImage} style={[styles.participantAvatar, { left: -20, zIndex: 1 }]} />
+              <Text style={styles.participantsText}>+ {participants.length || 0}</Text>
             </View>
-            <TouchableOpacity style={styles.likeButton}>
-              <Ionicons name="heart" size={24} color="#fff" /> 
+            <TouchableOpacity style={styles.bookmarkButton}>
+              <Ionicons name="bookmark-outline" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -48,12 +46,12 @@ export default function EventCard({ title, participants, image, onPress }) {
 
 const styles = StyleSheet.create({
   cardContainer: {
-    marginHorizontal: 15,
-    marginBottom: 35,
+    width: 300,
+    height: 400,
     borderRadius: 20,
-    overflow: 'hidden', 
-    height: 200, 
-    elevation: 3,
+    overflow: 'hidden',
+    marginHorizontal: 15,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -61,16 +59,13 @@ const styles = StyleSheet.create({
   },
   imageBackground: {
     flex: 1,
-    width: 400,
-    height: 200,
-  },
-  imageStyle: {
-    borderRadius: 20, 
+    justifyContent: 'space-between',
   },
   overlay: {
-    flex: 1, 
-    justifyContent: 'space-between', 
-    padding: 15, 
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    padding: 15,
+    justifyContent: 'space-between',
   },
   headerSection: {
     flexDirection: 'row',
@@ -121,29 +116,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-  overlapAvatar: {
-    marginLeft: -10,
-  },
-  participantBadge: {
-    backgroundColor: '#8A2BE2',
-    borderRadius: 15,
-    width: 40,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: -10,
-  },
-  participantText: {
+  participantsText: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 14,
+    marginLeft: 5,
   },
-  likeButton: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+  bookmarkButton: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    padding: 8,
+    borderRadius: 20,
   },
 });

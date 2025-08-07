@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
-    color: '#fff',
+    color: '#000',
   },
   input: {
     width: '100%',
