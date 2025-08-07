@@ -3,8 +3,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// Le composant accepte maintenant deux props : onAddPress et onHomePress
-export default function BottomNavBar({ onAddPress, onHomePress }) {
+
+// Reçoit les props onAddPress ET onHomePress
+export default function BottomNavBar({ onAddPress, onHomePress }) { 
   return (
     <View style={styles.navBarContainer}>
       {/* Le bouton "Home" appelle la fonction onHomePress passée en prop */}
@@ -33,11 +34,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a', 
+    backgroundColor: '#1a1a1a', // Couleur de fond de la barre
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#333',
-    paddingBottom: 20,
+    paddingBottom: 20, // Pour gérer la safe area sur certains téléphones
   },
   navItem: {
     flex: 1,
@@ -45,12 +46,17 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   addButton: {
-    backgroundColor: '#8A2BE2', 
-    borderRadius: 30, 
-    width: 60, 
+    backgroundColor: '#8A2BE2', // Couleur violette du bouton "Add"
+    borderRadius: 30, // Pour un bouton rond
+    width: 60,
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20, // Soulève le bouton
+    marginBottom: 20, // Pour le positionner plus haut
+    elevation: 8, // Ombre pour Android
+    shadowColor: '#8A2BE2', // Ombre pour iOS
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
 });

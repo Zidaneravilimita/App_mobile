@@ -70,19 +70,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     padding: 10,
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   imageStyle: {
-    borderRadius: 15, 
+    borderRadius: 15,
   },
   categoryName: {
     color: '#fff',
-    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 2,
+    fontSize: 14,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   categoryType: {
     color: '#fff',
     fontSize: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 });
