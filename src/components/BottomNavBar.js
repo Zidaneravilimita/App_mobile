@@ -3,11 +3,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-
-export default function BottomNavBar({ onAddPress }) { // Reçoit onAddPress en prop
+// Le composant accepte maintenant deux props : onAddPress et onHomePress
+export default function BottomNavBar({ onAddPress, onHomePress }) {
   return (
     <View style={styles.navBarContainer}>
-      <TouchableOpacity style={styles.navItem}>
+      {/* Le bouton "Home" appelle la fonction onHomePress passée en prop */}
+      <TouchableOpacity style={styles.navItem} onPress={onHomePress}>
         <Ionicons name="home" size={24} color="#fff" />
       </TouchableOpacity>
       <TouchableOpacity style={styles.navItem}>
@@ -32,11 +33,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a', // Couleur de fond de la barre
+    backgroundColor: '#1a1a1a', 
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#333',
-    paddingBottom: 20, // Pour gérer la safe area sur certains téléphones
+    paddingBottom: 20,
   },
   navItem: {
     flex: 1,
@@ -44,17 +45,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   addButton: {
-    backgroundColor: '#8A2BE2', // Couleur violette du bouton "Add"
-    borderRadius: 30, // Pour un bouton rond
-    width: 60,
+    backgroundColor: '#8A2BE2', 
+    borderRadius: 30, 
+    width: 60, 
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -20, // Pour le faire "sortir" de la barre
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 2,
-    elevation: 5, // Pour Android
+    marginBottom: 20, // Soulève le bouton
   },
 });

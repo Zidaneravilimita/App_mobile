@@ -1,17 +1,49 @@
 // src/screens/HomeScreen.js
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, SafeAreaView, StatusBar, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, SafeAreaView, StatusBar, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../config/supabase';
 
 import Header from '../components/Header';
 import CategoryScroll from '../components/CategoryScroll';
 import EventCard from '../components/EventCard';
-import BottomNavBar from '../components/BottomNavBar'; // Importez BottomNavBar ici
-import ImageUploader from '../components/ImageUploader'; // Importez ImageUploader ici
+import BottomNavBar from '../components/BottomNavBar';
+import ImageUploader from '../components/ImageUploader';
 
 export default function HomeScreen() {
   // Gère l'écran actuellement affiché DANS HomeScreen
   const [currentContent, setCurrentContent] = useState('main'); // 'main' ou 'uploader'
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fonction pour récupérer les événements depuis Supabase
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      // Récupère toutes les colonnes de la table 'event'
+      const { data, error } = await supabase.from('event').select('*');
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log('Données récupérées de Supabase:', data); // AJOUT DE CETTE LIGNE POUR LE DÉBOGAGE
+      
+      // Mettre à jour l'état avec les données récupérées
+      setEvents(data);
+
+    } catch (err) {
+      console.error('Erreur de récupération des événements:', err.message);
+      setError('Erreur : Impossible de récupérer les événements. Veuillez vérifier la connexion et le nom de la table.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   // Fonction passée à BottomNavBar pour changer le contenu
   const handleAddPress = () => {
@@ -21,6 +53,8 @@ export default function HomeScreen() {
   // Fonction appelée par ImageUploader après un upload réussi
   const handleUploadComplete = () => {
     setCurrentContent('main'); // Revenir à l'écran principal après l'upload
+    // Recharger les événements après un nouvel ajout
+    fetchEvents(); 
     Alert.alert('Upload terminé', 'Votre image a été téléchargée avec succès !');
   };
 
@@ -31,46 +65,56 @@ export default function HomeScreen() {
           {/* Bouton de retour pour quitter l'uploader */}
           <TouchableOpacity onPress={() => setCurrentContent('main')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
-            <Text style={styles.backButtonText}> Retour</Text>
+            <Text style={styles.backButtonText}>Retour</Text>
           </TouchableOpacity>
           <ImageUploader onUploadComplete={handleUploadComplete} />
         </View>
       );
-    } else { // currentContent === 'main'
-      return (
-        <>
-          <Header />
-          <ScrollView contentContainerStyle={styles.scrollViewContent}>
-            {/* Section Catégories */}
-            <CategoryScroll />
-            
-            {/* Nouveau titre "Populaire" */}
-            <Text style={styles.popularTitle}>Populaire</Text>
+    }
 
-            {/* Cartes d'événements populaires */}
-            <EventCard
-              title="Soirée à Club 73" 
-              participants={6}
-              image={require('../../assets/images/Club/Club_73.jpg')} 
-              onPress={() => console.log('Événement Richmond pressé')}
-            />
-            <EventCard
-              title="Festival de Music" 
-              participants={6}
-              image={require('../../assets/images/Event/event_1.jpg')} 
-              onPress={() => console.log('Événement Michael pressé')}
-            />
-            <EventCard
-              title="Spéctacle public de Hira Gasy" 
-              participants={10}
-              image={require('../../assets/images/Evenements Culturel/hira gasy.jpg')} 
-              onPress={() => console.log('Événement culturel')}
-            />
-            
-          </ScrollView>
-        </>
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#8A2BE2" />
+        </View>
       );
     }
+
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      );
+    }
+
+    // Affiche le contenu principal une fois les événements chargés
+    return (
+      <>
+        <Header />
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <CategoryScroll />
+          
+          <Text style={styles.popularTitle}>Événements populaires</Text>
+          
+          {/* Affichage des EventCard basées sur les données de Supabase */}
+          {events.length > 0 ? (
+            events.map((event) => (
+              <EventCard
+                key={event.id_event} // Utilisez l'ID correct de la colonne
+                title={event.nom_event} // Utilisez 'nom_event'
+                participants={[]} // Les participants ne sont pas dans votre table actuelle
+                image={{ uri: event.photo }} // Utilisez 'photo'
+                onPress={() => Alert.alert('Détails de l\'événement', `Vous avez cliqué sur ${event.nom_event}`)}
+              />
+            ))
+          ) : (
+            <Text style={styles.noEventsText}>Aucun événement trouvé.</Text>
+          )}
+
+        </ScrollView>
+      </>
+    );
   };
 
   return (
@@ -95,7 +139,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
   },
   scrollViewContent: {
-    paddingBottom: 20, // Assurez-vous qu'il y a assez d'espace pour la nav bar
+    paddingBottom: 20,
     paddingTop: 20,
     paddingHorizontal: 10,
   },
@@ -105,28 +149,44 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
-    paddingHorizontal: 25,
+    paddingHorizontal: 15,
   },
   uploaderContainer: {
     flex: 1,
     width: '100%',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingTop: 50, // Pour laisser de la place au bouton retour
   },
   backButton: {
-    position: 'absolute',
-    top: 10, // Ajustez selon votre Safe Area
-    left: 10,
-    zIndex: 10,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#333',
-    padding: 8,
-    borderRadius: 5,
+    alignSelf: 'flex-start',
+    padding: 15,
   },
   backButtonText: {
     color: '#fff',
+    fontSize: 16,
     marginLeft: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  noEventsText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
