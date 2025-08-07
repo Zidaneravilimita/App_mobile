@@ -91,7 +91,7 @@ export default function ImageUploader({ onUploadComplete }) {
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // WARN: deprecated, but functional
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -164,7 +164,6 @@ export default function ImageUploader({ onUploadComplete }) {
       }
 
       console.log('--- uploadImageToSupabase: Image téléchargée avec succès vers Supabase Storage ! ---', uploadData);
-      // Alert.alert('Upload Réussi', 'Image téléchargée vers le stockage !'); // Déplacé vers la fin de handlePublish
 
       console.log('--- uploadImageToSupabase: Tentative d\'obtention de l\'URL publique ---');
       const { data: publicUrlData } = supabase.storage
