@@ -1,130 +1,79 @@
 // src/screens/HomeScreen.js
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, SafeAreaView, StatusBar, Text, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, StyleSheet, SafeAreaView, StatusBar, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../config/supabase';
+import { useNavigation } from '@react-navigation/native';
 
-// Import des composants
 import Header from '../components/Header';
 import CategoryScroll from '../components/CategoryScroll';
 import EventCard from '../components/EventCard';
 import BottomNavBar from '../components/BottomNavBar';
 import ImageUploader from '../components/ImageUploader';
 
-// Component pour afficher les détails d'un événement
-// Ce composant est maintenant géré par l'état de HomeScreen
-function EventDetailsScreen({ event, onGoBack }) {
-  if (!event) {
-    return (
-      <View style={[styles.container, styles.centerText]}>
-        <Text style={styles.errorText}>Aucun événement sélectionné.</Text>
-        <TouchableOpacity style={styles.backButton} onPress={onGoBack}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-          <Text style={styles.backButtonText}>Retour à l'accueil</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.detailsContainer}>
-        <TouchableOpacity style={styles.backButton} onPress={onGoBack}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-
-        <Image source={{ uri: event.photo }} style={styles.eventImage} resizeMode="cover" />
-
-        <View style={styles.contentContainer}>
-          <Text style={styles.eventTitle}>{event.nom_event}</Text>
-          <Text style={styles.eventDate}>Date : {event.date}</Text>
-          <Text style={styles.eventDescription}>{event.description}</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
 export default function HomeScreen() {
-  // 'main' : écran principal, 'uploader' : formulaire d'upload, 'details' : détails de l'événement
+  const navigation = useNavigation();
   const [currentContent, setCurrentContent] = useState('main');
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const handleAddPress = () => {
     setCurrentContent('uploader');
   };
-
-  const handleHomePress = () => {
-    setCurrentContent('main');
-    setSelectedEvent(null); // Assure la réinitialisation de l'événement sélectionné
+  
+  // Nouvelle fonction pour naviguer vers l'écran de profil
+  const handleProfilePress = () => {
+    navigation.navigate('Profile');
   };
 
-  const handleEventCardPress = (event) => {
-    setSelectedEvent(event);
-    setCurrentContent('details');
+  // Nouvelle fonction pour naviguer vers l'écran d'accueil
+  const handleHomePress = () => {
+    navigation.navigate('Home');
   };
 
   const handleUploadComplete = () => {
     setCurrentContent('main');
     Alert.alert('Upload terminé', 'Votre image a été téléchargée avec succès !');
-    fetchEvents();
   };
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.from('event').select('*');
-      if (error) throw error;
-      setEvents(data);
-    } catch (err) {
-      console.error('Erreur de récupération des événements:', err.message);
-      setError('Erreur: Impossible de récupérer les événements. Vérifiez votre connexion ou les RLS sur Supabase.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const renderContent = () => {
+  const renderMainContent = () => {
     if (currentContent === 'uploader') {
       return (
-        <ImageUploader onUploadComplete={handleUploadComplete} onClose={handleHomePress} />
+        <View style={styles.uploaderContainer}>
+          <TouchableOpacity onPress={() => setCurrentContent('main')} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Text style={styles.backButtonText}>Retour</Text>
+          </TouchableOpacity>
+          <ImageUploader onUploadComplete={handleUploadComplete} onClose={() => setCurrentContent('main')} />
+        </View>
       );
-    } else if (currentContent === 'details') {
-      return (
-        <EventDetailsScreen event={selectedEvent} onGoBack={handleHomePress} />
-      );
-    } else { // currentContent === 'main'
+    } else {
+      const eventsData = [
+        { id: '1', title: 'EXEMPLE', photo: 'https://kttziaqzsvtamgaijtzj.supabase.co/storage/v1/object/public/images/public_images/1754399043646.jpg', description: 'Teste', date: '2025-11-20' },
+        { id: '2', title: 'Soirée', photo: 'https://kttziaqzsvtamgaijtzj.supabase.co/storage/v1/object/public/images/public_images/1754563337183.png', description: 'test1', date: '2025-08-11' },
+      ];
+
+      const handleEventCardPress = (event) => {
+        navigation.navigate('EventDetails', { event });
+      };
+
       return (
         <>
           <Header />
           <ScrollView contentContainerStyle={styles.scrollViewContent}>
             <CategoryScroll />
-            <Text style={styles.popularTitle}>Événements populaires</Text>
-            {loading ? (
-              <ActivityIndicator size="large" color="#8A2BE2" style={styles.loadingIndicator} />
-            ) : error ? (
-              <Text style={styles.errorText}>{error}</Text>
-            ) : events.length > 0 ? (
-              events.map((event) => (
-                <EventCard
-                  key={event.id_event}
-                  title={event.nom_event}
-                  participants={[]}
-                  image={{ uri: event.photo }}
-                  onPress={() => handleEventCardPress(event)}
-                />
-              ))
-            ) : (
-              <Text style={styles.noEventsText}>Aucun événement trouvé.</Text>
-            )}
+            <Text style={styles.popularTitle}>Événements à la une</Text>
+            {eventsData.map(event => (
+              <EventCard
+                key={event.id}
+                title={event.title}
+                image={{ uri: event.photo }}
+                onPress={() => handleEventCardPress(event)}
+              />
+            ))}
+            <EventCard
+              title="Événement culturel"
+              image={{ uri: 'https://placehold.co/600x400/8A2BE2/ffffff?text=Culturel' }}
+              onPress={() => console.log('Événement culturel')}
+            />
+            
           </ScrollView>
         </>
       );
@@ -135,8 +84,12 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
       <View style={styles.container}>
-        {renderContent()}
-        <BottomNavBar onAddPress={handleAddPress} onHomePress={handleHomePress} />
+        {renderMainContent()}
+        <BottomNavBar 
+          onAddPress={handleAddPress} 
+          onProfilePress={handleProfilePress}
+          onHomePress={handleHomePress}
+        />
       </View>
     </SafeAreaView>
   );
@@ -162,67 +115,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 25,
   },
-  errorText: {
-    color: 'red',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  noEventsText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  loadingIndicator: {
-    marginTop: 20
-  },
-  // Styles pour EventDetailsScreen
-  detailsContainer: {
-    flexGrow: 1,
+  uploaderContainer: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: 60,
     left: 20,
     zIndex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 10,
     borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   backButtonText: {
     color: '#fff',
     marginLeft: 5,
-  },
-  eventImage: {
-    width: '100%',
-    height: 300,
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  eventTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 10,
-  },
-  eventDate: {
-    fontSize: 18,
-    color: '#aaa',
-    marginBottom: 15,
-  },
-  eventDescription: {
     fontSize: 16,
-    color: '#ddd',
-    lineHeight: 24,
   },
-  centerText: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  }
 });
