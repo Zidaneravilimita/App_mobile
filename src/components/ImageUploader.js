@@ -346,20 +346,24 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginHorizontal: 5,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   uploadButton: {
     backgroundColor: '#8A2BE2',
+    padding: 10,
+    paddingLeft: 10,
   },
   cancelButton: {
     backgroundColor: '#555',
+    padding: 10,
+    paddingTop: 20,
   },
 });

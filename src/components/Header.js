@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 15,
     backgroundColor: '#1a1a1a',
-    marginTop: 20,
+    marginTop: 35,
   },
   avatar: {
     width: 40,
