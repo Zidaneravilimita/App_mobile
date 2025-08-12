@@ -1,152 +1,57 @@
+// src/components/EventCard.js
 import React from 'react';
-import { View, Text, StyleSheet, ImageBackground, TouchableOpacity, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 
-export default function EventCard({ title, participants, image, onPress }) {
-  const organizerAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); 
-  const participantAvatarImage = require('../../assets/images/Avatar/avatar.jpg'); 
-  const resolvedImage = image; 
+export default function EventCard({ event, onPress }) {
+  // Déconstruction des props avec des valeurs par défaut pour éviter les erreurs si les données sont manquantes
+  // Nous utilisons l'opérateur de chaînage optionnel `?.` pour accéder en toute sécurité aux propriétés imbriquées
+  const eventTitle = event.nom_event || 'Titre non disponible';
+  const eventDate = event.date || 'Date non disponible';
+  const eventPhoto = event.photo || 'https://placehold.co/400x200/222/fff?text=No+Image';
+  const eventLocation = event.ville?.nom_ville || 'Lieu non spécifié';
+  const eventType = event.type_evenements?.nom_event || 'Type non spécifié';
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
-      <ImageBackground
-        source={resolvedImage} // Utilise directement l'image passée par HomeScreen
-        style={styles.imageBackground} 
-        imageStyle={styles.imageStyle} 
-        resizeMode="cover" 
-      >
-        <View style={styles.overlay}> 
-          <View style={styles.headerSection}>
-            <Image source={organizerAvatarImage} style={styles.organizerAvatar} />
-            <View style={styles.headerText}>
-              <Text style={styles.organizerName}>{title || "Nom de l'Événement"}</Text>
-              <Text style={styles.eventType}>Soirée / Fête</Text>
-            </View>
-            <TouchableOpacity style={styles.moreIcon}>
-              <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.footerSection}>
-            <View style={styles.participantsContainer}>
-              <Image source={participantAvatarImage} style={styles.participantAvatar} />
-              <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlappingAvatar]} />
-              <Image source={participantAvatarImage} style={[styles.participantAvatar, styles.overlappingAvatar2]} />
-              <View style={styles.participantCount}>
-                <Text style={styles.participantCountText}>{participants || '0+'}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.likeButton}>
-              <Ionicons name="heart-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ImageBackground>
+      <Image source={{ uri: eventPhoto }} style={styles.eventImage} />
+      <View style={styles.textContainer}>
+        <Text style={styles.eventTitle}>{eventTitle}</Text>
+        <Text style={styles.eventDetails}>🗓️ {eventDate}</Text>
+        <Text style={styles.eventDetails}>📍 {eventLocation}</Text>
+        <Text style={styles.eventDetails}>🏷️ {eventType}</Text>
+      </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   cardContainer: {
-    width: 340,
-    height: 250,
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginRight: 20, 
-    marginBottom: 25, 
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  imageBackground: {
-    flex: 1,
-    justifyContent: 'space-between',
-    padding: 20, // Espace intérieur pour le contenu de la carte
-  },
-  imageStyle: {
-    borderRadius: 20,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 20,
-    padding: 20, // Assure un espacement constant sur tout le contenu
-    justifyContent: 'space-between',
-  },
-  headerSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)', 
-    paddingVertical: 8, // Augmenté pour plus d'espace
-    paddingHorizontal: 12, // Augmenté pour plus d'espace
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    marginBottom: 10, // Ajout d'espace en bas de l'entête
-  },
-  organizerAvatar: {
-    width: 35, // Légèrement plus grand
-    height: 35,
-    borderRadius: 17.5,
-    marginRight: 12, // Augmenté pour plus d'espace
-    borderWidth: 1.5, // Légèrement plus épais
-    borderColor: '#fff',
-  },
-  headerText: {
-    flex: 1,
-  },
-  organizerName: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  eventType: {
-    color: '#eee',
-    fontSize: 12,
-  },
-  moreIcon: {
-    paddingLeft: 10,
-  },
-  footerSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 'auto',
-  },
-  participantsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  participantAvatar: {
-    width: 32, // Légèrement plus grand
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  overlappingAvatar: {
-    marginLeft: -15, // chevauchement
-  },
-  overlappingAvatar2: {
-    marginLeft: -15, // chevauchement
-  },
-  participantCount: {
-    marginLeft: 10,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: '#333',
     borderRadius: 15,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: '#fff',
+    overflow: 'hidden',
+    marginBottom: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  participantCountText: {
-    color: '#fff',
+  eventImage: {
+    width: '100%',
+    height: 200,
+  },
+  textContainer: {
+    padding: 15,
+  },
+  eventTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 5,
   },
-  likeButton: {
-    backgroundColor: '#8A2BE2',
-    padding: 8,
-    borderRadius: 20,
+  eventDetails: {
+    fontSize: 14,
+    color: '#ccc',
+    marginTop: 2,
   },
 });

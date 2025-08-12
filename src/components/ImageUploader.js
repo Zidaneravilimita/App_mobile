@@ -5,7 +5,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../config/supabase';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function ImageUploader({ onUploadComplete, onClose }) {
   const [imageUri, setImageUri] = useState(null);
@@ -28,7 +27,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission requise', 'Nous avons besoin de la permission d\'accéder à votre galerie pour télécharger une image.');
+          Alert.alert('Permission requise', 'Désolé, nous avons besoin de la permission pour accéder à la galerie d\'images pour que cela fonctionne !');
         }
       }
       fetchVilles();
@@ -39,25 +38,29 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   const fetchVilles = async () => {
     const { data, error } = await supabase.from('ville').select('*');
     if (error) {
-      console.error('Erreur de récupération des villes:', error);
-      Alert.alert('Erreur', 'Impossible de charger les villes.');
-    } else {
-      setVilles(data);
+      console.error('Erreur lors du chargement des villes:', error.message);
+      return;
+    }
+    setVilles(data);
+    if (data.length > 0) {
+      setSelectedVilleId(data[0].id_ville);
     }
   };
 
   const fetchTypeEvenements = async () => {
     const { data, error } = await supabase.from('type_evenements').select('*');
     if (error) {
-      console.error('Erreur de récupération des types d\'événements:', error);
-      Alert.alert('Erreur', 'Impossible de charger les types d\'événements.');
-    } else {
-      setTypeEvenements(data);
+      console.error('Erreur lors du chargement des types d\'événements:', error.message);
+      return;
+    }
+    setTypeEvenements(data);
+    if (data.length > 0) {
+      setSelectedTypeEventId(data[0].id_type_event);
     }
   };
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
@@ -66,128 +69,171 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
 
     if (!result.canceled) {
       setImageUri(result.assets[0].uri);
-      setDownloadURL(null); // Réinitialise l'URL de téléchargement
     }
   };
 
   const uploadImage = async () => {
     if (!imageUri) {
       Alert.alert('Erreur', 'Veuillez sélectionner une image d\'abord.');
-      return;
-    }
-
-    if (!eventTitle || !eventDescription || !selectedVilleId || !selectedTypeEventId || !eventDate) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs du formulaire.');
-      return;
+      return null;
     }
 
     setUploading(true);
 
     try {
-      const { data, error } = await supabase.storage
+      const fileExt = imageUri.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `public/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
         .from('images')
-        .upload(`public_images/${Date.now()}.png`, {
-          uri: imageUri,
-          type: 'image/png',
-          name: `${Date.now()}.png`,
-        });
+        .upload(filePath, { uri: imageUri, type: `image/${fileExt}` });
 
-      if (error) {
-        throw error;
+      if (uploadError) {
+        throw uploadError;
       }
 
-      // Récupérer l'URL publique de l'image
-      const { data: publicUrlData } = supabase.storage
+      const { data: publicURLData } = supabase.storage
         .from('images')
-        .getPublicUrl(data.path);
+        .getPublicUrl(filePath);
 
-      if (!publicUrlData) {
-        throw new Error('Impossible d\'obtenir l\'URL publique de l\'image.');
-      }
-
-      setDownloadURL(publicUrlData.publicUrl);
-      console.log('URL de l\'image téléchargée:', publicUrlData.publicUrl);
-
-      // Insérer les données de l'événement dans la table 'event'
-      const { data: eventData, error: eventError } = await supabase.from('event').insert({
-        nom_event: eventTitle,
-        description: eventDescription,
-        date: eventDate,
-        photo: publicUrlData.publicUrl,
-        id_type_event: selectedTypeEventId,
-      });
-
-      if (eventError) {
-        throw eventError;
-      }
-
-      Alert.alert('Succès', 'Image et événement téléchargés avec succès !');
-      setImageUri(null);
-      setEventTitle('');
-      setEventDescription('');
-      setEventDate('');
-      setSelectedVilleId('');
-      setSelectedTypeEventId('');
-      onUploadComplete(); // Appelle la fonction de rappel pour revenir à l'écran principal
-
+      setDownloadURL(publicURLData.publicUrl);
+      return publicURLData.publicUrl;
     } catch (error) {
-      console.error('Erreur lors du téléchargement ou de l\'insertion:', error);
-      Alert.alert('Erreur', `Échec du téléchargement: ${error.message}`);
+      Alert.alert('Erreur de téléchargement', error.message);
+      return null;
     } finally {
       setUploading(false);
     }
   };
 
-  const onDateChange = (event, selected) => {
-    const currentDate = selected || selectedDate;
+  // NOUVELLE FONCTION pour gérer la soumission complète du formulaire
+  const handleFormSubmit = async () => {
+    if (!imageUri || !eventTitle || !eventDescription || !selectedDate || !selectedVilleId || !selectedTypeEventId) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs et sélectionner une image.');
+      return;
+    }
+
+    setUploading(true);
+
+    const imageUrl = await uploadImage();
+
+    if (imageUrl) {
+      try {
+        // CONVERSION DE L'ID DE TYPE D'ÉVÉNEMENT EN NOMBRE
+        const idTypeEventNumber = parseInt(selectedTypeEventId, 10);
+        
+        // CONVERSION DE L'ID DE VILLE EN NOMBRE
+        const idVilleNumber = parseInt(selectedVilleId, 10);
+
+        const { data, error } = await supabase
+          .from('event')
+          .insert([
+            {
+              nom_event: eventTitle,
+              description: eventDescription,
+              date: selectedDate.toISOString(),
+              photo: imageUrl,
+              id_type_event: idTypeEventNumber, // Assure que le type est un nombre
+              id_ville: idVilleNumber, // Assure que le type est un nombre
+            },
+          ]);
+
+        if (error) {
+          throw error;
+        }
+
+        Alert.alert('Succès', 'Événement ajouté avec succès !');
+        onUploadComplete();
+      } catch (error) {
+        Alert.alert('Erreur lors de l\'ajout de l\'événement', error.message);
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      setUploading(false);
+    }
+  };
+
+  const onDateChange = (event, newDate) => {
+    const currentDate = newDate || selectedDate;
     setShowDatePicker(Platform.OS === 'ios');
     setSelectedDate(currentDate);
-    setEventDate(currentDate.toISOString().split('T')[0]); // Formatte la date
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Ionicons name="close-circle" size={30} color="#fff" />
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* Bouton de retour */}
+      <TouchableOpacity style={styles.backButton} onPress={onClose}>
+        <Ionicons name="close" size={24} color="#fff" />
       </TouchableOpacity>
-      <Text style={styles.title}>Créer un Événement</Text>
 
+      <Text style={styles.headerTitle}>Ajouter un événement</Text>
+
+      {/* Bouton pour sélectionner l'image */}
+      <TouchableOpacity style={styles.pickImageButton} onPress={pickImage}>
+        <Text style={styles.pickImageButtonText}>Sélectionner une image</Text>
+      </TouchableOpacity>
+
+      {/* Aperçu de l'image */}
+      {imageUri && (
+        <View style={styles.imagePreviewContainer}>
+          <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+        </View>
+      )}
+
+      {/* Saisie du titre */}
       <TextInput
         style={styles.input}
         placeholder="Titre de l'événement"
-        placeholderTextColor="#aaa"
+        placeholderTextColor="#999"
         value={eventTitle}
         onChangeText={setEventTitle}
       />
 
+      {/* Saisie de la description */}
       <TextInput
-        style={[styles.input, styles.textArea]}
+        style={styles.input}
         placeholder="Description de l'événement"
-        placeholderTextColor="#aaa"
+        placeholderTextColor="#999"
+        multiline
+        numberOfLines={4}
         value={eventDescription}
         onChangeText={setEventDescription}
-        multiline
       />
-      
-      {/* Picker pour les villes */}
+
+      {/* Saisie de la ville */}
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={selectedVilleId}
-          onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
           style={styles.picker}
+          onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
           dropdownIconColor="#fff"
         >
-          <Picker.Item label="Sélectionner une ville" value="" />
           {villes.map((ville) => (
             <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
           ))}
         </Picker>
       </View>
 
-      {/* Bouton pour ouvrir le sélecteur de date */}
+      {/* Saisie du type d'événement */}
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedTypeEventId}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedTypeEventId(itemValue)}
+          dropdownIconColor="#fff"
+        >
+          {typeEvenements.map((type) => (
+            <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
+          ))}
+        </Picker>
+      </View>
+
+      {/* Saisie de la date */}
       <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputButton}>
         <Text style={styles.dateInputText}>
-          {eventDate ? `Date : ${eventDate}` : "Sélectionner la date de l'événement"}
+          Date : {selectedDate.toLocaleDateString()}
         </Text>
       </TouchableOpacity>
 
@@ -200,73 +246,40 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
         />
       )}
 
-      {/* Picker pour les types d'événements */}
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={selectedTypeEventId}
-          onValueChange={(itemValue) => setSelectedTypeEventId(itemValue)}
-          style={styles.picker}
-          dropdownIconColor="#fff"
-        >
-          <Picker.Item label="Sélectionner le type d'événement" value="" />
-          {typeEvenements.map((type) => (
-            <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
-          ))}
-        </Picker>
-      </View>
-
-      {/* Bouton de sélection d'image */}
-      <TouchableOpacity style={styles.pickImageButton} onPress={pickImage}>
-        <Text style={styles.pickImageButtonText}>Sélectionner une image</Text>
+      {/* Bouton de soumission */}
+      <TouchableOpacity style={styles.submitButton} onPress={handleFormSubmit} disabled={uploading}>
+        {uploading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.submitButtonText}>Ajouter l'événement</Text>
+        )}
       </TouchableOpacity>
-
-      {/* Prévisualisation de l'image */}
-      {imageUri && (
-        <View style={styles.imagePreviewContainer}>
-          <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-        </View>
-      )}
-
-      {/* Indicateur de chargement */}
-      {uploading && (
-        <ActivityIndicator
-          size="large"
-          color="#8A2BE2"
-          style={styles.activityIndicator}
-        />
-      )}
-
-      {/* Boutons pour annuler et uploader */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
-          <Text style={styles.buttonText}>Annuler</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.uploadButton]} onPress={uploadImage} disabled={uploading}>
-          <Text style={styles.buttonText}>
-            {uploading ? 'Téléchargement...' : 'Publier l\'événement'}
-          </Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
     padding: 20,
+    backgroundColor: '#1a1a1a',
+    flexGrow: 1,
   },
-  closeButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 10,
+    borderRadius: 20,
   },
-  title: {
+  headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 20,
     textAlign: 'center',
+    marginTop: 50,
   },
   input: {
     width: '100%',
@@ -279,10 +292,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#555',
     height: 50,
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
   },
   dateInputButton: {
     width: '100%',
@@ -300,18 +309,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
   },
-  pickerContainer: {
-    width: '100%',
-    backgroundColor: '#333',
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#555',
-  },
-  picker: {
-    color: '#fff',
-    height: 50,
-  },
   pickImageButton: {
     backgroundColor: '#8A2BE2',
     padding: 15,
@@ -327,43 +324,35 @@ const styles = StyleSheet.create({
   imagePreviewContainer: {
     alignItems: 'center',
     width: '100%',
+    marginBottom: 20,
   },
   imagePreview: {
     width: 200,
     height: 200,
-    borderRadius: 10,
-    marginVertical: 10,
+    borderRadius: 8,
+  },
+  pickerContainer: {
+    backgroundColor: '#333',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#555',
+    marginBottom: 15,
   },
-  activityIndicator: {
-    marginTop: 10,
+  picker: {
+    height: 50,
+    width: '100%',
+    color: '#fff',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  button: {
-    flex: 1,
+  submitButton: {
+    backgroundColor: '#8A2BE2',
+    padding: 15,
     borderRadius: 8,
     alignItems: 'center',
-    marginHorizontal: 5,
+    marginTop: 10,
   },
-  buttonText: {
+  submitButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  uploadButton: {
-    backgroundColor: '#8A2BE2',
-    padding: 10,
-    paddingLeft: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#555',
-    padding: 10,
-    paddingTop: 20,
   },
 });
