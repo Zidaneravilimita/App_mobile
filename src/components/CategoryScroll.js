@@ -1,92 +1,170 @@
-import React from 'react';
-import { View, ScrollView, Text, StyleSheet, ImageBackground, TouchableOpacity } from 'react-native';
-import clubImage from '../../assets/images/Club/Club_73.jpg';
-import djImage from '../../assets/images/Dj/DJ show img.jpg';
-import bouffImage from '../../assets/images/Bouff/Bouff.jpg';
-import colorImage from '../../assets/images/Color/Color_Party.jpg';
-import concertImage from '../../assets/images/Concert/Concert_pub.jpg';
-import festivalImage from '../../assets/images/Festival/festival somaroho 2025.jpg';
+// src/components/CategoryScroll.js
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { supabase } from '../config/supabase';
+import { Ionicons } from '@expo/vector-icons';
 
-// Données pour les catégories
-const categories = [
-  { id: '1', name: 'Soirée night', type: 'Clube', image: clubImage },
-  { id: '2', name: 'Soirée night', type: 'DJ', image: djImage },
-  { id: '3', name: 'Soirée night', type: 'bouff', image: bouffImage },
-  { id: '4', name: 'Soirée night', type: 'Color', image: colorImage },
-  { id: '5', name: 'Soirée night', type: 'Concert', image: concertImage },
-  { id: '6', name: 'Soirée night', type: 'Festival', image: festivalImage },
-];
+// Ce composant récupère et affiche une liste de catégories d'événements avec des images dans un ScrollView horizontal.
+// Il utilise la prop `onSelectCategory` pour gérer la sélection d'une catégorie.
+export default function CategoryScroll({ onSelectCategory }) {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-export default function CategoryScroll() {
-  return (
-    // <View> englobant le titre et la ScrollView pour une meilleure organisation
-    <View style={styles.categorySection}>
-      <Text style={styles.categoryTitle}>Catégories</Text>
+  // Récupère les catégories de la base de données Supabase au montage du composant.
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('category').select('*');
+      if (error) {
+        throw error;
+      }
+      setCategories(data);
+    } catch (e) {
+      console.error('Erreur lors de la récupération des catégories :', e);
+      setError('Impossible de charger les catégories.');
+      Alert.alert('Erreur', 'Impossible de charger les catégories : ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Gère l'appui sur une carte de catégorie.
+  const handleCategoryPress = (category) => {
+    console.log('Catégorie sélectionnée :', category.nom_category);
+    if (onSelectCategory) {
+      onSelectCategory(category.id_category);
+    }
+  };
+
+  // Affiche le contenu du composant en fonction des états de chargement et d'erreur.
+  const renderContent = () => {
+    if (loading) {
+      return <ActivityIndicator size="large" color="#8A2BE2" style={styles.activityIndicator} />;
+    }
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      );
+    }
+    if (categories.length === 0) {
+      return (
+        <View style={styles.noCategoriesContainer}>
+          <Text style={styles.noCategoriesText}>Aucune catégorie trouvée.</Text>
+        </View>
+      );
+    }
+
+    return (
       <ScrollView
-        horizontal
+        horizontal={true}
         showsHorizontalScrollIndicator={false}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
       >
         {categories.map((category) => (
-          <TouchableOpacity key={category.id} style={styles.categoryCard}>
-            <ImageBackground
-              source={category.image}
-              style={styles.categoryImage}
-              imageStyle={styles.imageStyle} 
-            >
-              <Text style={styles.categoryName}>{category.name}</Text>
-              <Text style={styles.categoryType}>{category.type}</Text>
-            </ImageBackground>
+          <TouchableOpacity
+            key={category.id_category}
+            style={styles.categoryCard}
+            onPress={() => handleCategoryPress(category)}
+          >
+            {/* Affiche l'image de la catégorie si disponible */}
+            {category.image ? (
+              <Image source={{ uri: category.image }} style={styles.categoryImage} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Ionicons name="image-outline" size={30} color="#fff" />
+              </View>
+            )}
+            {/* Affiche le nom de la catégorie */}
+            <Text style={styles.categoryTitle}>{category.nom_category}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {renderContent()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  categorySection: {
-    paddingHorizontal: 15, // pour aligner le titre et le contenu du carrousel.
-    marginBottom: 10, // Un peu d'espace sous toute la section des catégories si nécessaire
+  container: {
+    height: 140, // Hauteur ajustée
+    marginTop: 10,
+    marginBottom: 20,
+    backgroundColor: '#1a1a1a',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  categoryCard: {
+    backgroundColor: '#333',
+    width: 100, // Largeur fixe pour chaque carte
+    height: 120, // Hauteur fixe pour chaque carte
+    borderRadius: 10,
+    marginHorizontal: 8,
+    justifyContent: 'flex-start', // Alignement en haut
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#555',
+    padding: 5,
+  },
+  categoryImage: {
+    width: '100%', // Remplir la largeur du conteneur
+    height: 80, // Hauteur fixe pour l'image
+    borderRadius: 8, // Coins légèrement arrondis pour l'image
+    marginBottom: 5,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#555',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
   },
   categoryTitle: {
     color: '#fff',
-    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10, // Espacement entre le titre et le début des cartes défilantes
-  },
-  scrollViewContent: {
-    paddingVertical: 10,
-    paddingBottom: 30,
-  },
-  categoryCard: {
-    width: 90,
-    height: 140,
-    borderRadius: 15,
-    overflow: 'hidden', 
-    marginRight: 15,
-  },
-  categoryImage: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: 10,
-  },
-  imageStyle: {
-    borderRadius: 15,
-  },
-  categoryName: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  categoryType: {
-    color: '#fff',
     fontSize: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textAlign: 'center',
+  },
+  activityIndicator: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 16,
+  },
+  noCategoriesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noCategoriesText: {
+    color: '#aaa',
+    fontSize: 16,
   },
 });
