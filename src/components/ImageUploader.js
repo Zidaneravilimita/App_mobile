@@ -148,9 +148,6 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
 
   return (
     <ScrollView style={styles.container}>
-      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-        <Ionicons name="close-circle" size={30} color="#fff" />
-      </TouchableOpacity>
       <Text style={styles.title}>Créer un Événement</Text>
 
       <TextInput
@@ -219,7 +216,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
       {/* Bouton de sélection d'image avec icône */}
       <TouchableOpacity style={styles.pickImageButton} onPress={pickImage}>
         <Ionicons name="image-outline" size={24} color="#fff" style={styles.pickImageIcon} />
-        <Text style={styles.pickImageButtonText}>Sélectionner une image</Text>
+        <Text style={styles.pickImageButtonText}>Ajouter une pièce jointe</Text>
       </TouchableOpacity>
 
       {/* Prévisualisation de l'image */}
@@ -258,16 +255,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
     padding: 20,
-  },
-  closeButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
+    marginTop: 80,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 20,
+    marginBottom: 10, // Diminution de la marge
     textAlign: 'center',
   },
   input: {
@@ -276,7 +270,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     padding: 15,
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: 10, // Diminution de la marge
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#555',
@@ -291,7 +285,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     padding: 12,
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: 10, // Diminution de la marge
     borderWidth: 1,
     borderColor: '#555',
     justifyContent: 'center',
@@ -306,7 +300,7 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#333',
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: 10, // Diminution de la marge
     borderWidth: 1,
     borderColor: '#555',
   },
@@ -319,12 +313,12 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center', // Centrer le contenu horizontalement
-    flexDirection: 'row', // Aligner les éléments en ligne
-    marginBottom: 20,
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginBottom: 10, // Diminution de la marge
   },
   pickImageIcon: {
-    marginRight: 10, // Ajoute un espace à droite de l'icône
+    marginRight: 10,
   },
   pickImageButtonText: {
     color: '#fff',
@@ -349,7 +343,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 10, // Diminution de la marge
   },
   button: {
     flex: 1,

@@ -33,167 +33,114 @@ export default function HomeScreen({ navigation }) {
   };
 
   /**
-   * Gère la pression sur le bouton "Accueil" de la barre de navigation inférieure
-   * ou le bouton "Précédent" du formulaire de téléchargement.
-   * Change le contenu affiché pour la page principale.
+   * Gère la pression sur le bouton "Accueil" de la barre de navigation inférieure.
+   * Change le contenu affiché pour l'écran principal.
    */
   const handleHomePress = () => {
     setCurrentContent('main');
   };
 
   /**
-   * Gère l'achèvement du téléchargement d'une image.
-   * Affiche une alerte de succès, retourne à la page principale et recharge les événements.
+   * Gère la fin du téléchargement d'une image depuis ImageUploader.
+   * Affiche une alerte de succès et recharge les événements.
    */
   const handleUploadComplete = () => {
     setCurrentContent('main');
     Alert.alert('Upload terminé', 'Votre image a été téléchargée avec succès !');
-    fetchEvents(selectedVilleId);
+    fetchEvents();
   };
 
   /**
-   * Récupère la liste des villes depuis la base de données Supabase.
+   * Récupère les événements depuis Supabase.
+   * Filtre par ville si une ville est sélectionnée.
+   */
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      let query = supabase.from('event').select('*');
+
+      if (selectedVilleId !== 'all') {
+        query = query.eq('id_ville', selectedVilleId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setEvents(data);
+    } catch (error) {
+      setError(error);
+      console.error('Erreur de récupération des événements:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Récupère la liste des villes depuis Supabase.
    */
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase.from('ville').select('*');
       if (error) throw error;
       setVilles(data);
-      // Définit la première ville par défaut si la liste n'est pas vide
-      if (data.length > 0) {
-        setSelectedVilleId(data[0].id_ville.toString());
-      }
-    } catch (e) {
-      console.error("Erreur lors de la récupération des villes:", e);
-      Alert.alert("Erreur", "Impossible de charger les villes.");
+    } catch (error) {
+      console.error('Erreur de récupération des villes:', error);
     }
   };
 
-  /**
-   * Récupère la liste des événements depuis la base de données Supabase,
-   * avec un filtre optionnel par ID de ville.
-   * @param {string} villeId - L'ID de la ville pour filtrer les événements.
-   */
-  const fetchEvents = async (villeId) => {
-    setLoading(true);
-    setError(null);
-    try {
-      let query = supabase
-        .from('event')
-        .select(`
-          *,
-          ville (nom_ville),
-          type_evenements (nom_event)
-        `);
+  // Exécute la récupération des événements et des villes au chargement du composant et lorsque selectedVilleId change.
+  useEffect(() => {
+    fetchEvents();
+  }, [selectedVilleId]);
 
-      // Ajoute le filtre par ville si un ID de ville est sélectionné
-      if (villeId && villeId !== 'all') {
-        query = query.eq('id_ville', villeId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setEvents(data);
-    } catch (e) {
-      console.error("Erreur lors de la récupération des événements:", e);
-      setError("Impossible de charger les événements. Veuillez réessayer plus tard.");
-      Alert.alert("Erreur", "Impossible de charger les événements.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Premier useEffect : charge les villes une seule fois au montage du composant
   useEffect(() => {
     fetchVilles();
   }, []);
 
-  // Deuxième useEffect : charge les événements chaque fois que la ville sélectionnée change
-  // ou que la liste des villes est mise à jour (après la première récupération)
-  useEffect(() => {
-    if (selectedVilleId) {
-      fetchEvents(selectedVilleId);
-    }
-  }, [selectedVilleId]);
-
-  /**
-   * Affiche le contenu principal de l'écran, soit les événements, soit l'interface d'upload.
-   */
   const renderMainContent = () => {
     if (currentContent === 'uploader') {
-      return (
-        <View style={styles.uploaderContainer}>
-          <TouchableOpacity onPress={handleHomePress} style={styles.backButton}>
-            <Ionicons name="arrow-back-circle-outline" size={40} color="#fff" />
-          </TouchableOpacity>
-          <ImageUploader onUploadComplete={handleUploadComplete} onClose={handleHomePress} />
-        </View>
-      );
+      return <ImageUploader onUploadComplete={handleUploadComplete} onClose={handleHomePress} />;
     } else {
-      if (loading) {
-        return (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#8A2BE2" />
-          </View>
-        );
-      }
-
-      if (error) {
-        return (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={() => fetchEvents(selectedVilleId)} style={styles.retryButton}>
-              <Text style={styles.retryButtonText}>Réessayer</Text>
-            </TouchableOpacity>
-          </View>
-        );
-      }
-
-      const popularEvents = events.filter(event => event.ville && event.type_evenements);
-
       return (
         <>
-          <View style={styles.headerContainer}>
-            <Header />
-          </View>
+          <Header />
+          {/* Section Catégorie (fixe en haut) */}
+          <Text style={styles.popularTitle}>Catégorie</Text>
+          <CategoryScroll />
 
-          <View style={styles.cityPickerContainer}>
-            <Picker
-              selectedValue={selectedVilleId}
-              onValueChange={(itemValue) => {
-                setSelectedVilleId(itemValue);
-              }}
-              style={styles.pickerStyle}
-              itemStyle={styles.pickerItemStyle}
-            >
-              <Picker.Item label="Toutes les villes" value="all" />
-              {villes.map(ville => (
-                <Picker.Item
-                  key={ville.id_ville}
-                  label={ville.nom_ville}
-                  value={ville.id_ville.toString()}
-                />
-              ))}
-            </Picker>
-          </View>
+          {/* ScrollView pour le reste du contenu */}
+          <ScrollView style={styles.scrollView}>
+            {/* Picker pour filtrer par ville */}
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={selectedVilleId}
+                onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+                style={styles.pickerStyle}
+                itemStyle={styles.pickerItemStyle}
+              >
+                <Picker.Item label="Toutes les villes" value="all" />
+                {villes.map(ville => (
+                  <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+                ))}
+              </Picker>
+            </View>
 
-          <View style={styles.categoryContainer}>
-            <CategoryScroll />
-          </View>
+            {/* Titre pour la section Événements populaires */}
+            <Text style={styles.popularTitle}>Événements populaires</Text>
 
-          <Text style={styles.popularTitle}>Événements Populaires</Text>
-
-          <ScrollView contentContainerStyle={styles.scrollViewContent}>
-            {popularEvents.length > 0 ? (
-              popularEvents.map((event) => (
+            {loading ? (
+              <ActivityIndicator size="large" color="#8A2BE2" style={styles.activityIndicator} />
+            ) : error ? (
+              <Text style={styles.errorText}>Erreur de chargement des événements.</Text>
+            ) : events.length > 0 ? (
+              events.map((event) => (
                 <EventCard
                   key={event.id_event}
                   event={event}
-                  onPress={() => navigation.navigate('EventDetailsScreen', { event })}
+                  onPress={() => navigation.navigate('EventDetails', { eventId: event.id_event })}
                 />
               ))
             ) : (
-              <Text style={styles.noEventsText}>Aucun événement trouvé pour cette ville.</Text>
+              <Text style={styles.noEventsText}>Aucun événement trouvé.</Text>
             )}
           </ScrollView>
         </>
@@ -222,13 +169,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
-  headerContainer: {
-    paddingHorizontal: 15,
-    paddingVertical: 2,
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 10,
+    marginTop: 10,
   },
-  cityPickerContainer: {
+  pickerWrapper: {
     marginHorizontal: 15,
-    marginBottom: 5,
+    marginVertical: 10,
     borderWidth: 1,
     borderColor: '#555',
     borderRadius: 8,
@@ -242,27 +190,6 @@ const styles = StyleSheet.create({
   pickerItemStyle: {
     color: '#fff',
     backgroundColor: '#333',
-  },
-  categoryContainer: {
-    height: 50,
-    marginVertical: 5,
-  },
-  scrollViewContent: {
-    paddingBottom: 20,
-    paddingTop: 5,
-    paddingHorizontal: 10,
-  },
-  uploaderContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
   },
   // Text styles
   popularTitle: {
@@ -279,32 +206,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
   },
-  // Loading and Error styles
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
   errorText: {
-    color: '#fff',
-    fontSize: 18,
+    color: 'red',
     textAlign: 'center',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: '#8A2BE2',
-    padding: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#fff',
+    marginTop: 20,
     fontSize: 16,
-    fontWeight: 'bold',
+  },
+  activityIndicator: {
+    marginTop: 20,
   },
 });

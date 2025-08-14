@@ -100,8 +100,6 @@ export default function CategoryScroll({ onSelectCategory }) {
 const styles = StyleSheet.create({
   container: {
     height: 140, // Hauteur ajustée
-    marginTop: 10,
-    marginBottom: 20,
     backgroundColor: '#1a1a1a',
   },
   scrollView: {
@@ -116,7 +114,7 @@ const styles = StyleSheet.create({
     width: 100, // Largeur fixe pour chaque carte
     height: 120, // Hauteur fixe pour chaque carte
     borderRadius: 10,
-    marginHorizontal: 8,
+    marginHorizontal: 5,
     justifyContent: 'flex-start', // Alignement en haut
     alignItems: 'center',
     borderWidth: 1,
