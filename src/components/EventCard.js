@@ -21,6 +21,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     borderRadius: 15,
     overflow: 'hidden', // Empêche l'image de déborder des bords arrondis
+
     marginBottom: 20,
     elevation: 5,
     shadowColor: '#000',

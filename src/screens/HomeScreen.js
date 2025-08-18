@@ -33,7 +33,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   /**
-   * Gère la pression sur le bouton "Accueil" de la barre de navigation inférieure.
+   * Gère la pression sur le bouton "Home" de la barre de navigation inférieure.
    * Change le contenu affiché pour l'écran principal.
    */
   const handleHomePress = () => {
@@ -41,75 +41,89 @@ export default function HomeScreen({ navigation }) {
   };
 
   /**
-   * Gère la fin du téléchargement d'une image depuis ImageUploader.
-   * Affiche une alerte de succès et recharge les événements.
-   */
-  const handleUploadComplete = () => {
-    setCurrentContent('main');
-    Alert.alert('Upload terminé', 'Votre image a été téléchargée avec succès !');
-    fetchEvents();
-  };
-
-  /**
-   * Récupère les événements depuis Supabase.
-   * Filtre par ville si une ville est sélectionnée.
+   * Récupère les événements de la base de données Supabase.
+   * Filtre les événements en fonction de la ville sélectionnée.
    */
   const fetchEvents = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      let query = supabase.from('event').select('*');
+      let query = supabase.from('event').select(`
+        *,
+        ville ( nom_ville ),
+        type_evenements ( nom_event )
+      `);
 
+      // Si une ville est sélectionnée (et ce n'est pas "all"), filtre par ville
       if (selectedVilleId !== 'all') {
         query = query.eq('id_ville', selectedVilleId);
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       setEvents(data);
-    } catch (error) {
-      setError(error);
-      console.error('Erreur de récupération des événements:', error);
+    } catch (e) {
+      console.error('Erreur lors de la récupération des événements :', e);
+      setError('Impossible de charger les événements.');
+      Alert.alert('Erreur', 'Impossible de charger les événements : ' + e.message);
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Récupère la liste des villes depuis Supabase.
+   * Récupère la liste des villes pour le sélecteur.
    */
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase.from('ville').select('*');
       if (error) throw error;
       setVilles(data);
-    } catch (error) {
-      console.error('Erreur de récupération des villes:', error);
+    } catch (e) {
+      console.error('Erreur lors de la récupération des villes :', e);
     }
   };
 
-  // Exécute la récupération des événements et des villes au chargement du composant et lorsque selectedVilleId change.
-  useEffect(() => {
-    fetchEvents();
-  }, [selectedVilleId]);
-
+  // Lance le chargement des villes et des événements au montage du composant et à chaque changement de ville
   useEffect(() => {
     fetchVilles();
   }, []);
 
+  useEffect(() => {
+    fetchEvents();
+  }, [selectedVilleId]);
+
+  /**
+   * Gère le clic sur une carte d'événement et navigue vers l'écran de détails.
+   * @param {object} event - L'objet événement cliqué.
+   */
+  const handleEventPress = (event) => {
+    navigation.navigate('EventDetails', { event });
+  };
+
   const renderMainContent = () => {
+    // Si nous sommes sur l'écran du formulaire de téléchargement d'image...
     if (currentContent === 'uploader') {
-      return <ImageUploader onUploadComplete={handleUploadComplete} onClose={handleHomePress} />;
+      return (
+        <View style={styles.uploaderContainer}>
+          <TouchableOpacity style={styles.backButton} onPress={handleHomePress}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <ImageUploader onUploadComplete={() => {
+            setCurrentContent('main');
+            fetchEvents(); // Rafraîchit la liste des événements après un téléversement réussi
+          }} onClose={handleHomePress} />
+        </View>
+      );
     } else {
+      // ...sinon, affiche le contenu principal
       return (
         <>
           <Header />
-          {/* Section Catégorie (fixe en haut) */}
-          <Text style={styles.popularTitle}>Catégorie</Text>
-          <CategoryScroll />
+          <ScrollView contentContainerStyle={styles.scrollViewContent}>
 
-          {/* ScrollView pour le reste du contenu */}
-          <ScrollView style={styles.scrollView}>
-            {/* Picker pour filtrer par ville */}
+            {/* Sélecteur de ville pour filtrer les événements */}
             <View style={styles.pickerWrapper}>
               <Picker
                 selectedValue={selectedVilleId}
@@ -118,25 +132,42 @@ export default function HomeScreen({ navigation }) {
                 itemStyle={styles.pickerItemStyle}
               >
                 <Picker.Item label="Toutes les villes" value="all" />
-                {villes.map(ville => (
-                  <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+                {villes.map((ville) => (
+                  <Picker.Item
+                    key={ville.id_ville}
+                    label={ville.nom_ville}
+                    value={ville.id_ville}
+                  />
                 ))}
               </Picker>
             </View>
 
-            {/* Titre pour la section Événements populaires */}
+            {/* TITRE POUR LA SECTION CATÉGORIES */}
+            <Text style={styles.sectionTitle}>Catégories</Text>
+
+            {/* Ajout d'une marge horizontale au composant CategoryScroll */}
+            <View style={styles.categoryContainer}>
+              <CategoryScroll onSelectCategory={(id) => {
+                console.log('Catégorie sélectionnée:', id);
+                // Ajoutez ici la logique pour filtrer les événements par catégorie
+              }} />
+            </View>
+
+            {/* TITRE POUR LA SECTION ÉVÉNEMENTS POPULAIRES */}
             <Text style={styles.popularTitle}>Événements populaires</Text>
 
+            {/* Afficheur de chargement ou message d'erreur */}
             {loading ? (
-              <ActivityIndicator size="large" color="#8A2BE2" style={styles.activityIndicator} />
+              <ActivityIndicator size="large" color="#8A2BE2" style={styles.loader} />
             ) : error ? (
-              <Text style={styles.errorText}>Erreur de chargement des événements.</Text>
+              <Text style={styles.noEventsText}>{error}</Text>
             ) : events.length > 0 ? (
+              // Affiche la liste des EventCard si des événements sont trouvés
               events.map((event) => (
                 <EventCard
                   key={event.id_event}
                   event={event}
-                  onPress={() => navigation.navigate('EventDetails', { eventId: event.id_event })}
+                  onPress={() => handleEventPress(event)}
                 />
               ))
             ) : (
@@ -169,13 +200,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
-  scrollView: {
-    flex: 1,
-    paddingHorizontal: 10,
-    marginTop: 10,
+  // La ScrollView principale pour le contenu, avec un padding horizontal pour l'alignement
+  scrollViewContent: {
+    paddingBottom: 20,
+    paddingHorizontal: 15,
   },
+  // Conteneur pour le sélecteur, avec des marges
   pickerWrapper: {
-    marginHorizontal: 15,
     marginVertical: 10,
     borderWidth: 1,
     borderColor: '#555',
@@ -191,13 +222,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: '#333',
   },
+  // Conteneur pour les catégories, avec une hauteur définie pour le défilement horizontal
+  categoryContainer: {
+    height: 140, // Augmentation de la hauteur pour inclure le titre et l'espacement
+    marginVertical: 5,
+    marginBottom: 20, // Ajout d'une marge en bas pour séparer des événements
+  },
+  uploaderContainer: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+  },
+  loader: {
+    marginTop: 20,
+  },
   // Text styles
+  sectionTitle: { // Nouveau style pour le titre "Catégories"
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 15, // Marge pour le titre "Catégories"
+  },
   popularTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    marginHorizontal: 15,
-    marginTop: 5,
+    marginTop: 15, // Ajout d'une marge supérieure pour le séparer des catégories
     marginBottom: 10,
   },
   noEventsText: {
@@ -205,14 +262,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     fontSize: 16,
-  },
-  errorText: {
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 16,
-  },
-  activityIndicator: {
-    marginTop: 20,
   },
 });
