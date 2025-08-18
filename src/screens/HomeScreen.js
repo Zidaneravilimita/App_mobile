@@ -123,6 +123,20 @@ export default function HomeScreen({ navigation }) {
           <Header />
           <ScrollView contentContainerStyle={styles.scrollViewContent}>
 
+            {/* TITRE POUR LA SECTION CATÉGORIES */}
+            <Text style={styles.sectionTitle}>Catégories</Text>
+
+            {/* Ajout d'une marge horizontale au composant CategoryScroll */}
+            <View style={styles.categoryContainer}>
+              <CategoryScroll onSelectCategory={(id) => {
+                console.log('Catégorie sélectionnée:', id);
+                // Ajoutez ici la logique pour filtrer les événements par catégorie
+              }} />
+            </View>
+            
+            {/* Titre pour le sélecteur de ville */}
+            <Text style={styles.sectionTitle}>Filtrer par ville</Text>
+
             {/* Sélecteur de ville pour filtrer les événements */}
             <View style={styles.pickerWrapper}>
               <Picker
@@ -140,17 +154,6 @@ export default function HomeScreen({ navigation }) {
                   />
                 ))}
               </Picker>
-            </View>
-
-            {/* TITRE POUR LA SECTION CATÉGORIES */}
-            <Text style={styles.sectionTitle}>Catégories</Text>
-
-            {/* Ajout d'une marge horizontale au composant CategoryScroll */}
-            <View style={styles.categoryContainer}>
-              <CategoryScroll onSelectCategory={(id) => {
-                console.log('Catégorie sélectionnée:', id);
-                // Ajoutez ici la logique pour filtrer les événements par catégorie
-              }} />
             </View>
 
             {/* TITRE POUR LA SECTION ÉVÉNEMENTS POPULAIRES */}
