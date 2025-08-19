@@ -3,15 +3,15 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-
-// Reçoit les props onAddPress ET onHomePress
-export default function BottomNavBar({ onAddPress, onHomePress }) { 
+// Le composant reçoit maintenant le prop `navigation` pour gérer la navigation
+export default function BottomNavBar({ onAddPress, navigation, onHomePress }) {
   return (
     <View style={styles.navBarContainer}>
-      {/* Le bouton "Home" appelle la fonction onHomePress passée en prop */}
+      {/* Bouton pour l'accueil */}
       <TouchableOpacity style={styles.navItem} onPress={onHomePress}>
         <Ionicons name="home" size={24} color="#fff" />
       </TouchableOpacity>
+      {/* Bouton pour la recherche (à implémenter) */}
       <TouchableOpacity style={styles.navItem}>
         <Ionicons name="search" size={24} color="#fff" />
       </TouchableOpacity>
@@ -19,10 +19,12 @@ export default function BottomNavBar({ onAddPress, onHomePress }) {
       <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem}>
+      {/* Bouton pour le chat, navigue vers l'écran 'Chat' */}
+      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
         <Ionicons name="chatbubbles" size={24} color="#fff" />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.navItem}>
+      {/* Bouton pour le profil, navigue vers l'écran 'Profile' */}
+      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
         <Ionicons name="person" size={24} color="#fff" />
       </TouchableOpacity>
     </View>
@@ -53,11 +55,8 @@ const styles = StyleSheet.create({
     height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20, // Pour le positionner plus haut
-    elevation: 8, // Ombre pour Android
-    shadowColor: '#8A2BE2', // Ombre pour iOS
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    bottom: 20,
+    borderWidth: 4,
+    borderColor: '#333',
   },
 });
