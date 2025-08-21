@@ -13,6 +13,7 @@ export default function OrganizerScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   /**
@@ -23,7 +24,12 @@ export default function OrganizerScreen({ navigation }) {
     // TODO: Implémenter la logique d'inscription Supabase pour les organisateurs.
     // Par exemple, en ajoutant un champ 'role' dans la table 'profiles'.
     try {
-      if (username && email && password) {
+      if (username && email && password && confirmPassword) {
+        if (password !== confirmPassword) {
+          Alert.alert("Erreur", "Les mots de passe ne correspondent pas.");
+          setLoading(false);
+          return;
+        }
         console.log('Tentative d\'inscription pour un organisateur:', email);
         // Simuler un appel API
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -72,6 +78,14 @@ export default function OrganizerScreen({ navigation }) {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmer le mot de passe"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
         />
 
         <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>

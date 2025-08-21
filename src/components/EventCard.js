@@ -2,14 +2,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 
-export default function EventCard({ event, onPress }) {
-  // Déconstruction des props avec des valeurs par défaut pour éviter les erreurs si les données sont manquantes
+export default function EventCard({ event = {}, onPress }) {
   const eventTitle = event.nom_event || 'Titre non disponible';
   const eventPhoto = event.photo || 'https://placehold.co/400x200/222/fff?text=No+Image';
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
-      {/* Le titre est maintenant au-dessus de l'image */}
       <Text style={styles.eventTitle}>{eventTitle}</Text>
       <Image source={{ uri: eventPhoto }} style={styles.eventImage} resizeMode="cover" />
     </TouchableOpacity>
@@ -20,8 +18,7 @@ const styles = StyleSheet.create({
   cardContainer: {
     backgroundColor: '#333',
     borderRadius: 15,
-    overflow: 'hidden', // Empêche l'image de déborder des bords arrondis
-
+    overflow: 'hidden',
     marginBottom: 20,
     elevation: 5,
     shadowColor: '#000',

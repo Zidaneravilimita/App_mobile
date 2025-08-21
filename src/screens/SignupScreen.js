@@ -1,54 +1,131 @@
 // src/screens/SignupScreen.js
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+
+import React, { useEffect, useState } from 'react';
+import {
+  SafeAreaView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ToastAndroid,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
 
-/**
- * Composant de l'écran d'inscription.
- * Permet aux nouveaux utilisateurs de créer un compte.
- * @param {object} navigation - L'objet de navigation de React Navigation.
- */
 export default function SignupScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [city, setCity] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  /**
-   * Gère l'inscription du nouvel utilisateur.
-   */
+  // cooldown state to prevent rapid repeated signup/resend calls
+  const [cooldownSec, setCooldownSec] = useState(0);
+
+  useEffect(() => {
+    if (cooldownSec <= 0) return;
+    const t = setInterval(() => {
+      setCooldownSec((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [cooldownSec]);
+
+  const notify = (message, title = 'Info') => {
+    if (Platform.OS === 'android') ToastAndroid.show(message, ToastAndroid.LONG);
+    else Alert.alert(title, message);
+  };
+
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
+
+  const resetForm = () => {
+    setUsername('');
+    setEmail('');
+    setCity('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
   const handleSignup = async () => {
+    if (cooldownSec > 0) {
+      notify(`Veuillez attendre ${cooldownSec}s avant de réessayer.`, 'Trop de requêtes');
+      return;
+    }
+    if (!username.trim() || !email.trim() || !city.trim() || !password || !confirmPassword) {
+      notify('Veuillez remplir tous les champs.', 'Erreur');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      notify("L'adresse e‑mail n'est pas valide.", 'Erreur');
+      return;
+    }
+    if (password.length < 6) {
+      notify('Le mot de passe doit contenir au moins 6 caractères.', 'Erreur');
+      return;
+    }
+    if (password !== confirmPassword) {
+      notify('Les mots de passe ne correspondent pas.', 'Erreur');
+      return;
+    }
+
     setLoading(true);
-    // TODO: Implémenter la logique d'inscription Supabase ici.
-    // Il faudrait d'abord vérifier que tous les champs sont remplis et que l'email est valide.
-    // Exemple :
-    // const { user, error } = await supabase.auth.signUp({
-    //   email: email,
-    //   password: password,
-    //   options: {
-    //     data: {
-    //       username: username,
-    //       city: city,
-    //     }
-    //   }
-    // });
-    
-    // Pour l'instant, on simule une inscription réussie.
     try {
-      if (username && email && city && password) {
-        console.log('Tentative d\'inscription pour :', email);
-        // Simuler un appel API
-        await new Promise(resolve => setTimeout(resolve, 2000)); 
-        Alert.alert("Succès", "Votre compte a été créé ! Vous pouvez maintenant vous connecter.");
-        navigation.navigate('Login'); // Navigue vers la page de connexion
-      } else {
-        Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { username, ville: city, role: 'visiteur' } },
+      });
+
+      if (error) {
+        console.error('Supabase signUp error:', error);
+
+        // gérer rate limit
+        const messageLower = (error.message || '').toLowerCase();
+        const status = error.status ?? null;
+
+        if (status === 429 || messageLower.includes('rate limit') || messageLower.includes('rate')) {
+          // appliquer un cooldown côté client (par défaut 1 heure)
+          const defaultCooldown = 60 * 60; // 3600s = 1 heure
+          setCooldownSec(defaultCooldown);
+          notify(
+            "Trop de demandes d'email. Attendez un moment avant de réessayer (ou utilisez une autre adresse).",
+            'Limite atteinte'
+          );
+          // log pour debug
+          console.warn('Email rate limit exceeded; cooldown started:', defaultCooldown);
+          return;
+        }
+
+        // autres erreurs : afficher
+        notify(error.message || "Échec de l'inscription.", 'Erreur');
+        return;
       }
-    } catch (e) {
-      console.error('Erreur d\'inscription:', e);
-      Alert.alert("Erreur", "L'inscription a échoué. Veuillez réessayer.");
+
+      console.log('DEBUG signUp result:', data);
+
+      const confirmationSent = !!(data?.user?.confirmation_sent_at);
+      if (confirmationSent && !data?.session) {
+        notify(
+          "Inscription réussie. Un email de confirmation a été envoyé. Vérifiez votre boîte mail.",
+          'Succès'
+        );
+        // si tu veux être plus permissif côté client, tu peux configurer un petit cooldown pour éviter resends
+        setCooldownSec(60); // bloquer 60s pour éviter re-request immédiate
+        resetForm();
+        navigation.navigate('Login');
+        return;
+      }
+
+      notify('Inscription réussie.', 'Succès');
+      resetForm();
+      navigation.navigate('Login');
+    } catch (err) {
+      console.error('handleSignup unexpected error:', err);
+      notify('Une erreur inattendue est survenue. Voir la console pour les détails.', 'Erreur');
     } finally {
       setLoading(false);
     }
@@ -59,16 +136,19 @@ export default function SignupScreen({ navigation }) {
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
+
       <View style={styles.container}>
         <Text style={styles.title}>S'inscrire</Text>
-        
+
         <TextInput
           style={styles.input}
           placeholder="Nom d'utilisateur"
           placeholderTextColor="#999"
           value={username}
           onChangeText={setUsername}
+          autoCapitalize="words"
         />
+
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -78,6 +158,7 @@ export default function SignupScreen({ navigation }) {
           value={email}
           onChangeText={setEmail}
         />
+
         <TextInput
           style={styles.input}
           placeholder="Ville"
@@ -85,6 +166,7 @@ export default function SignupScreen({ navigation }) {
           value={city}
           onChangeText={setCity}
         />
+
         <TextInput
           style={styles.input}
           placeholder="Mot de passe"
@@ -94,16 +176,33 @@ export default function SignupScreen({ navigation }) {
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmer le mot de passe"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, (loading || cooldownSec > 0) && { opacity: 0.6 }]}
+          onPress={handleSignup}
+          disabled={loading || cooldownSec > 0}
+        >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>S'inscrire</Text>
+            <Text style={styles.buttonText}>
+              {cooldownSec > 0 ? `Réessayer dans ${cooldownSec}s` : 'S\'inscrire'}
+            </Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.linkText}>Déjà un compte ? <Text style={styles.linkBold}>Se Connecter</Text></Text>
+          <Text style={styles.linkText}>
+            Déjà un compte ? <Text style={styles.linkBold}>Se Connecter</Text>
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -111,28 +210,10 @@ export default function SignupScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 30,
-  },
+  safeArea: { flex: 1, backgroundColor: '#1a1a1a' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  backButton: { position: 'absolute', top: 60, left: 20, zIndex: 10 },
+  title: { fontSize: 28, fontWeight: '700', color: '#fff', marginBottom: 30 },
   input: {
     width: '100%',
     height: 50,
@@ -141,7 +222,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     color: '#fff',
-    marginBottom: 15,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#555',
   },
@@ -151,19 +232,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#8A2BE2',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  linkText: {
-    marginTop: 20,
-    color: '#ccc',
-  },
-  linkBold: {
-    fontWeight: 'bold',
-    color: '#fff',
-  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  linkText: { marginTop: 18, color: '#ccc' },
+  linkBold: { fontWeight: '700', color: '#fff' },
 });
