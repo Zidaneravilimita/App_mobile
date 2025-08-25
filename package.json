@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "",
+  "type": "module",
   "homepage": "https://github.com/Zidaneravilimita/App_mobile#readme",
   "bugs": {
     "url": "https://github.com/Zidaneravilimita/App_mobile/issues"
@@ -13,7 +14,6 @@
   },
   "license": "0BSD",
   "author": "",
-  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -29,9 +29,17 @@
     "@react-navigation/native-stack": "^7.3.21",
     "@supabase/supabase-js": "^2.52.1",
     "axios": "^1.10.0",
+    "cross-fetch": "^4.1.0",
     "expo": "~53.0.20",
+    "expo-device": "~7.1.4",
+    "expo-font": "~13.3.2",
     "expo-image-picker": "~16.1.4",
+    "expo-localization": "~16.1.6",
+    "expo-notifications": "~0.31.4",
+    "expo-secure-store": "~14.2.3",
+    "expo-splash-screen": "~0.30.10",
     "expo-status-bar": "~2.2.3",
+    "expo-updates": "~0.28.17",
     "firebase": "^12.0.0",
     "formik": "^2.4.6",
     "nativewind": "^4.1.23",
@@ -47,17 +55,12 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.20.0",
     "react-navigation": "^5.0.0",
-    "yup": "^1.6.1",
-    "expo-splash-screen": "~0.30.10",
-    "expo-font": "~13.3.2",
-    "expo-notifications": "~0.31.4",
-    "expo-device": "~7.1.4",
-    "expo-secure-store": "~14.2.3",
-    "expo-localization": "~16.1.6",
-    "expo-updates": "~0.28.17"
+    "supabase": "^2.34.3",
+    "yup": "^1.6.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "typescript": "~5.8.3"
   },
   "expo": {
     "doctor": {

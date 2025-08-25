@@ -22,11 +22,8 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const notify = (message, title = 'Info') => {
-    if (Platform.OS === 'android') {
-      ToastAndroid.show(message, ToastAndroid.LONG);
-    } else {
-      Alert.alert(title, message);
-    }
+    if (Platform.OS === 'android') ToastAndroid.show(message, ToastAndroid.LONG);
+    else Alert.alert(title, message);
   };
 
   const handleLogin = async () => {
@@ -37,7 +34,7 @@ export default function LoginScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // Appel Auth
+      // Connexion avec Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -49,42 +46,39 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // data.session / data.user peut être présent. Récupérer l'utilisateur.
-      const user = data?.user ?? (await supabase.auth.getUser()).data?.user;
+      const user = data?.user;
       if (!user) {
         notify('❌ Impossible de récupérer l\'utilisateur après connexion.', 'Erreur');
         return;
       }
 
-      const userId = user.id;
-
-      // Récupérer le profil (si RLS / policies l'autorisent pour la session en cours)
-      const { data: userProfile, error: profileError } = await supabase
+      // Récupération du profil depuis la table "profiles"
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, username')
-        .eq('id', userId)
+        .select('username, role')
+        .eq('id', user.id)
         .single();
 
       if (profileError) {
-        // 401 signifie généralement token manquant ou RLS bloquant — log et continuer
         console.warn('Erreur récupération profile:', profileError);
         notify('Connexion réussie, mais impossible de charger le profil. Accès limité.', 'Info');
         navigation.navigate('MainApp');
         return;
       }
 
-      // Redirection selon rôle
-      const username = userProfile?.username || 'Utilisateur';
-      if (userProfile?.role === 'organisateur' || userProfile?.role === 'organizer') {
+      const username = profile?.username || 'Utilisateur';
+      const role = profile?.role;
+
+      if (role === 'organisateur' || role === 'organizer') {
         notify(`✅ Bienvenue ${username} (Organisateur)`, 'Connexion réussie');
         navigation.navigate('OrganizerScreen');
       } else {
         notify(`✅ Bienvenue ${username}`, 'Connexion réussie');
         navigation.navigate('MainApp');
       }
-    } catch (e) {
-      console.error('Erreur de connexion inattendue:', e);
-      notify(`❌ ${e?.message || 'La connexion a échoué.'}`, 'Erreur');
+    } catch (err) {
+      console.error('Erreur inattendue:', err);
+      notify(`❌ ${err?.message || 'La connexion a échoué.'}`, 'Erreur');
     } finally {
       setLoading(false);
     }
@@ -95,6 +89,7 @@ export default function LoginScreen({ navigation }) {
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
+
       <View style={styles.container}>
         <Text style={styles.title}>Se Connecter</Text>
 
@@ -107,6 +102,7 @@ export default function LoginScreen({ navigation }) {
           autoCapitalize="none"
           keyboardType="email-address"
         />
+
         <TextInput
           style={styles.input}
           placeholder="Mot de passe"
@@ -134,7 +130,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#1a1a1a' },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
   backButton: { position: 'absolute', top: 60, left: 20, zIndex: 10 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 30 },
+  title: { fontSize: 28, fontWeight: '700', color: '#fff', marginBottom: 30 },
   input: {
     width: '100%',
     height: 50,
@@ -143,7 +139,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     color: '#fff',
-    marginBottom: 15,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#555',
   },
@@ -153,9 +149,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#8A2BE2',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 8,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  linkText: { marginTop: 20, color: '#ccc' },
-  linkBold: { fontWeight: 'bold', color: '#fff' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  linkText: { marginTop: 18, color: '#ccc' },
+  linkBold: { fontWeight: '700', color: '#fff' },
 });
