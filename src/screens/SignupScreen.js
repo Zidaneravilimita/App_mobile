@@ -1,402 +1,213 @@
-// src/components/ImageUploader.js
-import React, { useState, useEffect } from 'react';
+// src/screens/SignupScreen.js
+
+import React, { useState } from 'react';
 import {
+  SafeAreaView,
   View,
-  Image,
-  Alert,
-  ActivityIndicator,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
+  Alert,
   Platform,
-  KeyboardAvoidingView,
+  ToastAndroid,
+  StyleSheet,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { supabase } from '../config/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../config/supabase';
 
-export default function ImageUploader({ onUploadComplete, onClose }) {
-  const [imageUri, setImageUri] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [downloadURL, setDownloadURL] = useState(null);
+export default function SignupScreen({ navigation }) {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [city, setCity] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const [villes, setVilles] = useState([]);
-  const [selectedVilleId, setSelectedVilleId] = useState('');
-  const [typeEvenements, setTypeEvenements] = useState([]);
-  const [selectedTypeEventId, setSelectedTypeEventId] = useState('');
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventDescription, setEventDescription] = useState('');
-  const [eventDate, setEventDate] = useState('');
+  const notify = (message, title = 'Info') => {
+    if (Platform.OS === 'android') ToastAndroid.show(message, ToastAndroid.LONG);
+    else Alert.alert(title, message);
+  };
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
 
-  useEffect(() => {
-    (async () => {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission requise',
-            "Nous avons besoin de la permission d'accéder à votre galerie pour télécharger une image."
+  const resetForm = () => {
+    setUsername('');
+    setEmail('');
+    setCity('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleSignup = async () => {
+    if (!username.trim() || !email.trim() || !city.trim() || !password || !confirmPassword) {
+      notify('Veuillez remplir tous les champs.', 'Erreur');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      notify("L'adresse e‑mail n'est pas valide.", 'Erreur');
+      return;
+    }
+    if (password.length < 6) {
+      notify('Le mot de passe doit contenir au moins 6 caractères.', 'Erreur');
+      return;
+    }
+    if (password !== confirmPassword) {
+      notify('Les mots de passe ne correspondent pas.', 'Erreur');
+      return;
+    }
+
+    setLoading(true);
+
+    const maxRetries = 2;
+    let attempt = 0;
+
+    while (attempt <= maxRetries) {
+      try {
+        attempt++;
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+        // 1️⃣ Création utilisateur Supabase Auth
+        const { data: userData, error: signUpError } = await supabase.auth.signUp(
+          {
+            email: email.trim(),
+            password,
+          },
+          { signal: controller.signal }
+        );
+
+        clearTimeout(timeout);
+
+        if (signUpError) throw signUpError;
+
+        // 2️⃣ Mise à jour table profiles
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ username, ville: city, role: 'visiteur' })
+          .eq('id', userData.user.id);
+
+        if (profileError) throw profileError;
+
+        notify('Inscription réussie !', 'Succès');
+        resetForm();
+        navigation.navigate('Home');
+        break;
+
+      } catch (err) {
+        console.error(`Tentative ${attempt} - Erreur Supabase signUp:`, err);
+
+        if (err.name === 'AbortError') {
+          notify('La requête a dépassé le temps limite. Nouvelle tentative...', 'Attention');
+        } else if (attempt > maxRetries) {
+          notify(
+            err.message || 'Une erreur réseau est survenue. Veuillez réessayer plus tard.',
+            'Erreur'
           );
+        } else {
+          notify('Erreur réseau. Nouvelle tentative...', 'Attention');
         }
       }
-      fetchVilles();
-      fetchTypeEvenements();
-    })();
-  }, []);
-
-  const fetchVilles = async () => {
-    const { data, error } = await supabase
-      .from('ville')
-      .select('*')
-      .order('nom_ville', { ascending: true });
-    if (error) {
-      console.error('Erreur de récupération des villes:', error);
-      Alert.alert('Erreur', 'Impossible de charger les villes.');
-    } else {
-      setVilles(data || []);
-    }
-  };
-
-  const fetchTypeEvenements = async () => {
-    const { data, error } = await supabase
-      .from('type_evenements')
-      .select('*')
-      .order('nom_event', { ascending: true });
-    if (error) {
-      console.error("Erreur de récupération des types d'événements:", error);
-      Alert.alert('Erreur', "Impossible de charger les types d'événements.");
-    } else {
-      setTypeEvenements(data || []);
-    }
-  };
-
-  const uriToBlob = async (uri) => {
-    const response = await fetch(uri);
-    const arrayBuffer = await response.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
-    return blob;
-  };
-
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: [ImagePicker.MediaType.Images],
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImageUri(result.assets[0].uri);
-        setDownloadURL(null);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la sélection de l'image:", error);
-      Alert.alert("Erreur", "Impossible de sélectionner l'image.");
-    }
-  };
-
-  const testNetwork = async () => {
-    try {
-      const response = await fetch('https://google.com');
-      if (!response.ok) throw new Error('Pas de connexion Internet');
-      return true;
-    } catch (error) {
-      Alert.alert('Erreur réseau', 'Impossible de se connecter à Internet.');
-      return false;
-    }
-  };
-
-  const uploadImage = async () => {
-    if (!imageUri) {
-      Alert.alert('Erreur', "Veuillez sélectionner une image d'abord.");
-      return;
     }
 
-    if (!eventTitle.trim() || !eventDescription.trim() || !selectedVilleId || !selectedTypeEventId || !eventDate) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs du formulaire.');
-      return;
-    }
-
-    const networkOk = await testNetwork();
-    if (!networkOk) return;
-
-    const villeIdNum = Number(selectedVilleId);
-    const typeIdNum = Number(selectedTypeEventId);
-    if (!Number.isFinite(villeIdNum) || !Number.isFinite(typeIdNum)) {
-      Alert.alert('Erreur', 'Ville et Type doivent être choisis dans les listes.');
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      const blob = await uriToBlob(imageUri);
-
-      const fileName = `${Date.now()}.jpg`;
-      const path = `public_images/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(path, blob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: 'image/jpeg',
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: pub } = supabase.storage.from('images').getPublicUrl(path);
-      const publicUrl = pub?.publicUrl;
-      if (!publicUrl) throw new Error("Impossible d'obtenir l'URL publique de l'image.");
-
-      setDownloadURL(publicUrl);
-
-      const { error: insertError } = await supabase.from('event').insert({
-        nom_event: eventTitle.trim(),
-        description: eventDescription.trim(),
-        date: eventDate,
-        photo: publicUrl,
-        id_type_event: typeIdNum,
-        id_ville: villeIdNum,
-      });
-
-      if (insertError) throw insertError;
-
-      Alert.alert('Succès', 'Image et événement téléchargés avec succès !');
-
-      setImageUri(null);
-      setEventTitle('');
-      setEventDescription('');
-      setEventDate('');
-      setSelectedVilleId('');
-      setSelectedTypeEventId('');
-      setSelectedDate(new Date());
-
-      onUploadComplete?.();
-    } catch (error) {
-      console.error("Erreur lors du téléchargement ou de l'insertion:", error);
-      Alert.alert('Erreur', `Échec du téléchargement: ${error.message || 'Inconnu'}`);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const onDateChange = (event, selected) => {
-    const currentDate = selected || selectedDate;
-    setShowDatePicker(Platform.OS === 'ios');
-    setSelectedDate(currentDate);
-    setEventDate(currentDate.toISOString().split('T')[0]);
+    setLoading(false);
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
 
-        {/* Champ titre */}
+      <View style={styles.container}>
+        <Text style={styles.title}>S'inscrire</Text>
+
         <TextInput
           style={styles.input}
-          placeholder="Titre de l'événement"
-          placeholderTextColor="#aaa"
-          value={eventTitle}
-          onChangeText={setEventTitle}
+          placeholder="Nom d'utilisateur"
+          placeholderTextColor="#999"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="words"
         />
 
-        {/* Champ description */}
         <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Description de l'événement"
-          placeholderTextColor="#aaa"
-          value={eventDescription}
-          onChangeText={setEventDescription}
-          multiline
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#999"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
         />
 
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedVilleId}
-            onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
-            style={styles.picker}
-            dropdownIconColor="#fff"
-          >
-            <Picker.Item label="Sélectionner une ville" value="" />
-            {villes.map((ville) => (
-              <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
-            ))}
-          </Picker>
-        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Ville"
+          placeholderTextColor="#999"
+          value={city}
+          onChangeText={setCity}
+        />
 
-        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputButton}>
-          <Text style={styles.dateInputText}>
-            {eventDate ? `Date : ${eventDate}` : "Sélectionner la date de l'événement"}
+        <TextInput
+          style={styles.input}
+          placeholder="Mot de passe"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmer le mot de passe"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+
+        <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>S'inscrire</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.linkText}>
+            Déjà un compte ? <Text style={styles.linkBold}>Se Connecter</Text>
           </Text>
         </TouchableOpacity>
-
-        {showDatePicker && (
-          <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onDateChange} />
-        )}
-
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedTypeEventId}
-            onValueChange={(itemValue) => setSelectedTypeEventId(itemValue)}
-            style={styles.picker}
-            dropdownIconColor="#fff"
-          >
-            <Picker.Item label="Sélectionner le type d'événement" value="" />
-            {typeEvenements.map((type) => (
-              <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
-            ))}
-          </Picker>
-        </View>
-
-        <TouchableOpacity style={styles.pickImageButton} onPress={pickImage}>
-          <Ionicons name="image-outline" size={28} color="#fff" style={styles.pickImageIcon} />
-          <Text style={styles.pickImageButtonText}>Ajouter une pièce jointe</Text>
-        </TouchableOpacity>
-
-        {imageUri && (
-          <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-          </View>
-        )}
-
-        {uploading && <ActivityIndicator size="large" color="#8A2BE2" style={styles.activityIndicator} />}
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => onClose?.()}>
-            <Text style={styles.buttonText}>Annuler</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.uploadButton]} onPress={uploadImage} disabled={uploading}>
-            <Text style={styles.buttonText}>{uploading ? 'Téléchargement...' : 'Publier'}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    backgroundColor: '#1a1a1a',
-    padding: 20,
-    paddingBottom: 80,
-  },
+  safeArea: { flex: 1, backgroundColor: '#1a1a1a' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  backButton: { position: 'absolute', top: 60, left: 20, zIndex: 10 },
+  title: { fontSize: 28, fontWeight: '700', color: '#fff', marginBottom: 30 },
   input: {
     width: '100%',
-    maxWidth: '100%',
+    height: 50,
     backgroundColor: '#333',
-    color: '#fff',
-    padding: 20,
     borderRadius: 8,
-    marginBottom: 15,
-    fontSize: 18,
-    borderWidth: 1,
-    borderColor: '#555',
-    height: 60,
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-    padding: 15,
-    fontSize: 18,
-  },
-  dateInputButton: {
-    width: '100%',
-    backgroundColor: '#333',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#555',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    height: 70,
-  },
-  dateInputText: {
-    color: '#fff',
+    paddingHorizontal: 15,
     fontSize: 16,
-  },
-  pickerContainer: {
-    width: '100%',
-    maxWidth: '100%',
-    backgroundColor: '#333',
-    borderRadius: 8,
-    marginBottom: 15,
+    color: '#fff',
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#555',
-    height: 60,
-    justifyContent: 'center',
-  },
-  picker: {
-    color: '#fff',
-    height: 60,
-  },
-  pickImageButton: {
-    backgroundColor: '#333',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginBottom: 15,
-  },
-  pickImageIcon: {
-    marginRight: 10,
-  },
-  pickImageButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  imagePreviewContainer: {
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 15,
-  },
-  imagePreview: {
-    width: 250,
-    height: 180,
-    borderRadius: 10,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  activityIndicator: {
-    marginTop: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    marginBottom: 30,
   },
   button: {
-    flex: 1,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  uploadButton: {
+    width: '100%',
+    padding: 15,
+    borderRadius: 10,
     backgroundColor: '#8A2BE2',
-    padding: 18,
+    alignItems: 'center',
+    marginTop: 8,
   },
-  cancelButton: {
-    backgroundColor: '#555',
-    padding: 18,
-  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  linkText: { marginTop: 18, color: '#ccc' },
+  linkBold: { fontWeight: '700', color: '#fff' },
 });

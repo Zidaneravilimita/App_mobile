@@ -86,7 +86,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType || ImagePicker.MediaTypeOptions?.Images || 'Images',
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
