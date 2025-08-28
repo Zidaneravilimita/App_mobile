@@ -59,59 +59,42 @@ export default function SignupScreen({ navigation }) {
 
     setLoading(true);
 
-    const maxRetries = 2;
-    let attempt = 0;
+    try {
+      // Tentative d'inscription
+      const { data: userData, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
 
-    while (attempt <= maxRetries) {
-      try {
-        attempt++;
+      // Si l'utilisateur existe déjà, on passe directement
+      if (signUpError?.message?.includes('User already registered')) {
+        notify('❗ Utilisateur déjà existant. Accès autorisé.', 'Info');
+        navigation.navigate('Home');
+        return;
+      }
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+      if (signUpError) throw signUpError;
 
-        // 1️⃣ Création utilisateur Supabase Auth
-        const { data: userData, error: signUpError } = await supabase.auth.signUp(
-          {
-            email: email.trim(),
-            password,
-          },
-          { signal: controller.signal }
-        );
-
-        clearTimeout(timeout);
-
-        if (signUpError) throw signUpError;
-
-        // 2️⃣ Mise à jour table profiles
+      // Mise à jour du profil pour un nouvel utilisateur
+      if (userData?.user?.id) {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ username, ville: city, role: 'visiteur' })
           .eq('id', userData.user.id);
 
-        if (profileError) throw profileError;
-
-        notify('Inscription réussie !', 'Succès');
-        resetForm();
-        navigation.navigate('Home');
-        break;
-
-      } catch (err) {
-        console.error(`Tentative ${attempt} - Erreur Supabase signUp:`, err);
-
-        if (err.name === 'AbortError') {
-          notify('La requête a dépassé le temps limite. Nouvelle tentative...', 'Attention');
-        } else if (attempt > maxRetries) {
-          notify(
-            err.message || 'Une erreur réseau est survenue. Veuillez réessayer plus tard.',
-            'Erreur'
-          );
-        } else {
-          notify('Erreur réseau. Nouvelle tentative...', 'Attention');
-        }
+        if (profileError) console.warn('Erreur mise à jour profil:', profileError);
       }
-    }
 
-    setLoading(false);
+      notify('Inscription réussie !', 'Succès');
+      resetForm();
+      navigation.navigate('Home');
+
+    } catch (err) {
+      console.error('Erreur Signup:', err);
+      notify(err.message || 'Une erreur est survenue.', 'Erreur');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -207,7 +190,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  linkText: { marginTop: 18, color: '#ccc' },
-  linkBold: { fontWeight: '700', color: '#fff' },
+  buttonText: { 
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700' 
+  },
+  linkText: {
+     marginTop: 18,
+     color: '#ccc',   
+     },
+  linkBold: {
+     fontWeight: '700',
+     color: '#fff', 
+    },
 });

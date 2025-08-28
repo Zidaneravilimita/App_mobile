@@ -34,7 +34,6 @@ export default function LoginScreen({ navigation }) {
 
     setLoading(true);
     try {
-      // Connexion avec Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -52,7 +51,6 @@ export default function LoginScreen({ navigation }) {
         return;
       }
 
-      // Récupération du profil depuis la table "profiles"
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('username, role')
@@ -62,7 +60,7 @@ export default function LoginScreen({ navigation }) {
       if (profileError) {
         console.warn('Erreur récupération profile:', profileError);
         notify('Connexion réussie, mais impossible de charger le profil. Accès limité.', 'Info');
-        navigation.navigate('MainApp');
+        navigation.navigate('Home'); // <- Redirection vers HomeScreen même si profile non récupéré
         return;
       }
 
@@ -74,7 +72,7 @@ export default function LoginScreen({ navigation }) {
         navigation.navigate('OrganizerScreen');
       } else {
         notify(`✅ Bienvenue ${username}`, 'Connexion réussie');
-        navigation.navigate('MainApp');
+        navigation.navigate('Home'); // <- Modification ici
       }
     } catch (err) {
       console.error('Erreur inattendue:', err);

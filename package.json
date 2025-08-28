@@ -56,7 +56,8 @@
     "react-native-web": "^0.20.0",
     "react-navigation": "^5.0.0",
     "supabase": "^2.34.3",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "expo-file-system": "~18.1.11"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

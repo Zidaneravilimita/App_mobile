@@ -24,18 +24,10 @@ export default function HomeScreen({ navigation }) {
   const [villes, setVilles] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState('all');
 
-  /**
-   * Gère la pression sur le bouton "Ajouter" de la barre de navigation inférieure.
-   * Change le contenu affiché pour le formulaire de téléchargement d'image.
-   */
   const handleAddPress = () => {
     setCurrentContent('uploader');
   };
 
-  /**
-   * Gère la pression sur le bouton "Home" de la barre de navigation inférieure.
-   * Change le contenu affiché pour l'écran principal.
-   */
   const handleHomePress = () => {
     setCurrentContent('main');
   };
@@ -48,21 +40,30 @@ export default function HomeScreen({ navigation }) {
     setLoading(true);
     try {
       let query = supabase.from('event').select(`
-        *,
-        ville ( nom_ville ),
-        type_evenements ( nom_event )
+        id_event,
+        nom_event,
+        photo,
+        ville(nom_ville),
+        type_evenements(nom_event)
       `);
 
-      // Si une ville est sélectionnée (et ce n'est pas "all"), filtre par ville
       if (selectedVilleId !== 'all') {
         query = query.eq('id_ville', selectedVilleId);
       }
 
       const { data, error } = await query;
-      if (error) {
-        throw error;
-      }
-      setEvents(data);
+      if (error) throw error;
+
+      // 🔥 Transformation des données pour éviter les problèmes avec les relations
+      const eventsWithPhoto = data.map(ev => ({
+        id_event: ev.id_event,
+        nom_event: ev.nom_event || 'Titre non disponible',
+        photo: ev.photo || 'https://placehold.co/400x200/222/fff?text=No+Image',
+        ville: ev.ville?.nom_ville || 'Ville inconnue',
+        type_event: ev.type_evenements?.nom_event || 'Type inconnu'
+      }));
+
+      setEvents(eventsWithPhoto);
     } catch (e) {
       console.error('Erreur lors de la récupération des événements :', e);
       setError('Impossible de charger les événements.');
@@ -72,9 +73,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  /**
-   * Récupère la liste des villes pour le sélecteur.
-   */
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase.from('ville').select('*');
@@ -85,7 +83,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Lance le chargement des villes et des événements au montage du composant et à chaque changement de ville
   useEffect(() => {
     fetchVilles();
   }, []);
@@ -94,16 +91,11 @@ export default function HomeScreen({ navigation }) {
     fetchEvents();
   }, [selectedVilleId]);
 
-  /**
-   * Gère le clic sur une carte d'événement et navigue vers l'écran de détails.
-   * @param {object} event - L'objet événement cliqué.
-   */
   const handleEventPress = (event) => {
     navigation.navigate('EventDetails', { event });
   };
 
   const renderMainContent = () => {
-    // Si nous sommes sur l'écran du formulaire de téléchargement d'image...
     if (currentContent === 'uploader') {
       return (
         <View style={styles.uploaderContainer}>
@@ -112,32 +104,23 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
           <ImageUploader onUploadComplete={() => {
             setCurrentContent('main');
-            fetchEvents(); // Rafraîchit la liste des événements après un téléversement réussi
+            fetchEvents();
           }} onClose={handleHomePress} />
         </View>
       );
     } else {
-      // ...sinon, affiche le contenu principal
       return (
         <>
           <Header />
           <ScrollView contentContainerStyle={styles.scrollViewContent}>
-
-            {/* TITRE POUR LA SECTION CATÉGORIES */}
             <Text style={styles.sectionTitle}>Catégories</Text>
-
-            {/* Ajout d'une marge horizontale au composant CategoryScroll */}
             <View style={styles.categoryContainer}>
               <CategoryScroll onSelectCategory={(id) => {
                 console.log('Catégorie sélectionnée:', id);
-                // Ajoutez ici la logique pour filtrer les événements par catégorie
               }} />
             </View>
             
-            {/* Titre pour le sélecteur de ville */}
             <Text style={styles.sectionTitle}>Filtrer par ville</Text>
-
-            {/* Sélecteur de ville pour filtrer les événements */}
             <View style={styles.pickerWrapper}>
               <Picker
                 selectedValue={selectedVilleId}
@@ -156,16 +139,13 @@ export default function HomeScreen({ navigation }) {
               </Picker>
             </View>
 
-            {/* TITRE POUR LA SECTION ÉVÉNEMENTS POPULAIRES */}
             <Text style={styles.popularTitle}>Événements populaires</Text>
 
-            {/* Afficheur de chargement ou message d'erreur */}
             {loading ? (
               <ActivityIndicator size="large" color="#8A2BE2" style={styles.loader} />
             ) : error ? (
               <Text style={styles.noEventsText}>{error}</Text>
             ) : events.length > 0 ? (
-              // Affiche la liste des EventCard si des événements sont trouvés
               events.map((event) => (
                 <EventCard
                   key={event.id_event}
@@ -194,7 +174,6 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  // Layout styles
   safeArea: {
     flex: 1,
     backgroundColor: '#1a1a1a',
@@ -203,12 +182,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1a1a1a',
   },
-  // La ScrollView principale pour le contenu, avec un padding horizontal pour l'alignement
   scrollViewContent: {
     paddingBottom: 20,
     paddingHorizontal: 15,
   },
-  // Conteneur pour le sélecteur, avec des marges
   pickerWrapper: {
     marginVertical: 10,
     borderWidth: 1,
@@ -225,11 +202,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: '#333',
   },
-  // Conteneur pour les catégories, avec une hauteur définie pour le défilement horizontal
   categoryContainer: {
-    height: 140, // Augmentation de la hauteur pour inclure le titre et l'espacement
+    height: 140,
     marginVertical: 5,
-    marginBottom: 20, // Ajout d'une marge en bas pour séparer des événements
+    marginBottom: 20,
   },
   uploaderContainer: {
     flex: 1,
@@ -246,18 +222,17 @@ const styles = StyleSheet.create({
   loader: {
     marginTop: 20,
   },
-  // Text styles
-  sectionTitle: { // Nouveau style pour le titre "Catégories"
+  sectionTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    marginTop: 15, // Marge pour le titre "Catégories"
+    marginTop: 15,
   },
   popularTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    marginTop: 15, // Ajout d'une marge supérieure pour le séparer des catégories
+    marginTop: 15,
     marginBottom: 10,
   },
   noEventsText: {

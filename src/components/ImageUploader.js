@@ -86,7 +86,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType || ImagePicker.MediaTypeOptions?.Images || 'Images',
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // 🔹 CORRIGÉ
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
@@ -188,7 +188,6 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container}>
-
         <TextInput
           style={styles.input}
           placeholder="Titre de l'événement"
@@ -276,7 +275,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#1a1a1a',
     padding: 20,
-    paddingBottom: 60,
+    paddingBottom: 80,
+    marginTop: 90,
   },
   input: {
     width: '100%',

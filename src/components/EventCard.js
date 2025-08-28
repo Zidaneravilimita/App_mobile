@@ -4,7 +4,9 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 
 export default function EventCard({ event = {}, onPress }) {
   const eventTitle = event.nom_event || 'Titre non disponible';
-  const eventPhoto = event.photo || 'https://placehold.co/400x200/222/fff?text=No+Image';
+  const eventPhoto = event.photo && event.photo !== '' 
+    ? event.photo 
+    : 'https://placehold.co/400x200/222/fff?text=No+Image';
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
@@ -28,7 +30,8 @@ const styles = StyleSheet.create({
   },
   eventImage: {
     width: '100%',
-    height: 150,
+    height: 200,
+    backgroundColor: '#555',
   },
   eventTitle: {
     fontSize: 20,
