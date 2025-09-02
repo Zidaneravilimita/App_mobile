@@ -1,29 +1,35 @@
 // src/components/BottomNavBar.js
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native'; // ✅ Hook de navigation
 
-// Le composant reçoit maintenant le prop `navigation` pour gérer la navigation
-export default function BottomNavBar({ onAddPress, navigation, onHomePress }) {
+export default function BottomNavBar({ onAddPress, onHomePress }) {
+  const navigation = useNavigation(); // ✅ On récupère directement la navigation
+
   return (
     <View style={styles.navBarContainer}>
-      {/* Bouton pour l'accueil */}
+      {/* Bouton Accueil */}
       <TouchableOpacity style={styles.navItem} onPress={onHomePress}>
         <Ionicons name="home" size={24} color="#fff" />
       </TouchableOpacity>
-      {/* Bouton pour la recherche (à implémenter) */}
+
+      {/* Bouton Recherche (placeholder pour plus tard) */}
       <TouchableOpacity style={styles.navItem}>
         <Ionicons name="search" size={24} color="#fff" />
       </TouchableOpacity>
-      {/* Le bouton "Add" appelle la fonction onAddPress passée en prop */}
+
+      {/* Bouton Add */}
       <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
-      {/* Bouton pour le chat, navigue vers l'écran 'Chat' */}
-      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
+
+      {/* Bouton Chat (désactivé tant qu’il n’y a pas de ChatScreen) */}
+      {/* <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
         <Ionicons name="chatbubbles" size={24} color="#fff" />
-      </TouchableOpacity>
-      {/* Bouton pour le profil, navigue vers l'écran 'Profile' */}
+      </TouchableOpacity> */}
+
+      {/* Bouton Profil */}
       <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>
         <Ionicons name="person" size={24} color="#fff" />
       </TouchableOpacity>
@@ -37,11 +43,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a', // Couleur de fond de la barre
+    backgroundColor: '#1a1a1a',
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#333',
-    paddingBottom: 20, // Pour gérer la safe area sur certains téléphones
+    paddingBottom: 20, // safe area bas
   },
   navItem: {
     flex: 1,
@@ -49,8 +55,8 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   addButton: {
-    backgroundColor: '#8A2BE2', // Couleur violette du bouton "Add"
-    borderRadius: 30, // Pour un bouton rond
+    backgroundColor: '#8A2BE2',
+    borderRadius: 30,
     width: 60,
     height: 60,
     justifyContent: 'center',
