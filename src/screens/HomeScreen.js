@@ -36,16 +36,6 @@ export default function HomeScreen({ navigation }) {
   const handleAddPress = () => setCurrentContent("uploader");
   const handleHomePress = () => setCurrentContent("main");
 
-  // 🔹 Construit l’URL publique de l’image Supabase
-  const getPublicUrl = (path) => {
-    if (!path) return "https://placehold.co/400x200/222/fff?text=No+Image";
-
-    // Remplace "_images/xxx.png" par le chemin correct
-    const filename = path.includes("_images/") ? path.split("_images/")[1] : path;
-
-    return `https://kttziaqzsvtamgaijtzj.supabase.co/storage/v1/object/public/images/public_images/${filename}`;
-  };
-
   /**
    * 🔹 Récupère les événements depuis Supabase
    */
@@ -80,7 +70,8 @@ export default function HomeScreen({ navigation }) {
         id_event: ev.id_event,
         nom_event: ev.nom_event || "Titre non disponible",
         description: ev.description || "",
-        photo: getPublicUrl(ev.photo),
+        // ✅ Utilisation directe de l’URL depuis la DB
+        photo: ev.photo || "https://placehold.co/400x200/222/fff?text=No+Image",
         date: ev.date || "Date inconnue",
         ville: ev.ville?.nom_ville || "Ville inconnue",
         type_event: ev.type_evenements?.nom_event || "Type inconnu",
@@ -220,10 +211,26 @@ const styles = StyleSheet.create({
   pickerStyle: { color: "#fff" },
   pickerItemStyle: { color: "#fff", backgroundColor: "#333" },
   categoryContainer: { height: 140, marginVertical: 5, marginBottom: 20 },
-  uploaderContainer: { flex: 1, width: "100%", justifyContent: "center", alignItems: "center" },
+  uploaderContainer: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   backButton: { position: "absolute", top: 60, left: 20, zIndex: 10 },
   loader: { marginTop: 20 },
-  sectionTitle: { fontSize: 22, fontWeight: "bold", color: "#fff", marginTop: 15 },
-  popularTitle: { fontSize: 22, fontWeight: "bold", color: "#fff", marginTop: 15, marginBottom: 10 },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
+  },
+  popularTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
+    marginBottom: 10,
+  },
   noEventsText: { color: "#ccc", textAlign: "center", marginTop: 20, fontSize: 16 },
 });

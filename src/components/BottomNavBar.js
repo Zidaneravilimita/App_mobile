@@ -25,9 +25,9 @@ export default function BottomNavBar({ onAddPress, onHomePress }) {
       </TouchableOpacity>
 
       {/* Bouton Chat (désactivé tant qu’il n’y a pas de ChatScreen) */}
-      {/* <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
+      <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
         <Ionicons name="chatbubbles" size={24} color="#fff" />
-      </TouchableOpacity> */}
+      </TouchableOpacity> 
 
       {/* Bouton Profil */}
       <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Profile')}>

@@ -1,15 +1,16 @@
 // src/components/EventCard.js
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
-
 export default function EventCard({ event = {}, onPress }) {
+  const [imageError, setImageError] = useState(false);
   const eventTitle = event.nom_event || "Titre non disponible";
   const eventDate = event.date || "Date inconnue";
   const eventVille = event.ville || "Lieu non défini";
   const eventType = event.type_event || "Type inconnu";
 
+  // ✅ Si erreur de chargement, on bascule vers une image placeholder
   const eventPhoto =
-    event.photo && event.photo.startsWith("http")
+    !imageError && event.photo && event.photo.startsWith("http")
       ? event.photo
       : "https://placehold.co/400x200/222/fff?text=No+Image";
 
@@ -20,10 +21,10 @@ export default function EventCard({ event = {}, onPress }) {
         source={{ uri: eventPhoto }}
         style={styles.eventImage}
         resizeMode="cover"
-        defaultSource={{ uri: "https://placehold.co/400x200/222/fff?text=No+Image" }}
-        onError={() =>
-          console.log("❌ Erreur de chargement image pour:", eventTitle)
-        }
+        onError={() => {
+          console.log("❌ Erreur de chargement image pour:", eventTitle);
+          setImageError(true);
+        }}
       />
 
       {/* Infos événement */}
