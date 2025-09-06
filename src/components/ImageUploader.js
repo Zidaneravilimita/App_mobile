@@ -25,9 +25,10 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   const [downloadURL, setDownloadURL] = useState(null);
 
   const [villes, setVilles] = useState([]);
-  const [selectedVilleId, setSelectedVilleId] = useState('');
+  const [selectedVilleId, setSelectedVilleId] = useState(null);
   const [typeEvenements, setTypeEvenements] = useState([]);
-  const [selectedTypeEventId, setSelectedTypeEventId] = useState('');
+  const [selectedTypeEventId, setSelectedTypeEventId] = useState(null);
+
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
@@ -42,7 +43,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
         if (status !== 'granted') {
           Alert.alert(
             'Permission requise',
-            "Nous avons besoin de la permission d'accéder à votre galerie pour télécharger une image."
+            "Nous avons besoin de la permission d'accéder à votre galerie."
           );
         }
       }
@@ -56,10 +57,12 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
       .from('ville')
       .select('*')
       .order('nom_ville', { ascending: true });
+
     if (error) {
-      console.error('Erreur de récupération des villes:', error);
+      console.error('❌ Erreur de récupération des villes:', error);
       Alert.alert('Erreur', 'Impossible de charger les villes.');
     } else {
+      console.log('✅ Villes récupérées:', data);
       setVilles(data || []);
     }
   };
@@ -69,36 +72,39 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
       .from('type_evenements')
       .select('*')
       .order('nom_event', { ascending: true });
+
     if (error) {
-      console.error("Erreur de récupération des types d'événements:", error);
+      console.error('❌ Erreur de récupération des types:', error);
       Alert.alert('Erreur', "Impossible de charger les types d'événements.");
     } else {
+      console.log('✅ Types récupérés:', data);
       setTypeEvenements(data || []);
     }
   };
 
   const uriToBlob = async (uri) => {
     const response = await fetch(uri);
-    const blob = await response.blob();
-    return blob;
+    return await response.blob();
   };
 
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // 🔹 CORRIGÉ
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setImageUri(result.assets[0].uri);
+      if (!result.canceled && result.assets?.length > 0) {
+        const uri = result.assets[0].uri;
+        setImageUri(uri);
         setDownloadURL(null);
+        console.log('✅ Image sélectionnée:', uri);
       }
     } catch (error) {
-      console.error("Erreur lors de la sélection de l'image:", error);
-      Alert.alert("Erreur", "Impossible de sélectionner l'image.");
+      console.error('❌ Erreur lors de la sélection image:', error);
+      Alert.alert('Erreur', "Impossible de sélectionner l'image.");
     }
   };
 
@@ -107,72 +113,67 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
       Alert.alert('Erreur', "Veuillez sélectionner une image d'abord.");
       return;
     }
-
     if (!eventTitle.trim() || !eventDescription.trim() || !selectedVilleId || !selectedTypeEventId || !eventDate) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs du formulaire.');
-      return;
-    }
-
-    const villeIdNum = Number(selectedVilleId);
-    const typeIdNum = Number(selectedTypeEventId);
-    if (!Number.isFinite(villeIdNum) || !Number.isFinite(typeIdNum)) {
-      Alert.alert('Erreur', 'Ville et Type doivent être choisis dans les listes.');
       return;
     }
 
     setUploading(true);
 
     try {
+      // 🔹 Conversion URI -> blob
       const blob = await uriToBlob(imageUri);
 
-      const guessedExt =
-        (blob.type && blob.type.split('/')[1]) ||
-        (imageUri.split('.').pop()?.toLowerCase() || 'png');
-      const fileExt = guessedExt.includes('?') ? guessedExt.split('?')[0] : guessedExt;
-      const fileName = `${Date.now()}.${fileExt}`;
+      // 🔹 Génération du nom de fichier
+      const ext = blob.type?.split('/')[1] || 'png';
+      const fileName = `${Date.now()}.${ext}`;
       const path = `public_images/${fileName}`;
 
+      // 🔹 Upload vers Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('images')
         .upload(path, blob, {
           cacheControl: '3600',
           upsert: false,
-          contentType: blob.type || `image/${fileExt}`,
+          contentType: blob.type || `image/${ext}`,
         });
 
       if (uploadError) throw uploadError;
 
+      // 🔹 Récupération URL publique
       const { data: pub } = supabase.storage.from('images').getPublicUrl(path);
       const publicUrl = pub?.publicUrl;
-      if (!publicUrl) throw new Error("Impossible d'obtenir l'URL publique de l'image.");
+      if (!publicUrl) throw new Error("Impossible d'obtenir l'URL publique.");
 
       setDownloadURL(publicUrl);
 
+      // 🔹 Insertion dans la table event
       const { error: insertError } = await supabase.from('event').insert({
         nom_event: eventTitle.trim(),
         description: eventDescription.trim(),
         date: eventDate,
         photo: publicUrl,
-        id_type_event: typeIdNum,
-        id_ville: villeIdNum,
+        id_type_event: selectedTypeEventId,
+        id_ville: selectedVilleId,
       });
 
       if (insertError) throw insertError;
 
-      Alert.alert('Succès', 'Image et événement téléchargés avec succès !');
+      Alert.alert('Succès', 'Image et événement publiés avec succès ✅');
 
+      // Reset formulaire
       setImageUri(null);
       setEventTitle('');
       setEventDescription('');
       setEventDate('');
-      setSelectedVilleId('');
-      setSelectedTypeEventId('');
+      setSelectedVilleId(null);
+      setSelectedTypeEventId(null);
       setSelectedDate(new Date());
 
       onUploadComplete?.();
     } catch (error) {
-      console.error("Erreur lors du téléchargement ou de l'insertion:", error);
-      Alert.alert('Erreur', `Échec du téléchargement: ${error.message || 'Inconnu'}`);
+      console.error('❌ Erreur upload/insertion:', error);
+      Alert.alert('Erreur', `Échec: ${error.message || 'Inconnu'}`);
     } finally {
       setUploading(false);
     }
@@ -188,6 +189,8 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container}>
+        
+        {/* Champ titre */}
         <TextInput
           style={styles.input}
           placeholder="Titre de l'événement"
@@ -196,6 +199,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
           onChangeText={setEventTitle}
         />
 
+        {/* Champ description */}
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder="Description de l'événement"
@@ -205,20 +209,22 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
           multiline
         />
 
+        {/* Sélection ville */}
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedVilleId}
-            onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+            onValueChange={(val) => setSelectedVilleId(val)}
             style={styles.picker}
             dropdownIconColor="#fff"
           >
-            <Picker.Item label="Sélectionner une ville" value="" />
+            <Picker.Item label="Sélectionner une ville" value={null} />
             {villes.map((ville) => (
               <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
             ))}
           </Picker>
         </View>
 
+        {/* Sélection date */}
         <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputButton}>
           <Ionicons name="calendar-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
           <Text style={styles.dateInputText}>
@@ -230,20 +236,22 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
           <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onDateChange} />
         )}
 
+        {/* Sélection type d'évènement */}
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedTypeEventId}
-            onValueChange={(itemValue) => setSelectedTypeEventId(itemValue)}
+            onValueChange={(val) => setSelectedTypeEventId(val)}
             style={styles.picker}
             dropdownIconColor="#fff"
           >
-            <Picker.Item label="Type d'évènement" value="" />
+            <Picker.Item label="Type d'évènement" value={null} />
             {typeEvenements.map((type) => (
               <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
             ))}
           </Picker>
         </View>
 
+        {/* Bouton image */}
         <TouchableOpacity style={styles.pickImageButton} onPress={pickImage}>
           <Ionicons name="image-outline" size={28} color="#fff" style={styles.pickImageIcon} />
           <Text style={styles.pickImageButtonText}>Ajouter une pièce jointe</Text>
@@ -257,6 +265,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
 
         {uploading && <ActivityIndicator size="large" color="#8A2BE2" style={styles.activityIndicator} />}
 
+        {/* Boutons actions */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => onClose?.()}>
             <Text style={styles.buttonText}>Annuler</Text>
@@ -280,7 +289,6 @@ const styles = StyleSheet.create({
   },
   input: {
     width: '100%',
-    minWidth: '100%',
     backgroundColor: '#333',
     color: '#fff',
     padding: 20,
@@ -294,8 +302,6 @@ const styles = StyleSheet.create({
   textArea: {
     height: 120,
     textAlignVertical: 'top',
-    padding: 15,
-    fontSize: 18,
   },
   dateInputButton: {
     width: '100%',
@@ -309,13 +315,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 70,
   },
-  dateInputText: {
-    color: '#fff',
-    fontSize: 16,
-  },
+  dateInputText: { color: '#fff', fontSize: 16 },
   pickerContainer: {
     width: '100%',
-    maxWidth: '100%',
     backgroundColor: '#333',
     borderRadius: 8,
     marginBottom: 15,
@@ -324,32 +326,18 @@ const styles = StyleSheet.create({
     height: 60,
     justifyContent: 'center',
   },
-  picker: {
-    color: '#fff',
-    height: 60,
-  },
+  picker: { color: '#fff', height: 60 },
   pickImageButton: {
     backgroundColor: '#333',
     padding: 15,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
     flexDirection: 'row',
-    marginBottom: 15,
-  },
-  pickImageIcon: {
-    marginRight: 10,
-  },
-  pickImageButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  imagePreviewContainer: {
     alignItems: 'center',
-    width: '100%',
     marginBottom: 15,
   },
+  pickImageIcon: { marginRight: 10 },
+  pickImageButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  imagePreviewContainer: { alignItems: 'center', width: '100%', marginBottom: 15 },
   imagePreview: {
     width: 250,
     height: 180,
@@ -358,33 +346,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
-  activityIndicator: {
-    marginTop: 10,
-  },
+  activityIndicator: { marginTop: 10 },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
     marginBottom: 30,
   },
-  button: {
-    flex: 1,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  uploadButton: {
-    backgroundColor: '#8A2BE2',
-    padding: 18,
-  },
-  cancelButton: {
-    backgroundColor: '#555',
-    padding: 18,
-  },
+  button: { flex: 1, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  uploadButton: { backgroundColor: '#8A2BE2', padding: 18 },
+  cancelButton: { backgroundColor: '#555', padding: 18 },
 });

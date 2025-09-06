@@ -18,7 +18,7 @@ export default function CategoryScroll({ onSelectCategory }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Charger les catégories au montage
+  // 🔹 Charger les catégories au montage
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -26,36 +26,39 @@ export default function CategoryScroll({ onSelectCategory }) {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("category")
-        .select("id_category, nom_category, image")
-        .order("nom_category", { ascending: true });
+      setError(null);
 
-      if (error) throw error;
+      const { data, error: fetchError } = await supabase
+        .from("type_evenements") // <-- remplacer "category" par le nom correct de la table
+        .select("id_type_event, nom_event, photo")
+        .order("nom_event", { ascending: true });
+
+      if (fetchError) throw fetchError;
 
       const categoriesWithSafeImage = (data || []).map((cat) => ({
         ...cat,
-        image:
-          cat.image && cat.image.startsWith("http")
-            ? cat.image
-            : null, // on sécurise l'image
+        photo:
+          cat.photo && cat.photo.startsWith("http")
+            ? cat.photo
+            : "https://placehold.co/100x100/222/fff?text=No+Image",
       }));
 
       setCategories(categoriesWithSafeImage);
     } catch (e) {
       console.error("Erreur lors de la récupération des catégories :", e);
       setError("Impossible de charger les catégories.");
-      Alert.alert("Erreur", "Impossible de charger les catégories : " + e.message);
+      Alert.alert(
+        "Erreur",
+        "Impossible de charger les catégories : " + (e.message || e)
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleCategoryPress = (category) => {
-    console.log("Catégorie sélectionnée :", category.nom_category);
-    if (onSelectCategory) {
-      onSelectCategory(category.id_category);
-    }
+    console.log("Catégorie sélectionnée :", category.nom_event);
+    if (onSelectCategory) onSelectCategory(category.id_type_event);
   };
 
   const renderContent = () => {
@@ -92,18 +95,17 @@ export default function CategoryScroll({ onSelectCategory }) {
       >
         {categories.map((category) => (
           <TouchableOpacity
-            key={category.id_category}
+            key={category.id_type_event}
             style={styles.categoryCard}
             onPress={() => handleCategoryPress(category)}
           >
-            {category.image ? (
-              <Image source={{ uri: category.image }} style={styles.categoryImage} />
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Ionicons name="image-outline" size={30} color="#fff" />
-              </View>
-            )}
-            <Text style={styles.categoryTitle}>{category.nom_category}</Text>
+            <Image
+              source={{ uri: category.photo }}
+              style={styles.categoryImage}
+            />
+            <Text style={styles.categoryTitle}>
+              {category.nom_event || "Nom inconnu"}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -141,15 +143,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 80,
     borderRadius: 8,
-    marginBottom: 5,
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: "#555",
-    justifyContent: "center",
-    alignItems: "center",
     marginBottom: 5,
   },
   categoryTitle: {

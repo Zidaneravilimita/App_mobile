@@ -24,25 +24,21 @@ import ImageUploader from "../components/ImageUploader";
 export default function HomeScreen({ navigation }) {
   const [currentContent, setCurrentContent] = useState("main");
 
-  // États événements
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [errorEvents, setErrorEvents] = useState(null);
 
-  // États villes
   const [villes, setVilles] = useState([]);
+  const [types, setTypes] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState("all");
 
   const handleAddPress = () => setCurrentContent("uploader");
   const handleHomePress = () => setCurrentContent("main");
 
-  /**
-   * 🔹 Récupère les événements depuis Supabase
-   */
+  // 🔹 Fetch événements
   const fetchEvents = async () => {
-    setLoading(true);
-    setError(null);
-
+    setLoadingEvents(true);
+    setErrorEvents(null);
     try {
       let query = supabase
         .from("event")
@@ -63,35 +59,30 @@ export default function HomeScreen({ navigation }) {
         query = query.eq("id_ville", selectedVilleId);
       }
 
-      const { data, error: fetchError } = await query;
-      if (fetchError) throw fetchError;
+      const { data, error } = await query;
+      if (error) throw error;
 
       const eventsWithPhoto = data.map((ev) => ({
         id_event: ev.id_event,
         nom_event: ev.nom_event || "Titre non disponible",
         description: ev.description || "",
-        // ✅ Utilisation directe de l’URL depuis la DB
         photo: ev.photo || "https://placehold.co/400x200/222/fff?text=No+Image",
         date: ev.date || "Date inconnue",
         ville: ev.ville?.nom_ville || "Ville inconnue",
         type_event: ev.type_evenements?.nom_event || "Type inconnu",
       }));
 
-      console.log("📸 Events chargés :", eventsWithPhoto);
       setEvents(eventsWithPhoto);
     } catch (e) {
       console.error("Erreur lors de la récupération des événements :", e);
-      setError("Impossible de charger les événements.");
-      Alert.alert("Erreur", "Impossible de charger les événements : " + e.message);
+      setErrorEvents("Impossible de charger les événements.");
       setEvents([]);
     } finally {
-      setLoading(false);
+      setLoadingEvents(false);
     }
   };
 
-  /**
-   * 🔹 Récupère les villes
-   */
+  // 🔹 Fetch villes
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase.from("ville").select("*");
@@ -103,8 +94,21 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  // 🔹 Fetch types d'événements
+  const fetchTypes = async () => {
+    try {
+      const { data, error } = await supabase.from("type_evenements").select("*");
+      if (error) throw error;
+      setTypes(data || []);
+    } catch (e) {
+      console.error("Erreur lors de la récupération des types :", e);
+      Alert.alert("Erreur", "Impossible de charger les catégories : " + e.message);
+    }
+  };
+
   useEffect(() => {
     fetchVilles();
+    fetchTypes();
   }, []);
 
   useEffect(() => {
@@ -140,6 +144,7 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Catégories</Text>
           <View style={styles.categoryContainer}>
             <CategoryScroll
+              categories={types}
               onSelectCategory={(id) => console.log("Catégorie sélectionnée:", id)}
             />
           </View>
@@ -164,10 +169,10 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <Text style={styles.popularTitle}>Événements populaires</Text>
-          {loading ? (
+          {loadingEvents ? (
             <ActivityIndicator size="large" color="#8A2BE2" style={styles.loader} />
-          ) : error ? (
-            <Text style={styles.noEventsText}>{error}</Text>
+          ) : errorEvents ? (
+            <Text style={styles.noEventsText}>{errorEvents}</Text>
           ) : events.length > 0 ? (
             events.map((event) => (
               <EventCard
