@@ -13,15 +13,29 @@ import {
 import { supabase } from "../config/supabase";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function CategoryScroll({ onSelectCategory }) {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function CategoryScroll({ onSelectCategory, categories = [] }) {
+  const [localCategories, setLocalCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
-  // 🔹 Charger les catégories au montage
+  // Charger les catégories depuis les props ou depuis la base
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (categories && categories.length > 0) {
+      // Utiliser les catégories passées en props
+      const categoriesWithSafeImage = categories.map((cat) => ({
+        ...cat,
+        photo:
+          cat.photo && cat.photo.startsWith("http")
+            ? cat.photo
+            : "https://placehold.co/100x100/222/fff?text=" + encodeURIComponent(cat.nom_event?.substring(0, 3) || "CAT"),
+      }));
+      setLocalCategories(categoriesWithSafeImage);
+    } else {
+      // Charger depuis la base de données
+      fetchCategories();
+    }
+  }, [categories]);
 
   const fetchCategories = async () => {
     try {
@@ -29,7 +43,7 @@ export default function CategoryScroll({ onSelectCategory }) {
       setError(null);
 
       const { data, error: fetchError } = await supabase
-        .from("type_evenements") // <-- remplacer "category" par le nom correct de la table
+        .from("type_evenements")
         .select("id_type_event, nom_event, photo")
         .order("nom_event", { ascending: true });
 
@@ -40,10 +54,10 @@ export default function CategoryScroll({ onSelectCategory }) {
         photo:
           cat.photo && cat.photo.startsWith("http")
             ? cat.photo
-            : "https://placehold.co/100x100/222/fff?text=No+Image",
+            : "https://placehold.co/100x100/222/fff?text=" + encodeURIComponent(cat.nom_event?.substring(0, 3) || "CAT"),
       }));
 
-      setCategories(categoriesWithSafeImage);
+      setLocalCategories(categoriesWithSafeImage);
     } catch (e) {
       console.error("Erreur lors de la récupération des catégories :", e);
       setError("Impossible de charger les catégories.");
@@ -58,7 +72,13 @@ export default function CategoryScroll({ onSelectCategory }) {
 
   const handleCategoryPress = (category) => {
     console.log("Catégorie sélectionnée :", category.nom_event);
+    setSelectedCategoryId(category.id_type_event);
     if (onSelectCategory) onSelectCategory(category.id_type_event);
+  };
+
+  const handleShowAllPress = () => {
+    setSelectedCategoryId(null);
+    if (onSelectCategory) onSelectCategory(null);
   };
 
   const renderContent = () => {
@@ -75,10 +95,13 @@ export default function CategoryScroll({ onSelectCategory }) {
       return (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchCategories}>
+            <Text style={styles.retryButtonText}>Réessayer</Text>
+          </TouchableOpacity>
         </View>
       );
     }
-    if (categories.length === 0) {
+    if (localCategories.length === 0) {
       return (
         <View style={styles.noCategoriesContainer}>
           <Text style={styles.noCategoriesText}>Aucune catégorie trouvée.</Text>
@@ -93,17 +116,36 @@ export default function CategoryScroll({ onSelectCategory }) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
       >
-        {categories.map((category) => (
+        {/* Bouton "Tout afficher" */}
+        <TouchableOpacity
+          style={[
+            styles.categoryCard,
+            styles.showAllCard,
+            selectedCategoryId === null && styles.selectedCard
+          ]}
+          onPress={handleShowAllPress}
+        >
+          <View style={styles.showAllIconContainer}>
+            <Ionicons name="grid-outline" size={40} color="#8A2BE2" />
+          </View>
+          <Text style={styles.categoryTitle}>Tout</Text>
+        </TouchableOpacity>
+
+        {localCategories.map((category) => (
           <TouchableOpacity
             key={category.id_type_event}
-            style={styles.categoryCard}
+            style={[
+              styles.categoryCard,
+              selectedCategoryId === category.id_type_event && styles.selectedCard
+            ]}
             onPress={() => handleCategoryPress(category)}
           >
             <Image
               source={{ uri: category.photo }}
               style={styles.categoryImage}
+              onError={() => console.log("Erreur image catégorie:", category.nom_event)}
             />
-            <Text style={styles.categoryTitle}>
+            <Text style={styles.categoryTitle} numberOfLines={2}>
               {category.nom_event || "Nom inconnu"}
             </Text>
           </TouchableOpacity>
@@ -131,25 +173,44 @@ const styles = StyleSheet.create({
     backgroundColor: "#333",
     width: 100,
     height: 120,
-    borderRadius: 10,
-    marginHorizontal: 5,
+    borderRadius: 12,
+    marginHorizontal: 6,
     justifyContent: "flex-start",
     alignItems: "center",
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: "#555",
-    padding: 5,
+    padding: 6,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  selectedCard: {
+    borderColor: "#8A2BE2",
+    backgroundColor: "#444",
+  },
+  showAllCard: {
+    justifyContent: "center",
+  },
+  showAllIconContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   categoryImage: {
     width: "100%",
-    height: 80,
+    height: 70,
     borderRadius: 8,
-    marginBottom: 5,
+    marginBottom: 8,
+    backgroundColor: '#555',
   },
   categoryTitle: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 12,
+    fontSize: 11,
     textAlign: "center",
+    lineHeight: 14,
   },
   activityIndicator: {
     flex: 1,
@@ -160,10 +221,24 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
   errorText: {
     color: "red",
-    fontSize: 16,
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  retryButton: {
+    backgroundColor: "#8A2BE2",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
   noCategoriesContainer: {
     flex: 1,
@@ -172,6 +247,6 @@ const styles = StyleSheet.create({
   },
   noCategoriesText: {
     color: "#aaa",
-    fontSize: 16,
+    fontSize: 14,
   },
 });

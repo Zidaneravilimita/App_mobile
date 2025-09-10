@@ -53,32 +53,36 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   }, []);
 
   const fetchVilles = async () => {
-    const { data, error } = await supabase
-      .from('ville')
-      .select('*')
-      .order('nom_ville', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('ville')
+        .select('*')
+        .order('nom_ville', { ascending: true });
 
-    if (error) {
-      console.error('❌ Erreur de récupération des villes:', error);
-      Alert.alert('Erreur', 'Impossible de charger les villes.');
-    } else {
+      if (error) throw error;
+
       console.log('✅ Villes récupérées:', data);
       setVilles(data || []);
+    } catch (error) {
+      console.error('❌ Erreur de récupération des villes:', error);
+      Alert.alert('Erreur', 'Impossible de charger les villes.');
     }
   };
 
   const fetchTypeEvenements = async () => {
-    const { data, error } = await supabase
-      .from('type_evenements')
-      .select('*')
-      .order('nom_event', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('type_evenements')
+        .select('*')
+        .order('nom_event', { ascending: true });
 
-    if (error) {
-      console.error('❌ Erreur de récupération des types:', error);
-      Alert.alert('Erreur', "Impossible de charger les types d'événements.");
-    } else {
+      if (error) throw error;
+
       console.log('✅ Types récupérés:', data);
       setTypeEvenements(data || []);
+    } catch (error) {
+      console.error('❌ Erreur de récupération des types:', error);
+      Alert.alert('Erreur', "Impossible de charger les types d'événements.");
     }
   };
 
@@ -121,15 +125,23 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
     setUploading(true);
 
     try {
-      // 🔹 Conversion URI -> blob
+      // Obtenir l'utilisateur connecté
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        Alert.alert('Erreur', 'Vous devez être connecté pour créer un événement.');
+        return;
+      }
+
+      // Conversion URI -> blob
       const blob = await uriToBlob(imageUri);
 
-      // 🔹 Génération du nom de fichier
+      // Génération du nom de fichier
       const ext = blob.type?.split('/')[1] || 'png';
-      const fileName = `${Date.now()}.${ext}`;
+      const fileName = `${Date.now()}_${user.id}.${ext}`;
       const path = `public_images/${fileName}`;
 
-      // 🔹 Upload vers Supabase Storage
+      // Upload vers Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('images')
         .upload(path, blob, {
@@ -140,14 +152,14 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
 
       if (uploadError) throw uploadError;
 
-      // 🔹 Récupération URL publique
+      // Récupération URL publique
       const { data: pub } = supabase.storage.from('images').getPublicUrl(path);
       const publicUrl = pub?.publicUrl;
       if (!publicUrl) throw new Error("Impossible d'obtenir l'URL publique.");
 
       setDownloadURL(publicUrl);
 
-      // 🔹 Insertion dans la table event
+      // Insertion dans la table event avec l'ID utilisateur
       const { error: insertError } = await supabase.from('event').insert({
         nom_event: eventTitle.trim(),
         description: eventDescription.trim(),
@@ -155,6 +167,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
         photo: publicUrl,
         id_type_event: selectedTypeEventId,
         id_ville: selectedVilleId,
+        id_user: user.id, // ✅ Ajout de l'ID utilisateur
       });
 
       if (insertError) throw insertError;
@@ -219,7 +232,11 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
           >
             <Picker.Item label="Sélectionner une ville" value={null} />
             {villes.map((ville) => (
-              <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+              <Picker.Item 
+                key={ville.id_ville} 
+                label={ville.nom_ville} 
+                value={ville.id_ville} 
+              />
             ))}
           </Picker>
         </View>
@@ -228,7 +245,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
         <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputButton}>
           <Ionicons name="calendar-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
           <Text style={styles.dateInputText}>
-            {eventDate ? `Date : ${eventDate}` : "Date de l'évènement"}
+            {eventDate ? `Date : ${eventDate}` : "Date de l'événement"}
           </Text>
         </TouchableOpacity>
 
@@ -236,7 +253,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
           <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onDateChange} />
         )}
 
-        {/* Sélection type d'évènement */}
+        {/* Sélection type d'événement */}
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={selectedTypeEventId}
@@ -244,9 +261,13 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
             style={styles.picker}
             dropdownIconColor="#fff"
           >
-            <Picker.Item label="Type d'évènement" value={null} />
+            <Picker.Item label="Type d'événement" value={null} />
             {typeEvenements.map((type) => (
-              <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
+              <Picker.Item 
+                key={type.id_type_event} 
+                label={type.nom_event} 
+                value={type.id_type_event} 
+              />
             ))}
           </Picker>
         </View>
