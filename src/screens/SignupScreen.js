@@ -1,4 +1,4 @@
-// src/screens/SignupScreen.js - Version complète et à jour
+// src/screens/SignupScreen.js - Version complète avec tables temporaires
 import React, { useState } from 'react';
 import {
   SafeAreaView,
@@ -64,7 +64,11 @@ export default function SignupScreen({ navigation }) {
           { id_ville: 2, nom_ville: 'Majunga' },
           { id_ville: 3, nom_ville: 'Fianarantsoa' },
           { id_ville: 4, nom_ville: 'Tamatave' },
-          { id_ville: 5, nom_ville: 'Tuléar' }
+          { id_ville: 5, nom_ville: 'Tuléar' },
+          { id_ville: 6, nom_ville: 'Diego' },
+          { id_ville: 7, nom_ville: 'Nosy Be' },
+          { id_ville: 8, nom_ville: 'Antsirabe' },
+          { id_ville: 9, nom_ville: 'Morondava' }
         ]);
       }
     } catch (error) {
@@ -85,93 +89,96 @@ export default function SignupScreen({ navigation }) {
 
   const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
 
-  const handleSupabaseSignup = async () => {
+  const checkTempUserExists = async (userEmail) => {
     try {
-      console.log('Tentative d\'inscription avec Supabase...');
+      const { data, error } = await supabase
+        .from('temp_users')
+        .select('*')
+        .eq('email', userEmail.trim())
+        .single();
 
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password,
-        options: {
-          data: {
-            username: username.trim(),
-            signup_method: 'app_mobile'
-          }
-        }
-      });
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('Erreur vérification temp user:', error);
+        return false;
+      }
+
+      return !!data;
+    } catch (error) {
+      console.error('Exception vérification temp user:', error);
+      return false;
+    }
+  };
+
+  const handleTempSignup = async () => {
+    try {
+      console.log('Tentative d\'inscription via table temporaire...');
+
+      const cityIdNumber = selectedCityId ? parseInt(selectedCityId) : null;
+
+      // Utiliser la fonction RPC avec vos tables temporaires
+      const { data, error } = await supabase
+        .rpc('temp_signup', {
+          user_email: email.trim(),
+          user_password: password,
+          user_username: username.trim(),
+          user_city_id: cityIdNumber
+        });
 
       if (error) {
-        console.error('Erreur Supabase:', error);
-        
-        if (error.message?.includes('User already registered')) {
-          return { 
-            success: false, 
-            reason: 'user_exists',
-            message: 'Cet email est déjà utilisé. Veuillez vous connecter.'
-          };
-        }
-        
-        if (error.message?.includes('Invalid API key') || error.status === 401) {
-          return {
-            success: false,
-            reason: 'api_error',
-            message: 'Problème de configuration serveur.'
-          };
-        }
-        
-        throw error;
+        console.error('Erreur fonction temp_signup:', error);
+        return {
+          success: false,
+          reason: 'temp_error',
+          message: 'Erreur lors du traitement de l\'inscription'
+        };
       }
 
-      console.log('Inscription réussie:', data);
-      
-      // Création du profil
-      if (data.user) {
-        try {
-          const cityIdNumber = selectedCityId ? parseInt(selectedCityId) : null;
-          const selectedCity = cities.find(city => city.id_ville === cityIdNumber);
-          const cityName = selectedCity ? selectedCity.nom_ville : '';
+      if (data && data.success) {
+        console.log('Inscription temporaire réussie:', data);
+        
+        // Créer l'objet utilisateur local
+        const localUser = {
+          id: data.user_id,
+          email: data.email,
+          username: data.username,
+          role: 'visiteur',
+          avatar_url: 'https://i.ibb.co/2n9H0hZ/default-avatar.png',
+          city_id: cityIdNumber,
+          created_at: new Date().toISOString(),
+          is_temp_user: true,
+          source: 'temp_signups'
+        };
 
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: data.user.id,
-              email: email.trim(),
-              username: username.trim(),
-              role: 'visiteur',
-              avatar_url: 'https://i.ibb.co/2n9H0hZ/default-avatar.png',
-              bio: `Utilisateur de EventParty ${cityName ? 'à ' + cityName : ''}`,
-              id_ville: cityIdNumber,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            }]);
+        // Sauvegarder localement
+        await AsyncStorage.setItem('current_user', JSON.stringify(localUser));
+        await AsyncStorage.setItem('user_source', 'temp_table');
+        await AsyncStorage.setItem('user_email', email.trim());
 
-          if (profileError) {
-            console.warn('Erreur création profil:', profileError);
-          }
-        } catch (profileError) {
-          console.warn('Exception création profil:', profileError);
-        }
+        return { 
+          success: true, 
+          message: 'Inscription réussie !',
+          user_data: localUser
+        };
+      } else {
+        return { 
+          success: false, 
+          message: data?.message || 'Erreur lors de l inscription' 
+        };
       }
-
-      return { 
-        success: true, 
-        data,
-        message: 'Inscription réussie !' + (data.session ? '' : ' Vérifiez votre email.')
-      };
 
     } catch (error) {
-      console.error('Exception Supabase:', error);
+      console.error('Erreur temp signup:', error);
       return {
         success: false,
-        reason: 'supabase_error',
-        message: 'Erreur de connexion au serveur.'
+        reason: 'temp_error',
+        message: 'Erreur avec la table temporaire'
       };
     }
   };
 
   const handleFallbackSignup = async () => {
     try {
-      console.log('Activation du mode local...');
+      console.log('Activation du mode local de secours...');
       
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -180,13 +187,13 @@ export default function SignupScreen({ navigation }) {
       const cityName = selectedCity ? selectedCity.nom_ville : '';
 
       const localUser = {
-        id: 'local-' + Date.now(),
+        id: `local-${Date.now()}`,
         email: email.trim(),
         username: username.trim(),
         role: 'visiteur',
         avatar_url: 'https://i.ibb.co/2n9H0hZ/default-avatar.png',
         bio: `Utilisateur de EventParty ${cityName ? 'à ' + cityName : ''}`,
-        id_ville: cityIdNumber,
+        city_id: cityIdNumber,
         created_at: new Date().toISOString(),
         is_local: true,
       };
@@ -211,9 +218,36 @@ export default function SignupScreen({ navigation }) {
     }
   };
 
+  const testTempTables = async () => {
+    try {
+      // Test de la table temp_signups
+      const { data: signupsData, error: signupsError } = await supabase
+        .from('temp_signups')
+        .select('count(*)');
+
+      // Test de la table temp_users
+      const { data: usersData, error: usersError } = await supabase
+        .from('temp_users')
+        .select('count(*)');
+
+      if (signupsError || usersError) {
+        notify('Erreur de connexion aux tables temporaires', 'Test');
+        return false;
+      } else {
+        notify(`Tables OK: ${signupsData[0].count} signups, ${usersData[0].count} users`, 'Test réussi');
+        return true;
+      }
+    } catch (error) {
+      console.error('Test tables temporaires:', error);
+      notify('Erreur test tables', 'Test échoué');
+      return false;
+    }
+  };
+
   const handleSignup = async () => {
     setErrorDetails('');
     
+    // Validation des champs
     if (!username.trim() || !email.trim() || !password || !confirmPassword) {
       notify('Veuillez remplir tous les champs obligatoires.', 'Champs manquants');
       return;
@@ -234,18 +268,31 @@ export default function SignupScreen({ navigation }) {
     setLoading(true);
 
     try {
-      // Essayer d'abord Supabase
-      let result = await handleSupabaseSignup();
+      // Vérifier d'abord si l'utilisateur existe déjà
+      const userExists = await checkTempUserExists(email);
+      if (userExists) {
+        notify('Cet email est déjà utilisé. Veuillez vous connecter.', 'Erreur');
+        setLoading(false);
+        return;
+      }
 
-      // Si échec API, utiliser le fallback
-      if (!result.success && result.reason === 'api_error') {
-        notify('Configuration serveur incorrecte. Mode démo activé.', 'Info');
+      // Tester d'abord la connexion aux tables
+      const tablesAvailable = await testTempTables();
+      
+      let result;
+      if (tablesAvailable) {
+        // Utiliser la fonction avec vos tables temporaires
+        result = await handleTempSignup();
+      } else {
+        // Fallback vers le mode local
+        notify('Tables temporaires indisponibles. Mode secours activé.', 'Info');
         result = await handleFallbackSignup();
       }
 
       if (result.success) {
         notify(result.message, 'Succès');
         
+        // Redirection vers l'accueil
         setTimeout(() => {
           navigation.reset({
             index: 0,
@@ -254,10 +301,6 @@ export default function SignupScreen({ navigation }) {
         }, 1500);
       } else {
         notify(result.message, 'Erreur');
-        
-        if (result.reason === 'user_exists') {
-          navigation.navigate('Login', { email: email.trim() });
-        }
       }
 
     } catch (error) {
@@ -270,13 +313,22 @@ export default function SignupScreen({ navigation }) {
 
   const handleQuickDemo = () => {
     setUsername('Utilisateur Demo');
-    setEmail('demo@example.com');
+    setEmail('demo@eventparty.com');
     setPassword('demo123');
     setConfirmPassword('demo123');
     if (cities.length > 0) {
       setSelectedCityId(String(cities[0].id_ville));
     }
-    notify('Données de démo remplies. Vous pouvez maintenant vous inscrire.', 'Info');
+    notify('Données de démo remplies. Cliquez sur "S\'inscrire" pour continuer.', 'Info');
+  };
+
+  const handleTestConnection = async () => {
+    const isConnected = await testTempTables();
+    if (isConnected) {
+      notify('✅ Connexion aux tables temporaires réussie!', 'Test OK');
+    } else {
+      notify('❌ Erreur de connexion aux tables', 'Test Échoué');
+    }
   };
 
   return (
@@ -289,6 +341,13 @@ export default function SignupScreen({ navigation }) {
         <View style={styles.container}>
           <Text style={styles.title}>Créer un compte</Text>
 
+          <View style={styles.infoBox}>
+            <Ionicons name="cloud" size={20} color="#2196F3" />
+            <Text style={styles.infoText}>
+              Utilisation des tables temporaires pour l'inscription
+            </Text>
+          </View>
+
           {errorDetails ? (
             <View style={styles.errorContainer}>
               <Ionicons name="alert-circle" size={20} color="#FF6B6B" />
@@ -298,7 +357,7 @@ export default function SignupScreen({ navigation }) {
 
           <TextInput
             style={styles.input}
-            placeholder="Nom d'utilisateur"
+            placeholder="Nom d'utilisateur *"
             placeholderTextColor="#999"
             value={username}
             onChangeText={setUsername}
@@ -308,7 +367,7 @@ export default function SignupScreen({ navigation }) {
 
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Email *"
             placeholderTextColor="#999"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -318,7 +377,7 @@ export default function SignupScreen({ navigation }) {
           />
 
           <View style={styles.pickerContainer}>
-            <Text style={styles.pickerLabel}>Ville (optionnel)</Text>
+            <Text style={styles.pickerLabel}>Ville</Text>
             <View style={styles.pickerWrapper}>
               {loadingCities ? (
                 <ActivityIndicator size="small" color="#8A2BE2" />
@@ -345,7 +404,7 @@ export default function SignupScreen({ navigation }) {
 
           <TextInput
             style={styles.input}
-            placeholder="Mot de passe (min. 6 caractères)"
+            placeholder="Mot de passe (min. 6 caractères) *"
             placeholderTextColor="#999"
             secureTextEntry
             value={password}
@@ -355,7 +414,7 @@ export default function SignupScreen({ navigation }) {
 
           <TextInput
             style={styles.input}
-            placeholder="Confirmer le mot de passe"
+            placeholder="Confirmer le mot de passe *"
             placeholderTextColor="#999"
             secureTextEntry
             value={confirmPassword}
@@ -378,14 +437,25 @@ export default function SignupScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.demoButton} 
-            onPress={handleQuickDemo}
-            disabled={loading}
-          >
-            <Ionicons name="flash" size={16} color="#fff" />
-            <Text style={styles.demoButtonText}>Données de test</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity 
+              style={styles.demoButton} 
+              onPress={handleQuickDemo}
+              disabled={loading}
+            >
+              <Ionicons name="flash" size={16} color="#fff" />
+              <Text style={styles.demoButtonText}>Remplir démo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.testButton} 
+              onPress={handleTestConnection}
+              disabled={loading}
+            >
+              <Ionicons name="wifi" size={16} color="#fff" />
+              <Text style={styles.testButtonText}>Test connexion</Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Déjà un compte ? </Text>
@@ -418,6 +488,22 @@ const styles = StyleSheet.create({
     color: '#fff', 
     marginBottom: 20,
     textAlign: 'center',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderLeftWidth: 3,
+    borderLeftColor: '#2196F3',
+  },
+  infoText: {
+    color: '#2196F3',
+    marginLeft: 8,
+    flex: 1,
+    fontSize: 14,
   },
   errorContainer: {
     flexDirection: 'row',
@@ -486,20 +572,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700' 
   },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 15,
+  },
   demoButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 8,
-    marginTop: 15,
-    gap: 8,
-    justifyContent: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2196F3',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+    flex: 1,
   },
   demoButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '600',
   },
   loginContainer: {
