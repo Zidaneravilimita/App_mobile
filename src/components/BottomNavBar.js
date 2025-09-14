@@ -1,11 +1,11 @@
-// src/components/BottomNavBar.js
+// src/components/BottomNavBar.js 
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native'; // ✅ Hook de navigation
+import { useNavigation } from '@react-navigation/native';
 
-export default function BottomNavBar({ onAddPress, onHomePress }) {
-  const navigation = useNavigation(); // ✅ On récupère directement la navigation
+export default function BottomNavBar({ onHomePress }) {
+  const navigation = useNavigation();
 
   return (
     <View style={styles.navBarContainer}>
@@ -20,11 +20,14 @@ export default function BottomNavBar({ onAddPress, onHomePress }) {
       </TouchableOpacity>
 
       {/* Bouton Add */}
-      <TouchableOpacity style={styles.addButton} onPress={onAddPress}>
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => navigation.navigate('Add')} // navigation directe vers ImageUploader
+      >
         <Ionicons name="add" size={30} color="#fff" />
       </TouchableOpacity>
 
-      {/* Bouton Chat (désactivé tant qu’il n’y a pas de ChatScreen) */}
+      {/* Bouton Chat */}
       <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>
         <Ionicons name="chatbubbles" size={24} color="#fff" />
       </TouchableOpacity> 
@@ -47,7 +50,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#333',
-    paddingBottom: 20, // safe area bas
+    paddingBottom: 20,
   },
   navItem: {
     flex: 1,

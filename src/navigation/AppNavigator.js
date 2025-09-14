@@ -10,13 +10,13 @@ import SignupScreen from '../screens/SignupScreen';
 
 // Écrans spécifiques
 import OrganizerScreen from '../screens/OrganizerScreen';
-import EventCreatorScreen from '../screens/EventCreatorScreen';
 
 // Application principale
 import HomeScreen from '../screens/HomeScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
 import ProfileScreen from '../screens/ProfileScreen';   // ✅ Ajout du profil
 import ChatScreen from '../screens/ChatScreen';       // (si tu veux gérer le chat plus tard)
+import ImageUploader from '../components/ImageUploader';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,7 +36,7 @@ export default function AppNavigator() {
 
         {/* Écrans spécifiques aux organisateurs */}
         <Stack.Screen name="OrganizerScreen" component={OrganizerScreen} />
-        <Stack.Screen name="EventCreator" component={EventCreatorScreen} />
+       
 
         {/* Application principale */}
         <Stack.Screen name="Home" component={HomeScreen} />
@@ -47,6 +47,9 @@ export default function AppNavigator() {
 
         {/* Si tu veux un chat plus tard */}
          <Stack.Screen name="Chat" component={ChatScreen} /> 
+
+         {/* Si tu veux un ADD  */}
+         <Stack.Screen name="Add" component={ImageUploader} /> 
       </Stack.Navigator>
     </NavigationContainer>
   );
