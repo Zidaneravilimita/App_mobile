@@ -1,302 +1,210 @@
-// src/components/ImageUploader.js
 import React, { useState, useEffect } from 'react';
 import {
+  ScrollView,
   View,
-  Image,
-  Alert,
-  ActivityIndicator,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
+  Alert,
+  ActivityIndicator,
+  Image,
+  StyleSheet,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { supabase } from '../config/supabase';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../config/supabase';
 
 export default function ImageUploader({ onUploadComplete, onClose }) {
   const [imageUri, setImageUri] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [downloadURL, setDownloadURL] = useState(null);
-
-  const [villes, setVilles] = useState([]);
-  const [selectedVilleId, setSelectedVilleId] = useState(null);
-  const [typeEvenements, setTypeEvenements] = useState([]);
-  const [selectedTypeEventId, setSelectedTypeEventId] = useState(null);
-
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
-  const [eventDate, setEventDate] = useState('');
-
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [eventDate, setEventDate] = useState('');
+  const [villes, setVilles] = useState([]);
+  const [selectedVilleId, setSelectedVilleId] = useState('');
+  const [typeEvenements, setTypeEvenements] = useState([]);
+  const [selectedTypeEventId, setSelectedTypeEventId] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission requise',
-            "Nous avons besoin de la permission d'accéder à votre galerie."
-          );
-        }
-      }
-      fetchVilles();
-      fetchTypeEvenements();
-    })();
+    fetchVilles();
+    fetchTypeEvenements();
   }, []);
 
   const fetchVilles = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ville')
-        .select('*')
-        .order('nom_ville', { ascending: true });
-
-      if (error) throw error;
-
-      console.log('✅ Villes récupérées:', data);
-      setVilles(data || []);
-    } catch (error) {
-      console.error('❌ Erreur de récupération des villes:', error);
+    const { data, error } = await supabase.from('ville').select('*');
+    if (error) {
       Alert.alert('Erreur', 'Impossible de charger les villes.');
+      return;
     }
+    setVilles(data);
+    if (data.length > 0) setSelectedVilleId(data[0].id_ville);
   };
 
   const fetchTypeEvenements = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('type_evenements')
-        .select('*')
-        .order('nom_event', { ascending: true });
-
-      if (error) throw error;
-
-      console.log('✅ Types récupérés:', data);
-      setTypeEvenements(data || []);
-    } catch (error) {
-      console.error('❌ Erreur de récupération des types:', error);
-      Alert.alert('Erreur', "Impossible de charger les types d'événements.");
+    const { data, error } = await supabase.from('type_evenements').select('*');
+    if (error) {
+      Alert.alert('Erreur', 'Impossible de charger les types d\'événements.');
+      return;
     }
-  };
-
-  const uriToBlob = async (uri) => {
-    const response = await fetch(uri);
-    return await response.blob();
+    setTypeEvenements(data);
+    if (data.length > 0) setSelectedTypeEventId(data[0].id_type_event);
   };
 
   const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets?.length > 0) {
-        const uri = result.assets[0].uri;
-        setImageUri(uri);
-        setDownloadURL(null);
-        console.log('✅ Image sélectionnée:', uri);
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors de la sélection image:', error);
-      Alert.alert('Erreur', "Impossible de sélectionner l'image.");
-    }
-  };
-
-  const uploadImage = async () => {
-    if (!imageUri) {
-      Alert.alert('Erreur', "Veuillez sélectionner une image d'abord.");
-      return;
-    }
-    if (!eventTitle.trim() || !eventDescription.trim() || !selectedVilleId || !selectedTypeEventId || !eventDate) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs du formulaire.');
-      return;
-    }
-
-    setUploading(true);
-
-    try {
-      // Obtenir l'utilisateur connecté
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        Alert.alert('Erreur', 'Vous devez être connecté pour créer un événement.');
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission requise', 'Accès à la galerie nécessaire.');
         return;
       }
-
-      // Conversion URI -> blob
-      const blob = await uriToBlob(imageUri);
-
-      // Génération du nom de fichier
-      const ext = blob.type?.split('/')[1] || 'png';
-      const fileName = `${Date.now()}_${user.id}.${ext}`;
-      const path = `public_images/${fileName}`;
-
-      // Upload vers Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(path, blob, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: blob.type || `image/${ext}`,
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Récupération URL publique
-      const { data: pub } = supabase.storage.from('images').getPublicUrl(path);
-      const publicUrl = pub?.publicUrl;
-      if (!publicUrl) throw new Error("Impossible d'obtenir l'URL publique.");
-
-      setDownloadURL(publicUrl);
-
-      // Insertion dans la table event avec l'ID utilisateur
-      const { error: insertError } = await supabase.from('event').insert({
-        nom_event: eventTitle.trim(),
-        description: eventDescription.trim(),
-        date: eventDate,
-        photo: publicUrl,
-        id_type_event: selectedTypeEventId,
-        id_ville: selectedVilleId,
-        id_user: user.id, // ✅ Ajout de l'ID utilisateur
-      });
-
-      if (insertError) throw insertError;
-
-      Alert.alert('Succès', 'Image et événement publiés avec succès ✅');
-
-      // Reset formulaire
-      setImageUri(null);
-      setEventTitle('');
-      setEventDescription('');
-      setEventDate('');
-      setSelectedVilleId(null);
-      setSelectedTypeEventId(null);
-      setSelectedDate(new Date());
-
-      onUploadComplete?.();
-    } catch (error) {
-      console.error('❌ Erreur upload/insertion:', error);
-      Alert.alert('Erreur', `Échec: ${error.message || 'Inconnu'}`);
-    } finally {
-      setUploading(false);
     }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+    });
+    if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
-  const onDateChange = (event, selected) => {
-    const currentDate = selected || selectedDate;
+  const onDateChange = (event, newDate) => {
+    const currentDate = newDate || selectedDate;
     setShowDatePicker(Platform.OS === 'ios');
     setSelectedDate(currentDate);
     setEventDate(currentDate.toISOString().split('T')[0]);
   };
 
+  const uploadImage = async () => {
+    if (!imageUri) return null;
+    const fileExt = imageUri.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `public_images/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('images')
+      .upload(filePath, { uri: imageUri, type: `image/${fileExt}` });
+
+    if (error) throw error;
+
+    const { data: publicUrlData } = supabase.storage
+      .from('images')
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
+  };
+
+  const handleFormSubmit = async () => {
+    if (!imageUri || !eventTitle || !eventDescription || !eventDate || !selectedVilleId || !selectedTypeEventId) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs et sélectionner une image.');
+      return;
+    }
+    setUploading(true);
+    try {
+      const imageUrl = await uploadImage();
+      if (!imageUrl) throw new Error('Impossible d\'obtenir l\'URL de l\'image.');
+
+      const { error } = await supabase.from('event').insert([{
+        nom_event: eventTitle,
+        description: eventDescription,
+        date: eventDate,
+        photo: imageUrl,
+        id_type_event: parseInt(selectedTypeEventId, 10),
+        id_ville: parseInt(selectedVilleId, 10),
+      }]);
+      if (error) throw error;
+
+      Alert.alert('Succès', 'Événement ajouté avec succès !');
+      setEventTitle('');
+      setEventDescription('');
+      setImageUri(null);
+      setEventDate('');
+      onUploadComplete();
+    } catch (err) {
+      Alert.alert('Erreur', err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container}>
-        
-        {/* Champ titre */}
-        <TextInput
-          style={styles.input}
-          placeholder="Titre de l'événement"
-          placeholderTextColor="#aaa"
-          value={eventTitle}
-          onChangeText={setEventTitle}
-        />
+    <ScrollView contentContainerStyle={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={onClose}>
+        <Ionicons name="close" size={30} color="#fff" />
+      </TouchableOpacity>
 
-        {/* Champ description */}
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Description de l'événement"
-          placeholderTextColor="#aaa"
-          value={eventDescription}
-          onChangeText={setEventDescription}
-          multiline
-        />
+      <Text style={styles.headerTitle}>Créer un Événement</Text>
 
-        {/* Sélection ville */}
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedVilleId}
-            onValueChange={(val) => setSelectedVilleId(val)}
-            style={styles.picker}
-            dropdownIconColor="#fff"
-          >
-            <Picker.Item label="Sélectionner une ville" value={null} />
-            {villes.map((ville) => (
-              <Picker.Item 
-                key={ville.id_ville} 
-                label={ville.nom_ville} 
-                value={ville.id_ville} 
-              />
-            ))}
-          </Picker>
-        </View>
+      <TouchableOpacity style={styles.pickImageButton} onPress={pickImage}>
+        <Text style={styles.pickImageButtonText}>Sélectionner une image</Text>
+      </TouchableOpacity>
 
-        {/* Sélection date */}
-        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputButton}>
-          <Ionicons name="calendar-outline" size={22} color="#fff" style={{ marginRight: 10 }} />
-          <Text style={styles.dateInputText}>
-            {eventDate ? `Date : ${eventDate}` : "Date de l'événement"}
-          </Text>
-        </TouchableOpacity>
+      {imageUri && <Image source={{ uri: imageUri }} style={styles.imagePreview} />}
 
-        {showDatePicker && (
-          <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onDateChange} />
-        )}
+      <TextInput
+        style={styles.input}
+        placeholder="Titre de l'événement"
+        placeholderTextColor="#999"
+        value={eventTitle}
+        onChangeText={setEventTitle}
+      />
 
-        {/* Sélection type d'événement */}
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedTypeEventId}
-            onValueChange={(val) => setSelectedTypeEventId(val)}
-            style={styles.picker}
-            dropdownIconColor="#fff"
-          >
-            <Picker.Item label="Type d'événement" value={null} />
-            {typeEvenements.map((type) => (
-              <Picker.Item 
-                key={type.id_type_event} 
-                label={type.nom_event} 
-                value={type.id_type_event} 
-              />
-            ))}
-          </Picker>
-        </View>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Description de l'événement"
+        placeholderTextColor="#999"
+        multiline
+        value={eventDescription}
+        onChangeText={setEventDescription}
+      />
 
-        {/* Bouton image */}
-        <TouchableOpacity style={styles.pickImageButton} onPress={pickImage}>
-          <Ionicons name="image-outline" size={28} color="#fff" style={styles.pickImageIcon} />
-          <Text style={styles.pickImageButtonText}>Ajouter une pièce jointe</Text>
-        </TouchableOpacity>
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedVilleId}
+          onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Sélectionner une ville" value="" />
+          {villes.map((ville) => (
+            <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+          ))}
+        </Picker>
+      </View>
 
-        {imageUri && (
-          <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: imageUri }} style={styles.imagePreview} />
-          </View>
-        )}
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedTypeEventId}
+          onValueChange={(itemValue) => setSelectedTypeEventId(itemValue)}
+          style={styles.picker}
+        >
+          <Picker.Item label="Sélectionner le type d'événement" value="" />
+          {typeEvenements.map((type) => (
+            <Picker.Item key={type.id_type_event} label={type.nom_event} value={type.id_type_event} />
+          ))}
+        </Picker>
+      </View>
 
-        {uploading && <ActivityIndicator size="large" color="#8A2BE2" style={styles.activityIndicator} />}
+      <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.dateInputButton}>
+        <Text style={styles.dateInputText}>
+          {eventDate ? `Date : ${eventDate}` : 'Sélectionner la date'}
+        </Text>
+      </TouchableOpacity>
 
-        {/* Boutons actions */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => onClose?.()}>
-            <Text style={styles.buttonText}>Annuler</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.uploadButton]} onPress={uploadImage} disabled={uploading}>
-            <Text style={styles.buttonText}>{uploading ? 'Téléchargement...' : 'Publier'}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {showDatePicker && (
+        <DateTimePicker value={selectedDate} mode="date" display="default" onChange={onDateChange} />
+      )}
+
+      {uploading && <ActivityIndicator size="large" color="#8A2BE2" style={{ marginTop: 10 }} />}
+
+      <TouchableOpacity style={styles.submitButton} onPress={handleFormSubmit} disabled={uploading}>
+        <Text style={styles.submitButtonText}>
+          {uploading ? 'Téléchargement...' : 'Ajouter l\'événement'}
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
@@ -305,77 +213,81 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#1a1a1a',
     padding: 20,
-    paddingBottom: 80,
-    marginTop: 90,
+  },
+  backButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   input: {
     width: '100%',
     backgroundColor: '#333',
     color: '#fff',
-    padding: 20,
+    padding: 15,
     borderRadius: 8,
-    marginBottom: 15,
-    fontSize: 18,
-    borderWidth: 1,
-    borderColor: '#555',
-    height: 60,
+    marginBottom: 12,
   },
   textArea: {
-    height: 120,
+    height: 100,
     textAlignVertical: 'top',
+  },
+  pickerContainer: {
+    width: '100%',
+    backgroundColor: '#333',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#555',
+    marginBottom: 15,
+  },
+  picker: {
+    height: 50,
+    color: '#fff',
+  },
+  pickImageButton: {
+    backgroundColor: '#8A2BE2',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  pickImageButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  imagePreview: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   dateInputButton: {
     width: '100%',
     backgroundColor: '#333',
     padding: 15,
     borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#555',
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 70,
+    marginBottom: 10,
   },
-  dateInputText: { color: '#fff', fontSize: 16 },
-  pickerContainer: {
-    width: '100%',
-    backgroundColor: '#333',
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#555',
-    height: 60,
-    justifyContent: 'center',
+  dateInputText: {
+    color: '#fff',
+    fontSize: 16,
   },
-  picker: { color: '#fff', height: 60 },
-  pickImageButton: {
-    backgroundColor: '#333',
+  submitButton: {
+    backgroundColor: '#8A2BE2',
     padding: 15,
     borderRadius: 8,
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
-  },
-  pickImageIcon: { marginRight: 10 },
-  pickImageButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  imagePreviewContainer: { alignItems: 'center', width: '100%', marginBottom: 15 },
-  imagePreview: {
-    width: 250,
-    height: 180,
-    borderRadius: 10,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  activityIndicator: { marginTop: 10 },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: 10,
-    marginBottom: 30,
   },
-  button: { flex: 1, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  uploadButton: { backgroundColor: '#8A2BE2', padding: 18 },
-  cancelButton: { backgroundColor: '#555', padding: 18 },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

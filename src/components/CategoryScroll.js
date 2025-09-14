@@ -19,7 +19,6 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
   const [error, setError] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
-  // Charger les catégories depuis les props ou depuis la base
   useEffect(() => {
     if (categories && categories.length > 0) {
       // Utiliser les catégories passées en props
@@ -28,11 +27,11 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
         photo:
           cat.photo && cat.photo.startsWith("http")
             ? cat.photo
-            : "https://placehold.co/100x100/222/fff?text=" + encodeURIComponent(cat.nom_event?.substring(0, 3) || "CAT"),
+            : "https://placehold.co/100x100/222/fff?text=" +
+              encodeURIComponent(cat.nom_category?.substring(0, 3) || "CAT"),
       }));
       setLocalCategories(categoriesWithSafeImage);
     } else {
-      // Charger depuis la base de données
       fetchCategories();
     }
   }, [categories]);
@@ -43,9 +42,9 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
       setError(null);
 
       const { data, error: fetchError } = await supabase
-        .from("type_evenements")
-        .select("id_type_event, nom_event, photo")
-        .order("nom_event", { ascending: true });
+        .from("category")
+        .select("id_category, nom_category, description, photo")
+        .order("nom_category", { ascending: true });
 
       if (fetchError) throw fetchError;
 
@@ -54,7 +53,8 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
         photo:
           cat.photo && cat.photo.startsWith("http")
             ? cat.photo
-            : "https://placehold.co/100x100/222/fff?text=" + encodeURIComponent(cat.nom_event?.substring(0, 3) || "CAT"),
+            : "https://placehold.co/100x100/222/fff?text=" +
+              encodeURIComponent(cat.nom_category?.substring(0, 3) || "CAT"),
       }));
 
       setLocalCategories(categoriesWithSafeImage);
@@ -71,9 +71,9 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
   };
 
   const handleCategoryPress = (category) => {
-    console.log("Catégorie sélectionnée :", category.nom_event);
-    setSelectedCategoryId(category.id_type_event);
-    if (onSelectCategory) onSelectCategory(category.id_type_event);
+    console.log("Catégorie sélectionnée :", category.nom_category);
+    setSelectedCategoryId(category.id_category);
+    if (onSelectCategory) onSelectCategory(category.id_category);
   };
 
   const handleShowAllPress = () => {
@@ -133,20 +133,22 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
 
         {localCategories.map((category) => (
           <TouchableOpacity
-            key={category.id_type_event}
+            key={category.id_category}
             style={[
               styles.categoryCard,
-              selectedCategoryId === category.id_type_event && styles.selectedCard
+              selectedCategoryId === category.id_category && styles.selectedCard
             ]}
             onPress={() => handleCategoryPress(category)}
           >
             <Image
               source={{ uri: category.photo }}
               style={styles.categoryImage}
-              onError={() => console.log("Erreur image catégorie:", category.nom_event)}
+              onError={() =>
+                console.log("Erreur image catégorie:", category.nom_category)
+              }
             />
             <Text style={styles.categoryTitle} numberOfLines={2}>
-              {category.nom_event || "Nom inconnu"}
+              {category.nom_category || "Nom inconnu"}
             </Text>
           </TouchableOpacity>
         ))}
