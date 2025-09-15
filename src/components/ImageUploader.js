@@ -31,6 +31,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   const [eventTitle, setEventTitle] = useState('');
   const [eventDescription, setEventDescription] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [eventLieu, setEventLieu] = useState('');
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -40,10 +41,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
       if (Platform.OS !== 'web') {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert(
-            'Permission requise',
-            'Nous avons besoin de la permission d’accéder à votre galerie.'
-          );
+          Alert.alert('Permission requise', 'Nous avons besoin de la permission d’accéder à votre galerie.');
         }
       }
       fetchVilles();
@@ -57,7 +55,6 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
         .from('ville')
         .select('*')
         .order('nom_ville', { ascending: true });
-
       if (error) throw error;
       setVilles(data || []);
     } catch (err) {
@@ -72,7 +69,6 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
         .from('category')
         .select('*')
         .order('nom_category', { ascending: true });
-
       if (error) throw error;
       setCategories(data || []);
     } catch (err) {
@@ -84,13 +80,15 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   const uriToBlob = async (uri) => {
     const response = await fetch(uri);
     if (!response.ok) throw new Error('Impossible de convertir en blob');
-    return await response.blob();
+    const blob = await response.blob();
+    if (!blob.type) blob.type = 'image/png';
+    return blob;
   };
 
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 1,
@@ -107,7 +105,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   };
 
   const uploadEvent = async () => {
-    if (!imageUri || !eventTitle.trim() || !eventDescription.trim() || !selectedVilleId || !selectedCategoryId || !eventDate) {
+    if (!imageUri || !eventTitle.trim() || !eventDescription.trim() || !eventLieu.trim() || !selectedVilleId || !selectedCategoryId || !eventDate) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
       return;
     }
@@ -115,42 +113,41 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
     setUploading(true);
     try {
       const blob = await uriToBlob(imageUri);
-      const ext = blob.type?.split('/')[1] || 'png';
+      const ext = blob.type.split('/')[1] || 'png';
       const fileName = `${Date.now()}.${ext}`;
       const path = `public_images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('images')
+        .from('event-images')
         .upload(path, blob, { cacheControl: '3600', upsert: false, contentType: blob.type });
-
       if (uploadError) throw uploadError;
 
-      const { data: pub } = supabase.storage.from('images').getPublicUrl(path);
+      const { data: pub } = supabase.storage.from('event-images').getPublicUrl(path);
       const publicUrl = pub?.publicUrl;
       if (!publicUrl) throw new Error('Impossible d’obtenir l’URL publique de l’image.');
 
       setDownloadURL(publicUrl);
 
       const { error: insertError } = await supabase.from('events').insert({
-        nom_event: eventTitle.trim(),
+        titre: eventTitle.trim(),
         description: eventDescription.trim(),
-        date: eventDate,
-        photo: publicUrl,
+        date_event: eventDate,
+        lieu: eventLieu.trim(),
+        image_url: publicUrl,
         id_category: Number(selectedCategoryId),
         id_ville: Number(selectedVilleId),
       });
-
       if (insertError) throw insertError;
 
       Alert.alert('Succès', 'Événement publié avec succès !');
 
-      // Reset form
       setImageUri(null);
       setEventTitle('');
       setEventDescription('');
+      setEventLieu('');
       setEventDate('');
-      setSelectedVilleId('');
       setSelectedCategoryId('');
+      setSelectedVilleId('');
       setSelectedDate(new Date());
 
       onUploadComplete?.();
@@ -172,6 +169,8 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Créer un évènement</Text>
+
         <TextInput
           style={styles.input}
           placeholder="Titre de l'événement"
@@ -179,7 +178,6 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
           value={eventTitle}
           onChangeText={setEventTitle}
         />
-
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder="Description de l'événement"
@@ -187,6 +185,13 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
           value={eventDescription}
           onChangeText={setEventDescription}
           multiline
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Lieu de l'événement"
+          placeholderTextColor="#aaa"
+          value={eventLieu}
+          onChangeText={setEventLieu}
         />
 
         {/* Sélection de la ville */}
@@ -260,6 +265,7 @@ export default function ImageUploader({ onUploadComplete, onClose }) {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#1a1a1a', padding: 20, paddingBottom: 80 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 20, textAlign: 'center' },
   input: { width: '100%', backgroundColor: '#333', color: '#fff', padding: 20, borderRadius: 8, marginBottom: 15, fontSize: 18, borderWidth: 1, borderColor: '#555', height: 60 },
   textArea: { height: 120, textAlignVertical: 'top', padding: 15, fontSize: 18 },
   dateInputButton: { width: '100%', backgroundColor: '#333', padding: 15, borderRadius: 8, marginBottom: 15, borderWidth: 1, borderColor: '#555', flexDirection: 'row', alignItems: 'center', height: 70 },

@@ -13,28 +13,15 @@ import {
 import { supabase } from "../config/supabase";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function CategoryScroll({ onSelectCategory, categories = [] }) {
-  const [localCategories, setLocalCategories] = useState([]);
+export default function CategoryScroll({ onSelectCategory }) {
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   useEffect(() => {
-    if (categories && categories.length > 0) {
-      // Utiliser les catégories passées en props
-      const categoriesWithSafeImage = categories.map((cat) => ({
-        ...cat,
-        photo:
-          cat.photo && cat.photo.startsWith("http")
-            ? cat.photo
-            : "https://placehold.co/100x100/222/fff?text=" +
-              encodeURIComponent(cat.nom_category?.substring(0, 3) || "CAT"),
-      }));
-      setLocalCategories(categoriesWithSafeImage);
-    } else {
-      fetchCategories();
-    }
-  }, [categories]);
+    fetchCategories();
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -53,11 +40,12 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
         photo:
           cat.photo && cat.photo.startsWith("http")
             ? cat.photo
-            : "https://placehold.co/100x100/222/fff?text=" +
-              encodeURIComponent(cat.nom_category?.substring(0, 3) || "CAT"),
+            : `https://placehold.co/100x100/222/fff?text=${encodeURIComponent(
+                cat.nom_category?.substring(0, 3) || "CAT"
+              )}`,
       }));
 
-      setLocalCategories(categoriesWithSafeImage);
+      setCategories(categoriesWithSafeImage);
     } catch (e) {
       console.error("Erreur lors de la récupération des catégories :", e);
       setError("Impossible de charger les catégories.");
@@ -101,7 +89,7 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
         </View>
       );
     }
-    if (localCategories.length === 0) {
+    if (categories.length === 0) {
       return (
         <View style={styles.noCategoriesContainer}>
           <Text style={styles.noCategoriesText}>Aucune catégorie trouvée.</Text>
@@ -121,7 +109,7 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
           style={[
             styles.categoryCard,
             styles.showAllCard,
-            selectedCategoryId === null && styles.selectedCard
+            selectedCategoryId === null && styles.selectedCard,
           ]}
           onPress={handleShowAllPress}
         >
@@ -131,12 +119,12 @@ export default function CategoryScroll({ onSelectCategory, categories = [] }) {
           <Text style={styles.categoryTitle}>Tout</Text>
         </TouchableOpacity>
 
-        {localCategories.map((category) => (
+        {categories.map((category) => (
           <TouchableOpacity
             key={category.id_category}
             style={[
               styles.categoryCard,
-              selectedCategoryId === category.id_category && styles.selectedCard
+              selectedCategoryId === category.id_category && styles.selectedCard,
             ]}
             onPress={() => handleCategoryPress(category)}
           >
@@ -183,7 +171,7 @@ const styles = StyleSheet.create({
     borderColor: "#555",
     padding: 6,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -205,7 +193,7 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: '#555',
+    backgroundColor: "#555",
   },
   categoryTitle: {
     color: "#fff",

@@ -33,12 +33,12 @@ export default function HomeScreen({ navigation }) {
   const handleAddPress = () => setCurrentContent("uploader");
   const handleHomePress = () => {
     setCurrentContent("main");
-    fetchEvents(); // Recharge les événements
+    fetchEvents(); 
     setSelectedCategoryId(null);
     setSelectedVilleId("all");
   };
 
-  // Charger les villes depuis Supabase
+  // Charger les villes
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase
@@ -53,7 +53,7 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Charger les catégories depuis Supabase
+  // Charger les catégories
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -68,23 +68,31 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Charger les événements depuis Supabase
+  // Charger les événements
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
       let query = supabase
         .from("events")
-        .select("id_event, nom_event, description, date, photo, ville, type_evenements");
+        .select(`
+          id_event,
+          titre,
+          description,
+          date_event,
+          lieu,
+          image_url,
+          id_category,
+          id_ville
+        `);
 
       if (selectedVilleId !== "all") {
-        query = query.eq("ville", selectedVilleId);
+        query = query.eq("id_ville", Number(selectedVilleId));
       }
       if (selectedCategoryId) {
-        query = query.eq("type_evenements", selectedCategoryId);
+        query = query.eq("id_category", Number(selectedCategoryId));
       }
 
-      const { data, error } = await query.order("date", { ascending: true });
-
+      const { data, error } = await query.order("date_event", { ascending: true });
       if (error) throw error;
       setEvents(data);
     } catch (e) {
@@ -159,7 +167,7 @@ export default function HomeScreen({ navigation }) {
                 <Picker.Item
                   key={ville.id_ville}
                   label={ville.nom_ville}
-                  value={ville.nom_ville} // on filtre par nom_ville
+                  value={ville.id_ville} // ✅ Utiliser l'ID
                 />
               ))}
             </Picker>
@@ -172,7 +180,11 @@ export default function HomeScreen({ navigation }) {
             events.map((event) => (
               <EventCard
                 key={event.id_event}
-                event={event}
+                event={{
+                  ...event,
+                  nom_category: categories.find(c => c.id_category === event.id_category)?.nom_category || "Inconnu",
+                  nom_ville: villes.find(v => v.id_ville === event.id_ville)?.nom_ville || "Inconnu"
+                }}
                 onPress={() => handleEventPress(event)}
               />
             ))

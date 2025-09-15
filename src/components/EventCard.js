@@ -1,17 +1,20 @@
 // src/components/EventCard.js
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+
 export default function EventCard({ event = {}, onPress }) {
   const [imageError, setImageError] = useState(false);
-  const eventTitle = event.nom_event || "Titre non disponible";
-  const eventDate = event.date || "Date inconnue";
-  const eventVille = event.ville || "Lieu non défini";
-  const eventType = event.type_event || "Type inconnu";
 
-  // ✅ Si erreur de chargement, on bascule vers une image placeholder
+  // ✅ Champs correspondant à ta table et jointure
+  const eventTitle = event.titre || "Titre non disponible";
+  const eventDate = event.date_event || "Date inconnue";
+  const eventLieu = event.lieu || "Lieu non défini";
+  const eventType = event.nom_category || "Catégorie inconnue"; // récupéré via jointure avec `categories`
+
+  // ✅ Image (colonne `image_url`)
   const eventPhoto =
-    !imageError && event.photo && event.photo.startsWith("http")
-      ? event.photo
+    !imageError && event.image_url && event.image_url.startsWith("http")
+      ? event.image_url
       : "https://placehold.co/400x200/222/fff?text=No+Image";
 
   return (
@@ -31,7 +34,7 @@ export default function EventCard({ event = {}, onPress }) {
       <View style={styles.textContainer}>
         <Text style={styles.eventTitle}>{eventTitle}</Text>
         <Text style={styles.eventDetails}>📅 {eventDate}</Text>
-        <Text style={styles.eventDetails}>📍 {eventVille}</Text>
+        <Text style={styles.eventDetails}>📍 {eventLieu}</Text>
         <Text style={styles.eventDetails}>🎭 {eventType}</Text>
       </View>
     </TouchableOpacity>
