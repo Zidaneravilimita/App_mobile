@@ -28,17 +28,17 @@ export default function HomeScreen({ navigation }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   const [villes, setVilles] = useState([]);
-  const [selectedVilleId, setSelectedVilleId] = useState("all");
+  const [selectedVilleName, setSelectedVilleName] = useState("all"); // filtrage par nom de ville
 
   const handleAddPress = () => setCurrentContent("uploader");
   const handleHomePress = () => {
     setCurrentContent("main");
     fetchEvents(); 
     setSelectedCategoryId(null);
-    setSelectedVilleId("all");
+    setSelectedVilleName("all");
   };
 
-  // Charger les villes
+  // Charger les villes depuis Supabase
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase
@@ -53,7 +53,7 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Charger les catégories
+  // Charger les catégories depuis Supabase
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -68,7 +68,7 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Charger les événements
+  // Charger les événements depuis Supabase
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
@@ -81,19 +81,23 @@ export default function HomeScreen({ navigation }) {
           date_event,
           lieu,
           image_url,
-          id_category,
-          id_ville
+          ville,
+          id_category
         `);
 
-      if (selectedVilleId !== "all") {
-        query = query.eq("id_ville", Number(selectedVilleId));
+      // Filtrage par ville (nom)
+      if (selectedVilleName !== "all") {
+        query = query.eq("ville", selectedVilleName);
       }
+
+      // Filtrage par catégorie
       if (selectedCategoryId) {
-        query = query.eq("id_category", Number(selectedCategoryId));
+        query = query.eq("id_category", selectedCategoryId);
       }
 
       const { data, error } = await query.order("date_event", { ascending: true });
       if (error) throw error;
+
       setEvents(data);
     } catch (e) {
       console.error("Erreur chargement événements:", e);
@@ -112,7 +116,7 @@ export default function HomeScreen({ navigation }) {
   // Recharger les événements à chaque filtre
   useEffect(() => {
     fetchEvents();
-  }, [selectedVilleId, selectedCategoryId]);
+  }, [selectedVilleName, selectedCategoryId]);
 
   const handleEventPress = (event) => {
     navigation.navigate("EventDetails", { event });
@@ -129,7 +133,7 @@ export default function HomeScreen({ navigation }) {
             <Ionicons name="camera" size={80} color="#666" />
             <Text style={styles.placeholderTitle}>Créer un événement</Text>
             <Text style={styles.placeholderText}>
-              La création d'événements sera disponible une fois la connexion Supabase établie.
+              La création d'événements sera disponible ici.
             </Text>
             <TouchableOpacity style={styles.retryButton} onPress={handleHomePress}>
               <Text style={styles.retryButtonText}>Retour</Text>
@@ -158,8 +162,8 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Filtrer par ville</Text>
           <View style={styles.pickerWrapper}>
             <Picker
-              selectedValue={selectedVilleId}
-              onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+              selectedValue={selectedVilleName}
+              onValueChange={(itemValue) => setSelectedVilleName(itemValue)}
               style={styles.pickerStyle}
             >
               <Picker.Item label="Toutes les villes" value="all" />
@@ -167,7 +171,7 @@ export default function HomeScreen({ navigation }) {
                 <Picker.Item
                   key={ville.id_ville}
                   label={ville.nom_ville}
-                  value={ville.id_ville} // ✅ Utiliser l'ID
+                  value={ville.nom_ville} // filtrage par nom
                 />
               ))}
             </Picker>
@@ -180,11 +184,7 @@ export default function HomeScreen({ navigation }) {
             events.map((event) => (
               <EventCard
                 key={event.id_event}
-                event={{
-                  ...event,
-                  nom_category: categories.find(c => c.id_category === event.id_category)?.nom_category || "Inconnu",
-                  nom_ville: villes.find(v => v.id_ville === event.id_ville)?.nom_ville || "Inconnu"
-                }}
+                event={event}
                 onPress={() => handleEventPress(event)}
               />
             ))
@@ -198,7 +198,7 @@ export default function HomeScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.resetButton}
                 onPress={() => {
-                  setSelectedVilleId("all");
+                  setSelectedVilleName("all");
                   setSelectedCategoryId(null);
                 }}
               >
