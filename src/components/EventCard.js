@@ -1,6 +1,7 @@
 // src/components/EventCard.js
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function EventCard({ event = {}, onPress }) {
   const [imageError, setImageError] = useState(false);
@@ -9,7 +10,7 @@ export default function EventCard({ event = {}, onPress }) {
   const eventTitle = event.titre || "Titre non disponible";
   const eventDate = event.date_event || "Date inconnue";
   const eventLieu = event.lieu || "Lieu non défini";
-  const eventType = event.nom_category || "Catégorie inconnue"; // récupéré via jointure avec `categories`
+  const eventType = event.nom_category || "Catégorie inconnue"; // jointure avec `categories`
 
   // ✅ Image (colonne `image_url`)
   const eventPhoto =
@@ -19,23 +20,28 @@ export default function EventCard({ event = {}, onPress }) {
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
-      {/* Image de l'événement */}
+      {/* Image + overlay */}
       <Image
         source={{ uri: eventPhoto }}
         style={styles.eventImage}
         resizeMode="cover"
-        onError={() => {
-          console.log("❌ Erreur de chargement image pour:", eventTitle);
-          setImageError(true);
-        }}
+        onError={() => setImageError(true)}
       />
+      <LinearGradient
+        colors={["rgba(0,0,0,0.6)", "transparent"]}
+        style={styles.gradientOverlay}
+      />
+
+      {/* Badge Catégorie */}
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>{eventType}</Text>
+      </View>
 
       {/* Infos événement */}
       <View style={styles.textContainer}>
         <Text style={styles.eventTitle}>{eventTitle}</Text>
         <Text style={styles.eventDetails}>📅 {eventDate}</Text>
         <Text style={styles.eventDetails}>📍 {eventLieu}</Text>
-        <Text style={styles.eventDetails}>🎭 {eventType}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -43,23 +49,30 @@ export default function EventCard({ event = {}, onPress }) {
 
 const styles = StyleSheet.create({
   cardContainer: {
-    backgroundColor: "#333",
+    backgroundColor: "#222",
     borderRadius: 15,
     overflow: "hidden",
     marginBottom: 20,
-    elevation: 5,
+    elevation: 6,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
   },
   eventImage: {
     width: "100%",
-    height: 200,
-    backgroundColor: "#555",
+    height: 220,
+  },
+  gradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    height: 220,
+    borderRadius: 15,
   },
   textContainer: {
-    padding: 10,
+    position: "absolute",
+    bottom: 15,
+    left: 15,
+    right: 15,
   },
   eventTitle: {
     fontSize: 20,
@@ -69,7 +82,21 @@ const styles = StyleSheet.create({
   },
   eventDetails: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#ddd",
     marginTop: 2,
+  },
+  badge: {
+    position: "absolute",
+    top: 15,
+    left: 15,
+    backgroundColor: "#FF6B6B",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
