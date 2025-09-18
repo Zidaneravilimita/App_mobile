@@ -6,13 +6,17 @@ import { LinearGradient } from "expo-linear-gradient";
 export default function EventCard({ event = {}, onPress }) {
   const [imageError, setImageError] = useState(false);
 
-  // ✅ Champs correspondant à ta table et jointure
+  // ✅ Champs selon ta table et jointures
   const eventTitle = event.titre || "Titre non disponible";
   const eventDate = event.date_event || "Date inconnue";
-  const eventLieu = event.lieu || "Lieu non défini";
-  const eventType = event.nom_category || "Catégorie inconnue"; // jointure avec `categories`
 
-  // ✅ Image (colonne `image_url`)
+  // Récupérer la ville via jointure : events.id_ville → villes.nom_ville
+  const eventVille = event.villes?.nom_ville || "Ville non définie";
+
+  // Récupérer la catégorie via jointure
+  const eventType = event.categories?.nom_category || "Catégorie inconnue";
+
+  // ✅ Image (colonne image_url)
   const eventPhoto =
     !imageError && event.image_url && event.image_url.startsWith("http")
       ? event.image_url
@@ -41,7 +45,7 @@ export default function EventCard({ event = {}, onPress }) {
       <View style={styles.textContainer}>
         <Text style={styles.eventTitle}>{eventTitle}</Text>
         <Text style={styles.eventDetails}>📅 {eventDate}</Text>
-        <Text style={styles.eventDetails}>📍 {eventLieu}</Text>
+        <Text style={styles.eventDetails}>📍 {eventVille}</Text>
       </View>
     </TouchableOpacity>
   );
