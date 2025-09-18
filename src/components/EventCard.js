@@ -26,28 +26,33 @@ export default function EventCard({ event = {}, onPress }) {
   const eventTitle = event.titre || "Titre non disponible";
   const eventDate = formatDate(event.date_event);
   
-  // Récupérer la ville - vérifier la structure de la jointure
-  const eventVille = event.ville?.nom_ville || 
-                    event.villes?.nom_ville || 
-                    event.id_ville || 
-                    "Ville non définie";
+  // Récupérer la ville
+  const eventVille = event.id_ville || "Ville non définie";
 
-  // Récupérer le lieu détaillé
-  const eventLieu = event.lieu_detail || "Lieu non précisé";
+  // Récupérer la catégorie
+  const eventType = event.category || "Catégorie inconnue";
 
-  // Récupérer la catégorie - vérifier la structure de la jointure
-  const eventType = event.category?.nom_category || 
-                   event.categories?.nom_category || 
-                   event.id_category || 
-                   "Catégorie inconnue";
+  // ✅ Gestion améliorée des images
+  const getEventImage = () => {
+    // Si image_url est null, vide, ou est un placeholder avec erreur
+    if (!event.image_url || event.image_url.includes('placehold.co')) {
+      // Utiliser un placeholder SIMPLE sans texte complexe
+      return `https://placehold.co/600x400/8A2BE2/white?text=Event`;
+    }
+    
+    // Si image_url est une URL valide, l'utiliser
+    if (event.image_url.startsWith('http')) {
+      return event.image_url;
+    }
+    
+    // Fallback vers un placeholder simple
+    return `https://placehold.co/600x400/8A2BE2/white?text=Event`;
+  };
 
-  // ✅ Image (colonne image_url)
-  const eventPhoto = !imageError && event.image_url && event.image_url.startsWith("http")
-    ? event.image_url
-    : "https://placehold.co/400x200/222/fff?text=Event+Image";
+  const eventPhoto = !imageError ? getEventImage() : `https://placehold.co/600x400/8A2BE2/white?text=Event`;
 
   const handleImageError = () => {
-    console.log("❌ Erreur image pour:", eventTitle);
+    console.log("Erreur image, utilisation fallback");
     setImageError(true);
   };
 
@@ -75,7 +80,6 @@ export default function EventCard({ event = {}, onPress }) {
         <Text style={styles.eventTitle}>{eventTitle}</Text>
         <Text style={styles.eventDetails}>📅 {eventDate}</Text>
         <Text style={styles.eventDetails}>📍 {eventVille}</Text>
-        <Text style={styles.eventDetails}>🏛️ {eventLieu}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -96,7 +100,7 @@ const styles = StyleSheet.create({
   eventImage: {
     width: "100%",
     height: 220,
-    backgroundColor: "#333", // Fond de secours
+    backgroundColor: "#333",
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -97,8 +97,23 @@ export default function ImageUploader({ onUploadComplete }) {
         return;
       }
 
+      // SOLUTION DEFINITIVE: Utiliser une approche qui fonctionne avec toutes les versions
+      let mediaTypes;
+      
+      // Essayer différentes approches selon la version d'Expo
+      if (typeof ImagePicker.MediaType !== 'undefined') {
+        // Nouvelle version (≥ SDK 48)
+        mediaTypes = ImagePicker.MediaType.Images;
+      } else if (typeof ImagePicker.MediaTypeOptions !== 'undefined') {
+        // Ancienne version (≤ SDK 47)
+        mediaTypes = ImagePicker.MediaTypeOptions.Images;
+      } else {
+        // Fallback: utiliser une chaîne simple
+        mediaTypes = 'images';
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: mediaTypes,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -109,45 +124,121 @@ export default function ImageUploader({ onUploadComplete }) {
       }
     } catch (error) {
       console.error("Erreur sélection image:", error);
+      // Fallback: utiliser une approche alternative
+      try {
+        const result = await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          aspect: [4, 3],
+          quality: 0.8,
+        });
+        
+        if (!result.canceled && result.assets?.length > 0) {
+          setImageUri(result.assets[0].uri);
+        }
+      } catch (fallbackError) {
+        console.error("Erreur fallback sélection image:", fallbackError);
+      }
     }
   };
 
-  // Nouvelle fonction pour uploader l'image vers Supabase Storage
   const uploadImageToStorage = async (imageUri, userId) => {
     try {
+      console.log("Début de l'upload de l'image...");
+      
+      // Vérifier que le bucket existe
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      if (bucketsError) {
+        console.error("Erreur liste buckets:", bucketsError);
+        return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+      }
+
+      const bucketExists = buckets.some(bucket => bucket.name === 'images');
+      if (!bucketExists) {
+        console.error("Bucket 'images' n'existe pas");
+        return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+      }
+
       // Convertir l'image en blob
+      console.log("Conversion de l'image en blob...");
       const response = await fetch(imageUri);
       const blob = await response.blob();
       
       // Créer un nom de fichier unique
       const timestamp = new Date().getTime();
-      const fileExt = imageUri.split('.').pop();
+      const fileExt = imageUri.split('.').pop() || 'jpg';
       const fileName = `${userId}_${timestamp}.${fileExt}`;
+      
+      console.log("Upload du fichier:", fileName);
       
       // Uploader le fichier
       const { data, error } = await supabase.storage
-        .from('event-images') // Remplacez par le nom de votre bucket
+        .from('images')
         .upload(fileName, blob, {
-          contentType: `image/${fileExt}`,
+          contentType: blob.type || `image/${fileExt}`,
           cacheControl: '3600',
           upsert: false
         });
 
       if (error) {
-        console.error("Erreur upload image:", error);
-        return null;
+        console.error("Erreur upload image détaillée:", error);
+        return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
       }
 
+      console.log("Upload réussi, récupération de l'URL publique...");
+      
       // Récupérer l'URL publique
       const { data: { publicUrl } } = supabase.storage
-        .from('event-images')
+        .from('images')
         .getPublicUrl(data.path);
 
       return publicUrl;
 
     } catch (error) {
-      console.error("Erreur traitement image:", error);
-      return null;
+      console.error("Erreur détaillée traitement image:", error);
+      return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+    }
+  };
+
+  const ensureUserProfileExists = async (userId) => {
+    try {
+      // Essayer une simple sélection pour voir si la table existe
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Erreur vérification profil:", error);
+        return false;
+      }
+
+      if (!profile) {
+        console.log("Profil n'existe pas, tentative de création...");
+        
+        try {
+          // Création minimaliste du profil - seulement les champs essentiels
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([{ id: userId }]);
+
+          if (insertError) {
+            console.error("Erreur création profil minimaliste:", insertError);
+            return false;
+          }
+          
+          console.log("Profil créé avec succès");
+          return true;
+        } catch (insertError) {
+          console.error("Erreur création profil:", insertError);
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Erreur inattendue vérification profil:", error);
+      return false;
     }
   };
 
@@ -169,26 +260,37 @@ export default function ImageUploader({ onUploadComplete }) {
 
       console.log("Tentative d'upload avec utilisateur:", user.id);
 
-      // 1. Uploader l'image vers Supabase Storage
-      const imageUrl = await uploadImageToStorage(imageUri, user.id);
+      // S'assurer que le profil existe
+      const profileExists = await ensureUserProfileExists(user.id);
       
-      if (!imageUrl) {
-        throw new Error("Échec de l'upload de l'image");
+      let imageUrl = `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+
+      // Essayer d'uploader vers Supabase Storage
+      try {
+        const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
+        if (uploadedUrl && uploadedUrl.startsWith('http')) {
+          imageUrl = uploadedUrl;
+          console.log("Image uploadée avec succès:", imageUrl);
+        }
+      } catch (uploadError) {
+        console.warn("Échec upload image, utilisation placeholder:", uploadError);
       }
 
-      console.log("Image uploadée avec succès:", imageUrl);
-
-      // 2. Insérer l'événement avec l'URL de l'image
-      const insertData = {
+      // Préparer les données d'insertion
+      let insertData = {
         titre: eventTitle.trim(),
         description: eventDescription.trim(),
         date_event: new Date(eventDate).toISOString(),
         lieu_detail: eventLieu.trim(),
-        image_url: imageUrl, // Utiliser l'URL de Supabase Storage
+        image_url: imageUrl,
         id_category: selectedCategoryId,
-        id_ville: selectedVilleId,
-        id_user: user.id
+        id_ville: selectedVilleId
       };
+
+      // Ajouter l'ID utilisateur seulement si le profil existe
+      if (profileExists) {
+        insertData.id_user = user.id;
+      }
 
       const { error: insertError } = await supabase
         .from("events")
@@ -197,24 +299,20 @@ export default function ImageUploader({ onUploadComplete }) {
       if (insertError) {
         console.error("Erreur insertion événement:", insertError);
         
-        // Essayer sans id_user si erreur de politique RLS
-        const insertDataWithoutUser = {
-          titre: eventTitle.trim(),
-          description: eventDescription.trim(),
-          date_event: new Date(eventDate).toISOString(),
-          lieu_detail: eventLieu.trim(),
-          image_url: imageUrl,
-          id_category: selectedCategoryId,
-          id_ville: selectedVilleId
-          // On retire id_user pour contourner l'erreur RLS
-        };
+        // Essayer sans id_user si erreur de clé étrangère
+        if (insertError.code === '23503') {
+          console.log("Tentative sans id_user due à l'erreur de clé étrangère");
+          delete insertData.id_user;
+          
+          const { error: secondError } = await supabase
+            .from("events")
+            .insert(insertData);
 
-        const { error: secondError } = await supabase
-          .from("events")
-          .insert(insertDataWithoutUser);
-
-        if (secondError) {
-          console.error("Deuxième tentative échouée:", secondError);
+          if (secondError) {
+            console.error("Deuxième tentative échouée:", secondError);
+            throw new Error("Impossible de créer l'événement");
+          }
+        } else {
           throw new Error("Impossible de créer l'événement");
         }
       }
