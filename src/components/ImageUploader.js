@@ -112,6 +112,45 @@ export default function ImageUploader({ onUploadComplete }) {
     }
   };
 
+  // Nouvelle fonction pour uploader l'image vers Supabase Storage
+  const uploadImageToStorage = async (imageUri, userId) => {
+    try {
+      // Convertir l'image en blob
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Créer un nom de fichier unique
+      const timestamp = new Date().getTime();
+      const fileExt = imageUri.split('.').pop();
+      const fileName = `${userId}_${timestamp}.${fileExt}`;
+      
+      // Uploader le fichier
+      const { data, error } = await supabase.storage
+        .from('event-images') // Remplacez par le nom de votre bucket
+        .upload(fileName, blob, {
+          contentType: `image/${fileExt}`,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error("Erreur upload image:", error);
+        return null;
+      }
+
+      // Récupérer l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from('event-images')
+        .getPublicUrl(data.path);
+
+      return publicUrl;
+
+    } catch (error) {
+      console.error("Erreur traitement image:", error);
+      return null;
+    }
+  };
+
   const uploadEvent = async () => {
     // Validation des champs
     if (!eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventLieu.trim() || !imageUri) {
@@ -128,15 +167,24 @@ export default function ImageUploader({ onUploadComplete }) {
         throw new Error("Utilisateur non connecté");
       }
 
-      console.log("Tentative d'insertion avec utilisateur:", user.id);
+      console.log("Tentative d'upload avec utilisateur:", user.id);
 
-      // Solution 1: Essayer d'abord avec l'user ID
-      let insertData = {
+      // 1. Uploader l'image vers Supabase Storage
+      const imageUrl = await uploadImageToStorage(imageUri, user.id);
+      
+      if (!imageUrl) {
+        throw new Error("Échec de l'upload de l'image");
+      }
+
+      console.log("Image uploadée avec succès:", imageUrl);
+
+      // 2. Insérer l'événement avec l'URL de l'image
+      const insertData = {
         titre: eventTitle.trim(),
         description: eventDescription.trim(),
         date_event: new Date(eventDate).toISOString(),
         lieu_detail: eventLieu.trim(),
-        image_url: imageUri,
+        image_url: imageUrl, // Utiliser l'URL de Supabase Storage
         id_category: selectedCategoryId,
         id_ville: selectedVilleId,
         id_user: user.id
@@ -147,15 +195,15 @@ export default function ImageUploader({ onUploadComplete }) {
         .insert(insertData);
 
       if (insertError) {
-        console.log("Première tentative échouée, essai sans id_user...");
-
-        // Solution 2: Essayer sans id_user (contournement RLS)
-        insertData = {
+        console.error("Erreur insertion événement:", insertError);
+        
+        // Essayer sans id_user si erreur de politique RLS
+        const insertDataWithoutUser = {
           titre: eventTitle.trim(),
           description: eventDescription.trim(),
           date_event: new Date(eventDate).toISOString(),
           lieu_detail: eventLieu.trim(),
-          image_url: imageUri,
+          image_url: imageUrl,
           id_category: selectedCategoryId,
           id_ville: selectedVilleId
           // On retire id_user pour contourner l'erreur RLS
@@ -163,30 +211,11 @@ export default function ImageUploader({ onUploadComplete }) {
 
         const { error: secondError } = await supabase
           .from("events")
-          .insert(insertData);
+          .insert(insertDataWithoutUser);
 
         if (secondError) {
           console.error("Deuxième tentative échouée:", secondError);
-          
-          // Solution 3: Utiliser une fonction RPC pour contourner complètement le RLS
-          try {
-            const { error: rpcError } = await supabase.rpc('create_event', {
-              p_titre: eventTitle.trim(),
-              p_description: eventDescription.trim(),
-              p_date_event: new Date(eventDate).toISOString(),
-              p_lieu_detail: eventLieu.trim(),
-              p_image_url: imageUri,
-              p_id_category: selectedCategoryId,
-              p_id_ville: selectedVilleId,
-              p_id_user: user.id
-            });
-
-            if (rpcError) throw rpcError;
-
-          } catch (rpcError) {
-            console.error("Erreur RPC:", rpcError);
-            throw new Error("Impossible de créer l'événement après plusieurs tentatives");
-          }
+          throw new Error("Impossible de créer l'événement");
         }
       }
 
@@ -202,7 +231,7 @@ export default function ImageUploader({ onUploadComplete }) {
 
     } catch (err) {
       console.error("❌ Erreur finale:", err);
-      Alert.alert("Erreur", "Impossible de créer l'événement. Contactez l'administrateur.");
+      Alert.alert("Erreur", err.message || "Impossible de créer l'événement. Contactez l'administrateur.");
     } finally {
       setUploading(false);
     }

@@ -79,15 +79,15 @@ export default function HomeScreen({ navigation }) {
           titre,
           description,
           date_event,
-          lieu,
+          lieu_detail,
           image_url,
-          ville,
+          id_ville,
           id_category
         `);
 
       // Filtrage par ville (nom)
       if (selectedVilleName !== "all") {
-        query = query.eq("ville", selectedVilleName);
+        query = query.eq("id_ville", selectedVilleName);
       }
 
       // Filtrage par catégorie
@@ -171,7 +171,7 @@ export default function HomeScreen({ navigation }) {
                 <Picker.Item
                   key={ville.id_ville}
                   label={ville.nom_ville}
-                  value={ville.nom_ville} // filtrage par nom
+                  value={ville.id_ville} // filtrage par nom
                 />
               ))}
             </Picker>
