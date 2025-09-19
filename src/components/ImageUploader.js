@@ -35,10 +35,104 @@ export default function ImageUploader({ onUploadComplete }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [loadingData, setLoadingData] = useState(true);
+  const [bucketExists, setBucketExists] = useState(false);
+  const [checkingBucket, setCheckingBucket] = useState(true);
 
   useEffect(() => {
     loadInitialData();
+    checkBucketExists();
+    testBucketConnection();
   }, []);
+
+  const testBucketConnection = async () => {
+    try {
+      console.log("=== TEST DE CONNEXION BUCKET ===");
+      
+      // 1. Test de listBuckets
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      console.log("Tous les buckets:", buckets);
+      console.log("Erreur listBuckets:", bucketsError);
+      
+      // 2. Test direct d'accès au bucket 'images'
+      try {
+        const { data: files, error: filesError } = await supabase.storage
+          .from('images')
+          .list();
+        
+        console.log("Contenu du bucket 'images':", files);
+        console.log("Erreur list files:", filesError);
+        
+        if (filesError) {
+          console.log("Code d'erreur:", filesError.code);
+          console.log("Message d'erreur:", filesError.message);
+        }
+        
+      } catch (directError) {
+        console.error("Erreur accès direct:", directError);
+      }
+      
+    } catch (error) {
+      console.error("Erreur générale test:", error);
+    }
+  };
+
+  const checkBucketExists = async () => {
+    try {
+      setCheckingBucket(true);
+      console.log("Vérification de l'existence du bucket 'images'...");
+      
+      // Méthode 1: Utiliser listBuckets
+      const { data: buckets, error } = await supabase.storage.listBuckets();
+      
+      if (error) {
+        console.error("Erreur listBuckets:", error);
+        
+        // Si listBuckets échoue, essayer une méthode alternative
+        try {
+          // Essayer d'accéder directement au bucket
+          const { data: files, error: listError } = await supabase.storage
+            .from('images')
+            .list('', { limit: 1 });
+          
+          if (listError) {
+            console.log("Bucket inaccessible:", listError);
+            setBucketExists(false);
+          } else {
+            console.log("Bucket accessible via list direct");
+            setBucketExists(true);
+          }
+        } catch (directError) {
+          console.error("Erreur accès direct:", directError);
+          setBucketExists(false);
+        }
+      } else {
+        const exists = buckets.some(bucket => bucket.name === 'images');
+        console.log("Bucket 'images' existe (listBuckets):", exists);
+        
+        if (!exists) {
+          // Double vérification avec une autre méthode
+          try {
+            const { error: testError } = await supabase.storage
+              .from('images')
+              .list('', { limit: 1 });
+            
+            setBucketExists(!testError);
+            console.log("Double vérification - Bucket existe:", !testError);
+          } catch (testError) {
+            console.log("Double vérification - Bucket n'existe pas");
+            setBucketExists(false);
+          }
+        } else {
+          setBucketExists(true);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur vérification bucket:", error);
+      setBucketExists(false);
+    } finally {
+      setCheckingBucket(false);
+    }
+  };
 
   const loadInitialData = async () => {
     try {
@@ -62,8 +156,7 @@ export default function ImageUploader({ onUploadComplete }) {
       setVilles(data || []);
 
       if (data && data.length > 0) {
-        const antananarivo = data.find(v => v.nom_ville === "Antananarivo");
-        setSelectedVilleId(antananarivo ? antananarivo.id_ville : data[0].id_ville);
+        setSelectedVilleId(data[0].id_ville);
       }
     } catch (err) {
       console.error("Erreur fetch villes:", err);
@@ -112,55 +205,47 @@ export default function ImageUploader({ onUploadComplete }) {
 
   const uploadImageToStorage = async (imageUri, userId) => {
     try {
-      console.log("Début de l'upload de l'image...");
+      console.log("Tentative d'upload vers le bucket 'images'...");
       
-      // Vérifier que le bucket existe
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      if (bucketsError) {
-        console.error("Erreur liste buckets:", bucketsError);
-        return null;
-      }
-
-      const bucketExists = buckets.some(bucket => bucket.name === 'images');
-      if (!bucketExists) {
-        console.error("Bucket 'images' n'existe pas");
-        return null;
-      }
-
-      // Convertir l'image en blob
-      console.log("Conversion de l'image en blob...");
+      // Essayer quand même même si le bucket n'est pas détecté
       const response = await fetch(imageUri);
       const blob = await response.blob();
       
-      // Créer un nom de fichier unique
       const timestamp = new Date().getTime();
       const fileExt = imageUri.split('.').pop() || 'jpg';
       const fileName = `${userId}_${timestamp}.${fileExt}`;
       
       console.log("Upload du fichier:", fileName);
       
-      // Uploader le fichier
-      const { data, error } = await supabase.storage
-        .from('images')
-        .upload(fileName, blob, {
-          contentType: blob.type || `image/${fileExt}`,
-          cacheControl: '3600',
-          upsert: false
-        });
+      try {
+        // Essayer l'upload malgré tout
+        const { data, error } = await supabase.storage
+          .from('images')
+          .upload(fileName, blob, {
+            contentType: blob.type || `image/${fileExt}`,
+            cacheControl: '3600',
+            upsert: false
+          });
 
-      if (error) {
-        console.error("Erreur upload image détaillée:", error);
+        if (error) {
+          console.error("Erreur upload:", error);
+          return null;
+        }
+
+        console.log("Upload réussi!");
+        
+        // Récupérer l'URL publique
+        const { data: { publicUrl } } = supabase.storage
+          .from('images')
+          .getPublicUrl(data.path);
+
+        console.log("URL publique générée:", publicUrl);
+        return publicUrl;
+        
+      } catch (uploadError) {
+        console.error("Erreur lors de l'upload:", uploadError);
         return null;
       }
-
-      console.log("Upload réussi, récupération de l'URL publique...");
-      
-      // Récupérer l'URL publique
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(data.path);
-
-      return publicUrl;
 
     } catch (error) {
       console.error("Erreur détaillée traitement image:", error);
@@ -170,7 +255,6 @@ export default function ImageUploader({ onUploadComplete }) {
 
   const ensureUserProfileExists = async (userId) => {
     try {
-      // Essayer une simple sélection pour voir si la table existe
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('id')
@@ -186,7 +270,6 @@ export default function ImageUploader({ onUploadComplete }) {
         console.log("Profil n'existe pas, tentative de création...");
         
         try {
-          // Création minimaliste du profil
           const { error: insertError } = await supabase
             .from('profiles')
             .insert([{ id: userId }]);
@@ -212,7 +295,6 @@ export default function ImageUploader({ onUploadComplete }) {
   };
 
   const uploadEvent = async () => {
-    // Validation des champs
     if (!eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventLieu.trim() || !imageUri) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
@@ -221,7 +303,6 @@ export default function ImageUploader({ onUploadComplete }) {
     setUploading(true);
 
     try {
-      // Récupérer l'utilisateur
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error("Utilisateur non connecté");
@@ -229,31 +310,22 @@ export default function ImageUploader({ onUploadComplete }) {
 
       console.log("Tentative d'upload avec utilisateur:", user.id);
 
-      // S'assurer que le profil existe
       const profileExists = await ensureUserProfileExists(user.id);
       
       let imageUrl = null;
 
-      // Vérifier d'abord si le bucket existe avant d'essayer d'uploader
+      // Essayer l'upload même si le bucket n'est pas détecté
       try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const bucketExists = buckets.some(bucket => bucket.name === 'images');
-        
-        if (bucketExists) {
-          const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
-          if (uploadedUrl && uploadedUrl.startsWith('http')) {
-            imageUrl = uploadedUrl;
-            console.log("Image uploadée avec succès:", imageUrl);
-          }
-        } else {
-          console.log("Bucket 'images' n'existe pas, skip upload");
+        const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
+        if (uploadedUrl && uploadedUrl.startsWith('http')) {
+          imageUrl = uploadedUrl;
+          console.log("Image uploadée avec succès:", imageUrl);
         }
       } catch (uploadError) {
         console.warn("Échec upload image:", uploadError);
       }
 
-      // Préparer les données d'insertion
-      let insertData = {
+      const insertData = {
         titre: eventTitle.trim(),
         description: eventDescription.trim(),
         date_event: new Date(eventDate).toISOString(),
@@ -263,7 +335,6 @@ export default function ImageUploader({ onUploadComplete }) {
         id_ville: selectedVilleId
       };
 
-      // Ajouter l'ID utilisateur seulement si le profil existe
       if (profileExists) {
         insertData.id_user = user.id;
       }
@@ -275,7 +346,6 @@ export default function ImageUploader({ onUploadComplete }) {
       if (insertError) {
         console.error("Erreur insertion événement:", insertError);
         
-        // Essayer sans id_user si erreur de clé étrangère
         if (insertError.code === '23503') {
           console.log("Tentative sans id_user due à l'erreur de clé étrangère");
           delete insertData.id_user;
@@ -318,6 +388,11 @@ export default function ImageUploader({ onUploadComplete }) {
     setEventDate(currentDate.toISOString().split("T")[0]);
   };
 
+  const refreshBucketStatus = async () => {
+    await checkBucketExists();
+    Alert.alert("Statut actualisé", `Bucket 'images' existe: ${bucketExists ? 'OUI' : 'NON'}`);
+  };
+
   if (loadingData) {
     return (
       <View style={styles.loadingContainer}>
@@ -331,6 +406,34 @@ export default function ImageUploader({ onUploadComplete }) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Créer un événement</Text>
+
+        {checkingBucket ? (
+          <View style={styles.infoContainer}>
+            <ActivityIndicator size="small" color="#8A2BE2" />
+            <Text style={styles.infoText}>Vérification du bucket...</Text>
+          </View>
+        ) : !bucketExists ? (
+          <View style={styles.warningContainer}>
+            <Ionicons name="warning" size={20} color="#ff9900" />
+            <Text style={styles.warningText}>
+              Le bucket 'images' n'est pas détecté
+            </Text>
+            <Text style={styles.warningSubtext}>
+              L'application tentera quand même d'uploader les images
+            </Text>
+            <TouchableOpacity onPress={refreshBucketStatus} style={styles.refreshButton}>
+              <Ionicons name="refresh" size={16} color="#fff" />
+              <Text style={styles.refreshButtonText}>Actualiser le statut</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.successContainer}>
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <Text style={styles.successText}>
+              Bucket 'images' détecté avec succès
+            </Text>
+          </View>
+        )}
 
         <TextInput 
           style={styles.input} 
@@ -400,8 +503,14 @@ export default function ImageUploader({ onUploadComplete }) {
             <Text style={styles.buttonText}>Annuler</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={[styles.button, styles.uploadButton]} onPress={uploadEvent} disabled={uploading}>
-            <Text style={styles.buttonText}>{uploading ? "Publication..." : "Publier"}</Text>
+          <TouchableOpacity 
+            style={[styles.button, styles.uploadButton]} 
+            onPress={uploadEvent} 
+            disabled={uploading || checkingBucket}
+          >
+            <Text style={styles.buttonText}>
+              {uploading ? "Publication..." : "Publier"}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -412,6 +521,68 @@ export default function ImageUploader({ onUploadComplete }) {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: "#1a1a1a", padding: 20 },
   title: { fontSize: 22, fontWeight: "700", color: "#fff", marginBottom: 20, textAlign: "center" },
+  infoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2a2a2a",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  infoText: {
+    color: "#8A2BE2",
+    marginLeft: 10,
+    fontSize: 14,
+  },
+  warningContainer: {
+    backgroundColor: "#332900",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#ff9900",
+  },
+  warningText: {
+    color: "#ff9900",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 5,
+  },
+  warningSubtext: {
+    color: "#cc9900",
+    fontSize: 12,
+    marginBottom: 10,
+  },
+  successContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1e3a1e",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#4CAF50",
+  },
+  successText: {
+    color: "#4CAF50",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 10,
+  },
+  refreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#8A2BE2",
+    padding: 10,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  refreshButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 5,
+  },
   input: { backgroundColor: "#333", color: "#fff", padding: 14, borderRadius: 8, marginBottom: 12, fontSize: 16, borderWidth: 1, borderColor: "#555" },
   textArea: { height: 100, textAlignVertical: "top" },
   pickerContainer: { backgroundColor: "#333", borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: "#555", height: 50, justifyContent: "center" },

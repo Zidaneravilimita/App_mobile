@@ -1,10 +1,19 @@
 // src/components/EventCard.js
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function EventCard({ event = {}, onPress }) {
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [currentImageUri, setCurrentImageUri] = useState(null);
 
   // Fonction pour formater la date
   const formatDate = (dateString) => {
@@ -32,48 +41,71 @@ export default function EventCard({ event = {}, onPress }) {
   // Récupérer la catégorie depuis la jointure ou directement
   const eventType = event.category?.nom_category || event.nom_category || "Catégorie inconnue";
 
-  // ✅ Gestion améliorée des images
-  const getEventImage = () => {
-    // Si image_url est null ou vide
+  // ✅ Gestion avancée des images avec cache-busting
+  useEffect(() => {
     if (!event.image_url) {
-      return null;
+      setCurrentImageUri(null);
+      return;
     }
-    
-    // Si image_url est une URL valide, l'utiliser
-    if (event.image_url.startsWith('http')) {
-      return event.image_url;
-    }
-    
-    return null;
-  };
 
-  const eventPhoto = !imageError ? getEventImage() : null;
+    // Réinitialiser les états
+    setImageError(false);
+    setImageLoaded(false);
+
+    if (event.image_url.startsWith('http')) {
+      // Cache-busting pour forcer le rechargement
+      const timestamp = new Date().getTime();
+      const imageUrl = event.image_url.includes('?') 
+        ? `${event.image_url}&t=${timestamp}`
+        : `${event.image_url}?t=${timestamp}`;
+      
+      setCurrentImageUri(imageUrl);
+    } else {
+      setCurrentImageUri(null);
+    }
+  }, [event.image_url]);
 
   const handleImageError = () => {
-    console.log("Erreur image");
+    console.log("❌ Erreur image pour:", eventTitle, "URL:", event.image_url);
     setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    console.log("✅ Image chargée avec succès:", eventTitle);
+    setImageLoaded(true);
   };
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
-      {/* Image + overlay - seulement si eventPhoto existe */}
-      {eventPhoto ? (
+      {/* Image + overlay */}
+      {currentImageUri && !imageError ? (
         <>
           <Image
-            source={{ uri: eventPhoto }}
+            source={{ uri: currentImageUri }}
             style={styles.eventImage}
             resizeMode="cover"
             onError={handleImageError}
+            onLoad={handleImageLoad}
           />
           <LinearGradient
             colors={["rgba(0,0,0,0.6)", "transparent"]}
             style={styles.gradientOverlay}
           />
+          
+          {/* Indicateur de chargement */}
+          {!imageLoaded && (
+            <View style={styles.imageLoadingContainer}>
+              <ActivityIndicator size="small" color="#8A2BE2" />
+            </View>
+          )}
         </>
       ) : (
         <View style={styles.noImageContainer}>
           <Text style={styles.noImageText}>📷</Text>
           <Text style={styles.noImageLabel}>Aucune image</Text>
+          {event.image_url && (
+            <Text style={styles.errorText}>Erreur de chargement</Text>
+          )}
         </View>
       )}
 
@@ -112,6 +144,16 @@ const styles = StyleSheet.create({
     height: 220,
     backgroundColor: "#333",
   },
+  imageLoadingContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
   noImageContainer: {
     width: "100%",
     height: 220,
@@ -126,6 +168,11 @@ const styles = StyleSheet.create({
   noImageLabel: {
     color: "#888",
     fontSize: 16,
+    marginBottom: 5,
+  },
+  errorText: {
+    color: "#ff6b6b",
+    fontSize: 12,
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
