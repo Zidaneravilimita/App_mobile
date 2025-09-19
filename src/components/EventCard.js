@@ -22,22 +22,21 @@ export default function EventCard({ event = {}, onPress }) {
     }
   };
 
-  // ✅ Champs selon la table events
+  // ✅ Champs selon la table events avec jointures
   const eventTitle = event.titre || "Titre non disponible";
   const eventDate = formatDate(event.date_event);
   
-  // Récupérer la ville
-  const eventVille = event.id_ville || "Ville non définie";
+  // Récupérer la ville depuis la jointure ou directement
+  const eventVille = event.ville?.nom_ville || event.nom_ville || "Ville non définie";
 
-  // Récupérer la catégorie
-  const eventType = event.category || "Catégorie inconnue";
+  // Récupérer la catégorie depuis la jointure ou directement
+  const eventType = event.category?.nom_category || event.nom_category || "Catégorie inconnue";
 
   // ✅ Gestion améliorée des images
   const getEventImage = () => {
-    // Si image_url est null, vide, ou est un placeholder avec erreur
-    if (!event.image_url || event.image_url.includes('placehold.co')) {
-      // Utiliser un placeholder SIMPLE sans texte complexe
-      return `https://placehold.co/600x400/8A2BE2/white?text=Event`;
+    // Si image_url est null ou vide
+    if (!event.image_url) {
+      return null;
     }
     
     // Si image_url est une URL valide, l'utiliser
@@ -45,30 +44,38 @@ export default function EventCard({ event = {}, onPress }) {
       return event.image_url;
     }
     
-    // Fallback vers un placeholder simple
-    return `https://placehold.co/600x400/8A2BE2/white?text=Event`;
+    return null;
   };
 
-  const eventPhoto = !imageError ? getEventImage() : `https://placehold.co/600x400/8A2BE2/white?text=Event`;
+  const eventPhoto = !imageError ? getEventImage() : null;
 
   const handleImageError = () => {
-    console.log("Erreur image, utilisation fallback");
+    console.log("Erreur image");
     setImageError(true);
   };
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
-      {/* Image + overlay */}
-      <Image
-        source={{ uri: eventPhoto }}
-        style={styles.eventImage}
-        resizeMode="cover"
-        onError={handleImageError}
-      />
-      <LinearGradient
-        colors={["rgba(0,0,0,0.6)", "transparent"]}
-        style={styles.gradientOverlay}
-      />
+      {/* Image + overlay - seulement si eventPhoto existe */}
+      {eventPhoto ? (
+        <>
+          <Image
+            source={{ uri: eventPhoto }}
+            style={styles.eventImage}
+            resizeMode="cover"
+            onError={handleImageError}
+          />
+          <LinearGradient
+            colors={["rgba(0,0,0,0.6)", "transparent"]}
+            style={styles.gradientOverlay}
+          />
+        </>
+      ) : (
+        <View style={styles.noImageContainer}>
+          <Text style={styles.noImageText}>📷</Text>
+          <Text style={styles.noImageLabel}>Aucune image</Text>
+        </View>
+      )}
 
       {/* Badge Catégorie */}
       <View style={styles.badge}>
@@ -80,6 +87,9 @@ export default function EventCard({ event = {}, onPress }) {
         <Text style={styles.eventTitle}>{eventTitle}</Text>
         <Text style={styles.eventDetails}>📅 {eventDate}</Text>
         <Text style={styles.eventDetails}>📍 {eventVille}</Text>
+        {event.lieu_detail && (
+          <Text style={styles.eventDetails}>🏛️ {event.lieu_detail}</Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -101,6 +111,21 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 220,
     backgroundColor: "#333",
+  },
+  noImageContainer: {
+    width: "100%",
+    height: 220,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noImageText: {
+    fontSize: 40,
+    marginBottom: 10,
+  },
+  noImageLabel: {
+    color: "#888",
+    fontSize: 16,
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,

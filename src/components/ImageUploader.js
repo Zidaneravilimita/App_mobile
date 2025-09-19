@@ -79,10 +79,9 @@ export default function ImageUploader({ onUploadComplete }) {
 
       if (error) throw error;
       setCategories(data || []);
-
+      
       if (data && data.length > 0) {
-        const activiteCulturelle = data.find(c => c.nom_category === "Activité Culturelle");
-        setSelectedCategoryId(activiteCulturelle ? activiteCulturelle.id_category : data[0].id_category);
+        setSelectedCategoryId(data[0].id_category);
       }
     } catch (err) {
       console.error("Erreur fetch categories:", err);
@@ -97,23 +96,7 @@ export default function ImageUploader({ onUploadComplete }) {
         return;
       }
 
-      // SOLUTION DEFINITIVE: Utiliser une approche qui fonctionne avec toutes les versions
-      let mediaTypes;
-      
-      // Essayer différentes approches selon la version d'Expo
-      if (typeof ImagePicker.MediaType !== 'undefined') {
-        // Nouvelle version (≥ SDK 48)
-        mediaTypes = ImagePicker.MediaType.Images;
-      } else if (typeof ImagePicker.MediaTypeOptions !== 'undefined') {
-        // Ancienne version (≤ SDK 47)
-        mediaTypes = ImagePicker.MediaTypeOptions.Images;
-      } else {
-        // Fallback: utiliser une chaîne simple
-        mediaTypes = 'images';
-      }
-
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaTypes,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -124,20 +107,6 @@ export default function ImageUploader({ onUploadComplete }) {
       }
     } catch (error) {
       console.error("Erreur sélection image:", error);
-      // Fallback: utiliser une approche alternative
-      try {
-        const result = await ImagePicker.launchImageLibraryAsync({
-          allowsEditing: true,
-          aspect: [4, 3],
-          quality: 0.8,
-        });
-        
-        if (!result.canceled && result.assets?.length > 0) {
-          setImageUri(result.assets[0].uri);
-        }
-      } catch (fallbackError) {
-        console.error("Erreur fallback sélection image:", fallbackError);
-      }
     }
   };
 
@@ -149,13 +118,13 @@ export default function ImageUploader({ onUploadComplete }) {
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
       if (bucketsError) {
         console.error("Erreur liste buckets:", bucketsError);
-        return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+        return null;
       }
 
       const bucketExists = buckets.some(bucket => bucket.name === 'images');
       if (!bucketExists) {
         console.error("Bucket 'images' n'existe pas");
-        return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+        return null;
       }
 
       // Convertir l'image en blob
@@ -181,7 +150,7 @@ export default function ImageUploader({ onUploadComplete }) {
 
       if (error) {
         console.error("Erreur upload image détaillée:", error);
-        return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+        return null;
       }
 
       console.log("Upload réussi, récupération de l'URL publique...");
@@ -195,7 +164,7 @@ export default function ImageUploader({ onUploadComplete }) {
 
     } catch (error) {
       console.error("Erreur détaillée traitement image:", error);
-      return `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+      return null;
     }
   };
 
@@ -217,7 +186,7 @@ export default function ImageUploader({ onUploadComplete }) {
         console.log("Profil n'existe pas, tentative de création...");
         
         try {
-          // Création minimaliste du profil - seulement les champs essentiels
+          // Création minimaliste du profil
           const { error: insertError } = await supabase
             .from('profiles')
             .insert([{ id: userId }]);
@@ -263,17 +232,24 @@ export default function ImageUploader({ onUploadComplete }) {
       // S'assurer que le profil existe
       const profileExists = await ensureUserProfileExists(user.id);
       
-      let imageUrl = `https://placehold.co/600x400/8A2BE2/white?text=${encodeURIComponent(eventTitle)}`;
+      let imageUrl = null;
 
-      // Essayer d'uploader vers Supabase Storage
+      // Vérifier d'abord si le bucket existe avant d'essayer d'uploader
       try {
-        const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
-        if (uploadedUrl && uploadedUrl.startsWith('http')) {
-          imageUrl = uploadedUrl;
-          console.log("Image uploadée avec succès:", imageUrl);
+        const { data: buckets } = await supabase.storage.listBuckets();
+        const bucketExists = buckets.some(bucket => bucket.name === 'images');
+        
+        if (bucketExists) {
+          const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
+          if (uploadedUrl && uploadedUrl.startsWith('http')) {
+            imageUrl = uploadedUrl;
+            console.log("Image uploadée avec succès:", imageUrl);
+          }
+        } else {
+          console.log("Bucket 'images' n'existe pas, skip upload");
         }
       } catch (uploadError) {
-        console.warn("Échec upload image, utilisation placeholder:", uploadError);
+        console.warn("Échec upload image:", uploadError);
       }
 
       // Préparer les données d'insertion

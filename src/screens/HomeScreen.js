@@ -76,13 +76,15 @@ export default function HomeScreen({ navigation }) {
         .from("events")
         .select(`
           id_event,
-          titre,
-          description,
-          date_event,
-          lieu_detail,
-          image_url,
-          id_ville,
-          id_category
+        titre,
+        description,
+        date_event,
+        lieu_detail,
+        image_url,
+        id_category,
+        id_ville,
+        category (id_category, nom_category),
+        ville (id_ville, nom_ville)
         `);
 
       // Filtrage par ville (nom)
