@@ -41,18 +41,13 @@ export default function EventCard({ event = {}, onPress }) {
   // Récupérer la catégorie depuis la jointure ou directement
   const eventType = event.category?.nom_category || event.nom_category || "Catégorie inconnue";
 
-  // ✅ Gestion avancée des images avec cache-busting
+  // ✅ Gestion avancée des images - SUPPRESSION COMPLÈTE DES PLACEHOLDERS EXTERNES
   useEffect(() => {
-    if (!event.image_url) {
-      setCurrentImageUri(null);
-      return;
-    }
-
     // Réinitialiser les états
     setImageError(false);
     setImageLoaded(false);
 
-    if (event.image_url.startsWith('http')) {
+    if (event.image_url && event.image_url.startsWith('http')) {
       // Cache-busting pour forcer le rechargement
       const timestamp = new Date().getTime();
       const imageUrl = event.image_url.includes('?') 
@@ -68,6 +63,7 @@ export default function EventCard({ event = {}, onPress }) {
   const handleImageError = () => {
     console.log("❌ Erreur image pour:", eventTitle, "URL:", event.image_url);
     setImageError(true);
+    setCurrentImageUri(null); // Supprimer l'URL en cas d'erreur
   };
 
   const handleImageLoad = () => {
@@ -103,9 +99,6 @@ export default function EventCard({ event = {}, onPress }) {
         <View style={styles.noImageContainer}>
           <Text style={styles.noImageText}>📷</Text>
           <Text style={styles.noImageLabel}>Aucune image</Text>
-          {event.image_url && (
-            <Text style={styles.errorText}>Erreur de chargement</Text>
-          )}
         </View>
       )}
 
@@ -168,11 +161,6 @@ const styles = StyleSheet.create({
   noImageLabel: {
     color: "#888",
     fontSize: 16,
-    marginBottom: 5,
-  },
-  errorText: {
-    color: "#ff6b6b",
-    fontSize: 12,
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,

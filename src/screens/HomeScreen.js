@@ -23,19 +23,20 @@ export default function HomeScreen({ navigation }) {
   const [currentContent, setCurrentContent] = useState("main");
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [showNotification, setShowNotification] = useState(true);
 
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   const [villes, setVilles] = useState([]);
-  const [selectedVilleName, setSelectedVilleName] = useState("all"); // filtrage par nom de ville
+  const [selectedVilleId, setSelectedVilleId] = useState("all");
 
   const handleAddPress = () => setCurrentContent("uploader");
   const handleHomePress = () => {
     setCurrentContent("main");
     fetchEvents(); 
     setSelectedCategoryId(null);
-    setSelectedVilleName("all");
+    setSelectedVilleId("all");
   };
 
   // Charger les villes depuis Supabase
@@ -76,20 +77,20 @@ export default function HomeScreen({ navigation }) {
         .from("events")
         .select(`
           id_event,
-        titre,
-        description,
-        date_event,
-        lieu_detail,
-        image_url,
-        id_category,
-        id_ville,
-        category (id_category, nom_category),
-        ville (id_ville, nom_ville)
+          titre,
+          description,
+          date_event,
+          lieu_detail,
+          image_url,
+          id_category,
+          id_ville,
+          category (id_category, nom_category),
+          ville (id_ville, nom_ville)
         `);
 
-      // Filtrage par ville (nom)
-      if (selectedVilleName !== "all") {
-        query = query.eq("id_ville", selectedVilleName);
+      // Filtrage par ville (ID)
+      if (selectedVilleId !== "all") {
+        query = query.eq("id_ville", selectedVilleId);
       }
 
       // Filtrage par catégorie
@@ -113,12 +114,19 @@ export default function HomeScreen({ navigation }) {
     fetchVilles();
     fetchCategories();
     fetchEvents();
+    
+    // Cacher la notification après 3 secondes
+    const timer = setTimeout(() => {
+      setShowNotification(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Recharger les événements à chaque filtre
   useEffect(() => {
     fetchEvents();
-  }, [selectedVilleName, selectedCategoryId]);
+  }, [selectedVilleId, selectedCategoryId]);
 
   const handleEventPress = (event) => {
     navigation.navigate("EventDetails", { event });
@@ -148,10 +156,15 @@ export default function HomeScreen({ navigation }) {
     return (
       <>
         <Header />
-        <View style={styles.statusBar}>
-          <Ionicons name="information-circle" size={16} color="#fff" />
-          <Text style={styles.statusText}>Mode connecté - Données Supabase</Text>
-        </View>
+        
+        {/* Notification temporaire */}
+        {showNotification && (
+          <View style={styles.notification}>
+            <Ionicons name="cloud-done" size={16} color="#fff" />
+            <Text style={styles.notificationText}>Connecté à Supabase</Text>
+          </View>
+        )}
+        
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <Text style={styles.sectionTitle}>Catégories</Text>
           <View style={styles.categoryContainer}>
@@ -164,8 +177,8 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Filtrer par ville</Text>
           <View style={styles.pickerWrapper}>
             <Picker
-              selectedValue={selectedVilleName}
-              onValueChange={(itemValue) => setSelectedVilleName(itemValue)}
+              selectedValue={selectedVilleId}
+              onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
               style={styles.pickerStyle}
             >
               <Picker.Item label="Toutes les villes" value="all" />
@@ -173,7 +186,7 @@ export default function HomeScreen({ navigation }) {
                 <Picker.Item
                   key={ville.id_ville}
                   label={ville.nom_ville}
-                  value={ville.id_ville} // filtrage par nom
+                  value={ville.id_ville}
                 />
               ))}
             </Picker>
@@ -200,7 +213,7 @@ export default function HomeScreen({ navigation }) {
               <TouchableOpacity
                 style={styles.resetButton}
                 onPress={() => {
-                  setSelectedVilleName("all");
+                  setSelectedVilleId("all");
                   setSelectedCategoryId(null);
                 }}
               >
@@ -228,31 +241,118 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#1a1a1a" },
   container: { flex: 1, backgroundColor: "#1a1a1a" },
   scrollViewContent: { paddingBottom: 20, paddingHorizontal: 15 },
-  statusBar: {
+  notification: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2196F3",
+    backgroundColor: "#10b981",
     paddingVertical: 8,
     gap: 8,
   },
-  statusText: { color: "#fff", fontSize: 12, fontWeight: "500" },
-  uploaderContainer: { flex: 1, width: "100%", justifyContent: "center", alignItems: "center" },
-  uploaderPlaceholder: { alignItems: "center", padding: 40 },
-  placeholderTitle: { fontSize: 24, fontWeight: "bold", color: "#fff", marginTop: 20, marginBottom: 10 },
-  placeholderText: { fontSize: 16, color: "#ccc", textAlign: "center", marginBottom: 30, lineHeight: 22 },
-  retryButton: { backgroundColor: "#8A2BE2", paddingHorizontal: 30, paddingVertical: 12, borderRadius: 8 },
-  retryButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  pickerWrapper: { marginVertical: 10, borderWidth: 1, borderColor: "#555", borderRadius: 8, backgroundColor: "#333", justifyContent: "center", height: 40 },
-  pickerStyle: { color: "#fff" },
-  categoryContainer: { height: 140, marginVertical: 5, marginBottom: 20 },
-  loader: { marginTop: 20 },
-  sectionTitle: { fontSize: 22, fontWeight: "bold", color: "#fff", marginTop: 15 },
-  popularTitle: { fontSize: 22, fontWeight: "bold", color: "#fff", marginTop: 15, marginBottom: 10 },
-  noEventsContainer: { alignItems: "center", padding: 40 },
-  noEventsText: { fontSize: 20, fontWeight: "bold", color: "#fff", marginTop: 15, marginBottom: 8 },
-  noEventsSubtext: { fontSize: 14, color: "#ccc", textAlign: "center", marginBottom: 25 },
-  resetButton: { backgroundColor: "#8A2BE2", paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
-  resetButtonText: { color: "#fff", fontWeight: "bold" },
-  backButton: { position: "absolute", top: 60, left: 20, zIndex: 10 },
+  notificationText: { 
+    color: "#fff", 
+    fontSize: 12, 
+    fontWeight: "500" 
+  },
+  uploaderContainer: { 
+    flex: 1, 
+    width: "100%", 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+  uploaderPlaceholder: { 
+    alignItems: "center", 
+    padding: 40 
+  },
+  placeholderTitle: { 
+    fontSize: 24, 
+    fontWeight: "bold", 
+    color: "#fff", 
+    marginTop: 20, 
+    marginBottom: 10 
+  },
+  placeholderText: { 
+    fontSize: 16, 
+    color: "#ccc", 
+    textAlign: "center", 
+    marginBottom: 30, 
+    lineHeight: 22 
+  },
+  retryButton: { 
+    backgroundColor: "#8A2BE2", 
+    paddingHorizontal: 30, 
+    paddingVertical: 12, 
+    borderRadius: 8 
+  },
+  retryButtonText: { 
+    color: "#fff", 
+    fontWeight: "bold", 
+    fontSize: 16 
+  },
+  pickerWrapper: { 
+    marginVertical: 10, 
+    borderWidth: 1, 
+    borderColor: "#555", 
+    borderRadius: 8, 
+    backgroundColor: "#333", 
+    justifyContent: "center", 
+    height: 40 
+  },
+  pickerStyle: { 
+    color: "#fff" 
+  },
+  categoryContainer: { 
+    height: 140, 
+    marginVertical: 5, 
+    marginBottom: 20 
+  },
+  loader: { 
+    marginTop: 20 
+  },
+  sectionTitle: { 
+    fontSize: 22, 
+    fontWeight: "bold", 
+    color: "#fff", 
+    marginTop: 15 
+  },
+  popularTitle: { 
+    fontSize: 22, 
+    fontWeight: "bold", 
+    color: "#fff", 
+    marginTop: 15, 
+    marginBottom: 10 
+  },
+  noEventsContainer: { 
+    alignItems: "center", 
+    padding: 40 
+  },
+  noEventsText: { 
+    fontSize: 20, 
+    fontWeight: "bold", 
+    color: "#fff", 
+    marginTop: 15, 
+    marginBottom: 8 
+  },
+  noEventsSubtext: { 
+    fontSize: 14, 
+    color: "#ccc", 
+    textAlign: "center", 
+    marginBottom: 25 
+  },
+  resetButton: { 
+    backgroundColor: "#8A2BE2", 
+    paddingHorizontal: 20, 
+    paddingVertical: 12, 
+    borderRadius: 8 
+  },
+  resetButtonText: { 
+    color: "#fff", 
+    fontWeight: "bold" 
+  },
+  backButton: { 
+    position: "absolute", 
+    top: 60, 
+    left: 20, 
+    zIndex: 10 
+  },
 });
