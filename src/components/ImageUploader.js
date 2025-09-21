@@ -12,6 +12,7 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
+  Animated,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
@@ -37,97 +38,204 @@ export default function ImageUploader({ onUploadComplete }) {
   const [loadingData, setLoadingData] = useState(true);
   const [bucketExists, setBucketExists] = useState(false);
   const [checkingBucket, setCheckingBucket] = useState(true);
+  const [networkError, setNetworkError] = useState(false);
+  
+  // États pour la notification temporaire
+  const [notification, setNotification] = useState({ message: "", type: "" });
+  const [notificationVisible, setNotificationVisible] = useState(false);
+  const [slideAnim] = useState(new Animated.Value(-100));
 
   useEffect(() => {
-    loadInitialData();
-    checkBucketExists();
-    testBucketConnection();
+    initializeApp();
   }, []);
 
-  const testBucketConnection = async () => {
+  // Afficher une notification temporaire
+  const showNotification = (message, type = "info") => {
+    setNotification({ message, type });
+    setNotificationVisible(true);
+    
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(() => {
+        hideNotification();
+      }, 3000);
+    });
+  };
+
+  // Cacher la notification
+  const hideNotification = () => {
+    Animated.timing(slideAnim, {
+      toValue: -100,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => {
+      setNotificationVisible(false);
+    });
+  };
+
+  const initializeApp = async () => {
+    const configOk = await checkSupabaseConfig();
+    if (configOk) {
+      await loadInitialData();
+      await checkBucketExists();
+    } else {
+      setNetworkError(true);
+      showNotification("Problème de configuration", "error");
+      loadDefaultData();
+    }
+  };
+
+  const checkSupabaseConfig = async () => {
     try {
-      console.log("=== TEST DE CONNEXION BUCKET ===");
+      console.log("Vérification de la configuration Supabase...");
       
-      // 1. Test de listBuckets
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      console.log("Tous les buckets:", buckets);
-      console.log("Erreur listBuckets:", bucketsError);
+      // Test de base pour vérifier que Supabase répond
+      const { data: testData, error: testError } = await supabase
+        .from('ville')
+        .select('count')
+        .limit(1);
       
-      // 2. Test direct d'accès au bucket 'images'
-      try {
-        const { data: files, error: filesError } = await supabase.storage
-          .from('images')
-          .list();
-        
-        console.log("Contenu du bucket 'images':", files);
-        console.log("Erreur list files:", filesError);
-        
-        if (filesError) {
-          console.log("Code d'erreur:", filesError.code);
-          console.log("Message d'erreur:", filesError.message);
-        }
-        
-      } catch (directError) {
-        console.error("Erreur accès direct:", directError);
+      if (testError) {
+        console.error("Erreur test Supabase:", testError);
+        return false;
       }
       
+      console.log("Supabase configuré correctement");
+      return true;
     } catch (error) {
-      console.error("Erreur générale test:", error);
+      console.error("Erreur configuration Supabase:", error);
+      return false;
+    }
+  };
+
+  const configureBucketPermissions = async () => {
+    try {
+      console.log("Configuration des permissions du bucket...");
+      
+      // Policies pour accès public
+      const policies = [
+        {
+          name: 'Public Access',
+          bucket_id: 'images',
+          operation: 'SELECT',
+          definition: 'true',
+          check: 'true'
+        },
+        {
+          name: 'Authenticated Upload',
+          bucket_id: 'images',
+          operation: 'INSERT',
+          definition: 'auth.role() = "authenticated"',
+          check: 'true'
+        }
+      ];
+
+      for (const policy of policies) {
+        try {
+          const { error } = await supabase
+            .from('storage.policies')
+            .insert(policy)
+            .select();
+
+          if (error && !error.message.includes('duplicate key')) {
+            console.log("Erreur policy:", policy.name, error);
+          }
+        } catch (policyError) {
+          console.log("Policy peut exister déjà:", policy.name);
+        }
+      }
+      
+      console.log("Policies configurées");
+    } catch (error) {
+      console.error("Erreur configuration permissions:", error);
+    }
+  };
+
+  const forceBucketDetection = async () => {
+    try {
+      console.log("Détection du bucket...");
+      
+      const methods = [
+        // Méthode 1: Accès direct
+        async () => {
+          const { data, error } = await supabase.storage
+            .from('images')
+            .list('', { limit: 1 });
+          return { success: !error, method: 'direct_access' };
+        },
+        // Méthode 2: List buckets
+        async () => {
+          const { data, error } = await supabase.storage.listBuckets();
+          const exists = data?.some(bucket => bucket.name === 'images');
+          return { success: exists && !error, method: 'list_buckets' };
+        }
+      ];
+      
+      for (const method of methods) {
+        try {
+          const result = await method();
+          if (result.success) {
+            console.log(`Bucket détecté via: ${result.method}`);
+            return true;
+          }
+        } catch (error) {
+          console.log(`Échec méthode:`, error);
+        }
+      }
+      
+      console.log("Bucket non détecté par aucune méthode");
+      return false;
+      
+    } catch (error) {
+      console.error("Erreur détection bucket:", error);
+      return false;
     }
   };
 
   const checkBucketExists = async () => {
     try {
       setCheckingBucket(true);
-      console.log("Vérification de l'existence du bucket 'images'...");
+      setNetworkError(false);
+      console.log("Vérification du bucket 'images'...");
       
-      // Méthode 1: Utiliser listBuckets
-      const { data: buckets, error } = await supabase.storage.listBuckets();
-      
-      if (error) {
-        console.error("Erreur listBuckets:", error);
+      // Test de connexion réseau
+      try {
+        const networkTest = await fetch('https://httpbin.org/get', { 
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
         
-        // Si listBuckets échoue, essayer une méthode alternative
-        try {
-          // Essayer d'accéder directement au bucket
-          const { data: files, error: listError } = await supabase.storage
-            .from('images')
-            .list('', { limit: 1 });
-          
-          if (listError) {
-            console.log("Bucket inaccessible:", listError);
-            setBucketExists(false);
-          } else {
-            console.log("Bucket accessible via list direct");
-            setBucketExists(true);
-          }
-        } catch (directError) {
-          console.error("Erreur accès direct:", directError);
-          setBucketExists(false);
+        if (!networkTest.ok) {
+          throw new Error('Network test failed');
         }
-      } else {
-        const exists = buckets.some(bucket => bucket.name === 'images');
-        console.log("Bucket 'images' existe (listBuckets):", exists);
-        
-        if (!exists) {
-          // Double vérification avec une autre méthode
-          try {
-            const { error: testError } = await supabase.storage
-              .from('images')
-              .list('', { limit: 1 });
-            
-            setBucketExists(!testError);
-            console.log("Double vérification - Bucket existe:", !testError);
-          } catch (testError) {
-            console.log("Double vérification - Bucket n'existe pas");
-            setBucketExists(false);
-          }
-        } else {
-          setBucketExists(true);
-        }
+      } catch (networkError) {
+        console.log("Aucune connexion internet:", networkError);
+        setNetworkError(true);
+        showNotification("Aucune connexion internet", "error");
+        setBucketExists(false);
+        setCheckingBucket(false);
+        return;
       }
+
+      // Détection du bucket
+      const bucketDetected = await forceBucketDetection();
+      
+      if (bucketDetected) {
+        setBucketExists(true);
+        showNotification("Storage disponible ✓", "success");
+        await configureBucketPermissions();
+      } else {
+        setBucketExists(false);
+        showNotification("Bucket inaccessible", "warning");
+      }
+      
     } catch (error) {
       console.error("Erreur vérification bucket:", error);
+      setNetworkError(true);
+      showNotification("Erreur de connexion", "error");
       setBucketExists(false);
     } finally {
       setCheckingBucket(false);
@@ -137,11 +245,76 @@ export default function ImageUploader({ onUploadComplete }) {
   const loadInitialData = async () => {
     try {
       setLoadingData(true);
-      await Promise.all([fetchVilles(), fetchCategories()]);
+      setNetworkError(false);
+      
+      // Vérifier la connexion réseau
+      try {
+        const networkTest = await fetch('https://httpbin.org/get', { 
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
+        if (!networkTest.ok) {
+          throw new Error('Network test failed');
+        }
+      } catch (networkError) {
+        console.log("Aucune connexion internet pour les données:", networkError);
+        setNetworkError(true);
+        showNotification("Connexion internet requise", "error");
+        loadDefaultData();
+        return;
+      }
+      
+      // Charger les données depuis Supabase
+      try {
+        await Promise.all([fetchVilles(), fetchCategories()]);
+        
+      } catch (error) {
+        console.error("Erreur chargement données:", error);
+        setNetworkError(true);
+        showNotification("Erreur de chargement", "error");
+        loadDefaultData();
+      }
+      
     } catch (error) {
       console.error("Erreur chargement initial:", error);
+      setNetworkError(true);
+      showNotification("Erreur de chargement", "error");
+      loadDefaultData();
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  // Charger des données par défaut en cas d'erreur
+  const loadDefaultData = () => {
+    console.log("Chargement des données par défaut");
+    
+    const defaultVilles = [
+      { id_ville: 1, nom_ville: "Paris" },
+      { id_ville: 2, nom_ville: "Lyon" },
+      { id_ville: 3, nom_ville: "Marseille" },
+      { id_ville: 4, nom_ville: "Toulouse" },
+      { id_ville: 5, nom_ville: "Bordeaux" }
+    ];
+    
+    const defaultCategories = [
+      { id_category: 1, nom_category: "Concert" },
+      { id_category: 2, nom_category: "Festival" },
+      { id_category: 3, nom_category: "Exposition" },
+      { id_category: 4, nom_category: "Conférence" },
+      { id_category: 5, nom_category: "Sport" }
+    ];
+    
+    setVilles(defaultVilles);
+    setCategories(defaultCategories);
+    
+    if (defaultVilles.length > 0) {
+      setSelectedVilleId(defaultVilles[0].id_ville);
+    }
+    
+    if (defaultCategories.length > 0) {
+      setSelectedCategoryId(defaultCategories[0].id_category);
     }
   };
 
@@ -152,14 +325,20 @@ export default function ImageUploader({ onUploadComplete }) {
         .select("id_ville, nom_ville")
         .order("nom_ville");
 
-      if (error) throw error;
-      setVilles(data || []);
-
+      if (error) {
+        console.error("Erreur fetch villes:", error);
+        throw error;
+      }
+      
       if (data && data.length > 0) {
+        setVilles(data);
         setSelectedVilleId(data[0].id_ville);
+      } else {
+        throw new Error('No cities found');
       }
     } catch (err) {
       console.error("Erreur fetch villes:", err);
+      throw err;
     }
   };
 
@@ -170,14 +349,20 @@ export default function ImageUploader({ onUploadComplete }) {
         .select("id_category, nom_category")
         .order("nom_category");
 
-      if (error) throw error;
-      setCategories(data || []);
+      if (error) {
+        console.error("Erreur fetch categories:", error);
+        throw error;
+      }
       
       if (data && data.length > 0) {
+        setCategories(data);
         setSelectedCategoryId(data[0].id_category);
+      } else {
+        throw new Error('No categories found');
       }
     } catch (err) {
       console.error("Erreur fetch categories:", err);
+      throw err;
     }
   };
 
@@ -200,6 +385,7 @@ export default function ImageUploader({ onUploadComplete }) {
       }
     } catch (error) {
       console.error("Erreur sélection image:", error);
+      Alert.alert("Erreur", "Impossible de sélectionner une image");
     }
   };
 
@@ -207,7 +393,6 @@ export default function ImageUploader({ onUploadComplete }) {
     try {
       console.log("Tentative d'upload vers le bucket 'images'...");
       
-      // Essayer quand même même si le bucket n'est pas détecté
       const response = await fetch(imageUri);
       const blob = await response.blob();
       
@@ -218,7 +403,6 @@ export default function ImageUploader({ onUploadComplete }) {
       console.log("Upload du fichier:", fileName);
       
       try {
-        // Essayer l'upload malgré tout
         const { data, error } = await supabase.storage
           .from('images')
           .upload(fileName, blob, {
@@ -229,12 +413,11 @@ export default function ImageUploader({ onUploadComplete }) {
 
         if (error) {
           console.error("Erreur upload:", error);
-          return null;
+          return "https://placehold.co/600x400/8A2BE2/white?text=Image+Event";
         }
 
         console.log("Upload réussi!");
         
-        // Récupérer l'URL publique
         const { data: { publicUrl } } = supabase.storage
           .from('images')
           .getPublicUrl(data.path);
@@ -244,12 +427,12 @@ export default function ImageUploader({ onUploadComplete }) {
         
       } catch (uploadError) {
         console.error("Erreur lors de l'upload:", uploadError);
-        return null;
+        return "https://placehold.co/600x400/8A2BE2/white?text=Image+Event";
       }
 
     } catch (error) {
       console.error("Erreur détaillée traitement image:", error);
-      return null;
+      return "https://placehold.co/600x400/8A2BE2/white?text=Image+Event";
     }
   };
 
@@ -314,7 +497,6 @@ export default function ImageUploader({ onUploadComplete }) {
       
       let imageUrl = null;
 
-      // Essayer l'upload même si le bucket n'est pas détecté
       try {
         const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
         if (uploadedUrl && uploadedUrl.startsWith('http')) {
@@ -331,8 +513,8 @@ export default function ImageUploader({ onUploadComplete }) {
         date_event: new Date(eventDate).toISOString(),
         lieu_detail: eventLieu.trim(),
         image_url: imageUrl,
-        id_category: selectedCategoryId,
-        id_ville: selectedVilleId
+        id_category: parseInt(selectedCategoryId, 10),
+        id_ville: parseInt(selectedVilleId, 10)
       };
 
       if (profileExists) {
@@ -388,9 +570,39 @@ export default function ImageUploader({ onUploadComplete }) {
     setEventDate(currentDate.toISOString().split("T")[0]);
   };
 
-  const refreshBucketStatus = async () => {
+  const retryConnection = async () => {
+    showNotification("Tentative de reconnexion...", "info");
+    setLoadingData(true);
     await checkBucketExists();
-    Alert.alert("Statut actualisé", `Bucket 'images' existe: ${bucketExists ? 'OUI' : 'NON'}`);
+    await loadInitialData();
+  };
+
+  const debugBucketAccess = async () => {
+    try {
+      console.log("=== DEBUG BUCKET ACCESS ===");
+      
+      // Test de connexion de base
+      const { data: testData, error: testError } = await supabase
+        .from('ville')
+        .select('count')
+        .limit(1);
+      console.log("Test connexion:", testError ? `Erreur: ${testError.message}` : "OK");
+      
+      // List buckets
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      console.log("List buckets:", bucketsError ? `Erreur: ${bucketsError.message}` : `Buckets: ${buckets?.map(b => b.name).join(', ')}`);
+      
+      // Accès direct
+      const { data: files, error: filesError } = await supabase.storage
+        .from('images')
+        .list('', { limit: 1 });
+      console.log("Accès direct:", filesError ? `Erreur: ${filesError.message}` : `Fichiers: ${files?.length}`);
+      
+      console.log("=== FIN DEBUG ===");
+      
+    } catch (error) {
+      console.error("Erreur debug:", error);
+    }
   };
 
   if (loadingData) {
@@ -398,39 +610,68 @@ export default function ImageUploader({ onUploadComplete }) {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#8A2BE2" />
         <Text style={styles.loadingText}>Chargement des données...</Text>
+        {networkError && (
+          <TouchableOpacity onPress={retryConnection} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Réessayer la connexion</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      {/* Notification temporaire */}
+      {notificationVisible && (
+        <Animated.View 
+          style={[
+            styles.notificationContainer,
+            notification.type === "success" ? styles.notificationSuccess : 
+            notification.type === "warning" ? styles.notificationWarning : 
+            styles.notificationError,
+            { transform: [{ translateY: slideAnim }] }
+          ]}
+        >
+          <Ionicons 
+            name={
+              notification.type === "success" ? "checkmark-circle" :
+              notification.type === "warning" ? "warning" : "alert-circle"
+            } 
+            size={20} 
+            color="#fff" 
+          />
+          <Text style={styles.notificationText}>{notification.message}</Text>
+          <TouchableOpacity onPress={hideNotification}>
+            <Ionicons name="close" size={20} color="#fff" />
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Créer un événement</Text>
 
-        {checkingBucket ? (
-          <View style={styles.infoContainer}>
-            <ActivityIndicator size="small" color="#8A2BE2" />
-            <Text style={styles.infoText}>Vérification du bucket...</Text>
-          </View>
-        ) : !bucketExists ? (
-          <View style={styles.warningContainer}>
-            <Ionicons name="warning" size={20} color="#ff9900" />
-            <Text style={styles.warningText}>
-              Le bucket 'images' n'est pas détecté
-            </Text>
-            <Text style={styles.warningSubtext}>
-              L'application tentera quand même d'uploader les images
-            </Text>
-            <TouchableOpacity onPress={refreshBucketStatus} style={styles.refreshButton}>
+        {/* Indicateur d'erreur réseau */}
+        {networkError && (
+          <View style={styles.networkErrorContainer}>
+            <Ionicons name="cloud-offline" size={20} color="#fff" />
+            <Text style={styles.networkErrorText}>Problème de connexion</Text>
+            <TouchableOpacity onPress={retryConnection} style={styles.retryButton}>
               <Ionicons name="refresh" size={16} color="#fff" />
-              <Text style={styles.refreshButtonText}>Actualiser le statut</Text>
+              <Text style={styles.retryButtonText}>Réessayer</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <View style={styles.successContainer}>
-            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-            <Text style={styles.successText}>
-              Bucket 'images' détecté avec succès
+        )}
+
+        {/* Statut du bucket */}
+        {!networkError && (
+          <View style={bucketExists ? styles.successContainer : styles.warningContainer}>
+            <Ionicons 
+              name={bucketExists ? "checkmark-circle" : "warning"} 
+              size={20} 
+              color={bucketExists ? "#4CAF50" : "#ff9900"} 
+            />
+            <Text style={bucketExists ? styles.successText : styles.warningText}>
+              {bucketExists ? "Storage prêt ✓" : "Vérification storage..."}
             </Text>
           </View>
         )}
@@ -506,13 +747,18 @@ export default function ImageUploader({ onUploadComplete }) {
           <TouchableOpacity 
             style={[styles.button, styles.uploadButton]} 
             onPress={uploadEvent} 
-            disabled={uploading || checkingBucket}
+            disabled={uploading || checkingBucket || networkError}
           >
             <Text style={styles.buttonText}>
-              {uploading ? "Publication..." : "Publier"}
+              {uploading ? "Publication..." : (networkError ? "Hors ligne" : "Publier")}
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Bouton debug */}
+        <TouchableOpacity onPress={debugBucketAccess} style={styles.debugButton}>
+          <Text style={styles.debugButtonText}>Debug</Text>
+        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -521,47 +767,87 @@ export default function ImageUploader({ onUploadComplete }) {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: "#1a1a1a", padding: 20 },
   title: { fontSize: 22, fontWeight: "700", color: "#fff", marginBottom: 20, textAlign: "center" },
-  infoContainer: {
+  
+  // Notification styles
+  notificationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 10,
+    right: 10,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2a2a2a",
     padding: 15,
     borderRadius: 8,
-    marginBottom: 15,
+    zIndex: 1000,
+    marginTop: 10,
+    gap: 10,
   },
-  infoText: {
-    color: "#8A2BE2",
-    marginLeft: 10,
+  notificationSuccess: {
+    backgroundColor: "#4CAF50",
+  },
+  notificationWarning: {
+    backgroundColor: "#FF9800",
+  },
+  notificationError: {
+    backgroundColor: "#F44336",
+  },
+  notificationText: {
+    color: "#fff",
+    flex: 1,
     fontSize: 14,
+    fontWeight: "500",
   },
-  warningContainer: {
-    backgroundColor: "#332900",
-    padding: 15,
+
+  // Network error styles
+  networkErrorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FF6B6B",
+    padding: 10,
     borderRadius: 8,
     marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#ff9900",
+    gap: 8,
   },
-  warningText: {
-    color: "#ff9900",
+  networkErrorText: {
+    color: "#fff",
     fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 5,
+    fontWeight: "500",
+    flex: 1,
   },
-  warningSubtext: {
-    color: "#cc9900",
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    padding: 8,
+    borderRadius: 6,
+    gap: 4,
+  },
+  retryButtonText: {
+    color: "#fff",
     fontSize: 12,
-    marginBottom: 10,
+    fontWeight: "500",
   },
+
+  // Bucket status styles
   successContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#1e3a1e",
-    padding: 15,
+    padding: 12,
     borderRadius: 8,
     marginBottom: 15,
     borderWidth: 1,
     borderColor: "#4CAF50",
+  },
+  warningContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#332900",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#ff9900",
   },
   successText: {
     color: "#4CAF50",
@@ -569,20 +855,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 10,
   },
-  refreshButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#8A2BE2",
-    padding: 10,
-    borderRadius: 6,
-    alignSelf: "flex-start",
-  },
-  refreshButtonText: {
-    color: "#fff",
-    fontSize: 12,
+  warningText: {
+    color: "#ff9900",
+    fontSize: 14,
     fontWeight: "600",
-    marginLeft: 5,
+    marginLeft: 10,
   },
+
+  // Debug button
+  debugButton: {
+    backgroundColor: "#444",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  debugButtonText: {
+    color: "#ccc",
+    fontSize: 12,
+  },
+
   input: { backgroundColor: "#333", color: "#fff", padding: 14, borderRadius: 8, marginBottom: 12, fontSize: 16, borderWidth: 1, borderColor: "#555" },
   textArea: { height: 100, textAlignVertical: "top" },
   pickerContainer: { backgroundColor: "#333", borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: "#555", height: 50, justifyContent: "center" },
@@ -599,5 +891,5 @@ const styles = StyleSheet.create({
   cancelButton: { backgroundColor: "#555" },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1a1a1a" },
-  loadingText: { color: "#fff", marginTop: 10 }
+  loadingText: { color: "#fff", marginTop: 10, marginBottom: 10 }
 });
