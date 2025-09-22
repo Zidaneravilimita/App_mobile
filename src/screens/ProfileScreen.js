@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../config/supabase';
 
 const { width } = Dimensions.get('window');
 
@@ -113,14 +114,8 @@ export default function ProfileScreen({ navigation }) {
 
   const checkSupabaseConnection = async () => {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const response = await fetch('https://kttziaqzsvtamgaijtzj.supabase.co/rest/v1/', {
-        method: 'HEAD',
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      if (response.ok) {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error) {
         setConnectionStatus('connected');
         setIsSupabaseAvailable(true);
         return true;
@@ -135,7 +130,6 @@ export default function ProfileScreen({ navigation }) {
 
   const loadSupabaseProfile = async () => {
     try {
-      const { supabase } = await import('../config/supabase');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
 
       if (userError || !user) {
@@ -147,19 +141,23 @@ export default function ProfileScreen({ navigation }) {
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, username, email, bio, avatar_url, role, created_at, updated_at')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profileError || !profileData) {
-        showMessage("Profil introuvable, utilisation du profil démo");
+      if (profileError) {
+        throw profileError;
       }
 
       const currentProfile = profileData || {
-        ...DEFAULT_PROFILE,
         id: user.id,
-        email: user.email,
         username: user.user_metadata?.username || user.email?.split('@')[0] || 'Utilisateur',
+        email: user.email,
+        bio: '',
+        avatar_url: user.user_metadata?.avatar_url || 'https://i.ibb.co/2n9H0hZ/default-avatar.png',
+        role: 'visiteur',
+        created_at: user.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       setProfile(currentProfile);
@@ -220,7 +218,7 @@ export default function ProfileScreen({ navigation }) {
   const loadUserStats = async (userId, supabase) => {
     try {
       const { count: eventsCreated } = await supabase
-        .from('event')
+        .from('events')
         .select('*', { count: 'exact', head: true })
         .eq('id_user', userId);
       setUserStats({
