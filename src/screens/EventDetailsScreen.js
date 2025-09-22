@@ -44,10 +44,10 @@ export default function EventDetailsScreen({ route, navigation }) {
     setLoading(true);
     setError(null);
     try {
-      // Champs principaux de la table 'events' selon l'insertion ailleurs dans l'app
-      const { data, error: err } = await supabase
+      // Tenter de récupérer aussi le nom de la catégorie via relation si elle est configurée
+      let { data, error: err } = await supabase
         .from('events')
-        .select('id_event, titre, description, date_event, image_url, id_ville, id_category, lieu_detail')
+        .select('id_event, titre, description, date_event, image_url, id_ville, id_category, lieu_detail, category:category!events_id_category_fkey (nom_category)')
         .eq('id_event', id)
         .maybeSingle();
 
@@ -64,7 +64,7 @@ export default function EventDetailsScreen({ route, navigation }) {
 
       // Charger les noms liés (ville, catégorie) si disponibles
       let villeName = null;
-      let categoryName = null;
+      let categoryName = data?.category?.nom_category || null;
 
       const fetches = [];
       if (data.id_ville) {
@@ -77,7 +77,7 @@ export default function EventDetailsScreen({ route, navigation }) {
             .then((r) => { villeName = r.data?.nom_ville || null; })
         );
       }
-      if (data.id_category) {
+      if (!categoryName && data.id_category) {
         fetches.push(
           supabase
             .from('category')
@@ -112,7 +112,7 @@ export default function EventDetailsScreen({ route, navigation }) {
   const eventDescription = event?.description || 'Aucune description disponible';
   const eventPhoto = event?.image_url || 'https://placehold.co/400x300/222/fff?text=Pas+Image';
   const eventVille = event?.villeName || event?.lieu_detail || 'Lieu non défini';
-  const eventType = event?.categoryName || 'Type inconnu';
+  const eventType = event?.category?.nom_category || event?.nom_category || event?.categoryName || 'Type inconnu';
 
   return (
     <SafeAreaView style={styles.safeArea}>

@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   eventImage: {
     width: "100%",
-    height: 220,
+    height: 180,
     backgroundColor: "#333",
   },
   imageLoadingContainer: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   noImageContainer: {
     width: "100%",
-    height: 220,
+    height: 180,
     backgroundColor: "#333",
     justifyContent: "center",
     alignItems: "center",
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    height: 220,
+    height: 180,
     borderRadius: 15,
   },
   textContainer: {

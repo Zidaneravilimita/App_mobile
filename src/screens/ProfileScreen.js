@@ -77,9 +77,12 @@ export default function ProfileScreen({ navigation }) {
   const [slideAnim] = useState(new Animated.Value(50));
   const [connectionStatus, setConnectionStatus] = useState('checking');
   const [isSupabaseAvailable, setIsSupabaseAvailable] = useState(false);
+  const [showStatusBanner, setShowStatusBanner] = useState(true);
 
   useEffect(() => {
     initializeProfile();
+    const timer = setTimeout(() => setShowStatusBanner(false), 3000);
+    return () => clearTimeout(timer);
   }, []);
 
   // Affichage message cross-platform
@@ -384,6 +387,8 @@ export default function ProfileScreen({ navigation }) {
       try {
         await loadSupabaseProfile();
         showMessage("Connexion rétablie");
+        setShowStatusBanner(true);
+        setTimeout(() => setShowStatusBanner(false), 3000);
       } catch {
         setConnectionStatus('offline');
         showMessage("Impossible de se reconnecter");
@@ -412,6 +417,7 @@ export default function ProfileScreen({ navigation }) {
       offline: { color: '#FF6B6B', icon: 'cloud-offline', text: 'Mode hors ligne' },
     };
     const config = statusConfig[connectionStatus];
+    if (!showStatusBanner) return null;
     return (
       <View style={[styles.statusBar, { backgroundColor: config.color }]}>
         <Ionicons name={config.icon} size={16} color="#fff" />

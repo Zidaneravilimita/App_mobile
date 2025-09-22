@@ -84,7 +84,7 @@ export default function HomeScreen({ navigation }) {
           image_url,
           id_category,
           id_ville,
-          category (id_category, nom_category),
+          category!events_id_category_fkey (id_category, nom_category),
           ville (id_ville, nom_ville)
         `);
 

@@ -39,6 +39,7 @@ export default function ImageUploader({ onUploadComplete }) {
   const [bucketExists, setBucketExists] = useState(false);
   const [checkingBucket, setCheckingBucket] = useState(true);
   const [networkError, setNetworkError] = useState(false);
+  const [showStorageBanner, setShowStorageBanner] = useState(false);
   
   // États pour la notification temporaire
   const [notification, setNotification] = useState({ message: "", type: "" });
@@ -164,6 +165,7 @@ export default function ImageUploader({ onUploadComplete }) {
       setCheckingBucket(true);
       setNetworkError(false);
       console.log("Vérification du bucket 'images'...");
+      setShowStorageBanner(true);
       
       try {
         const networkTest = await fetch('https://httpbin.org/get', { 
@@ -193,6 +195,7 @@ export default function ImageUploader({ onUploadComplete }) {
         setBucketExists(false);
         showNotification("Bucket inaccessible", "warning");
       }
+      setTimeout(() => setShowStorageBanner(false), 3000);
       
     } catch (error) {
       console.error("Erreur vérification bucket:", error);
@@ -562,6 +565,7 @@ export default function ImageUploader({ onUploadComplete }) {
   const retryConnection = async () => {
     showNotification("Tentative de reconnexion...", "info");
     setLoadingData(true);
+    setShowStorageBanner(true);
     await checkBucketExists();
     await loadInitialData();
   };
@@ -622,7 +626,7 @@ export default function ImageUploader({ onUploadComplete }) {
           </View>
         )}
 
-        {!networkError && (
+        {!networkError && showStorageBanner && (
           <View style={bucketExists ? styles.successContainer : styles.warningContainer}>
             <Ionicons 
               name={bucketExists ? "checkmark-circle" : "warning"} 
