@@ -1,94 +1,197 @@
 // src/screens/EventDetailsScreen.js
-import React from 'react';
-import { View, Text, StyleSheet, Image, SafeAreaView, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../config/supabase';
 
 export default function EventDetailsScreen({ route, navigation }) {
-  // Récupère les données de l'événement passées en paramètre de navigation
-  const { event } = route.params;
+  // Accepte soit un objet event passé via navigation, soit un id_event
+  const paramEvent = route.params?.event || null;
+  const paramId = route.params?.id_event || route.params?.id || null;
 
-  // Fonction pour formater la date
+  const [event, setEvent] = useState(paramEvent);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
   const formatDate = (dateString) => {
-    if (!dateString) return "Date inconnue";
+    if (!dateString) return 'Date inconnue';
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('fr-FR', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
       });
-    } catch (error) {
+    } catch (e) {
       return dateString;
     }
   };
 
-  // Extraire les informations avec fallbacks
-  const eventTitle = event?.nom_event || "Titre non disponible";
-  const eventDate = formatDate(event?.date);
-  const eventDescription = event?.description || "Aucune description disponible";
-  const eventPhoto = event?.photo || "https://placehold.co/400x300/222/fff?text=Pas+Image";
-  
-  // Gérer les cas où ville et type_evenements peuvent être des objets ou des strings
-  const eventVille = event?.ville?.nom_ville || event?.ville || "Lieu non défini";
-  const eventType = event?.type_evenements?.nom_event || event?.type_event || "Type inconnu";
+  // Récupère l'événement depuis la table 'events' avec champs actuels et complète avec noms liés
+  const fetchEventById = async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Champs principaux de la table 'events' selon l'insertion ailleurs dans l'app
+      const { data, error: err } = await supabase
+        .from('events')
+        .select('id_event, titre, description, date_event, image_url, id_ville, id_category, lieu_detail')
+        .eq('id_event', id)
+        .maybeSingle();
+
+      if (err) {
+        console.error('Erreur Supabase récupération event:', err);
+        setError("Impossible de récupérer l'événement.");
+        return;
+      }
+
+      if (!data) {
+        setError("Événement introuvable.");
+        return;
+      }
+
+      // Charger les noms liés (ville, catégorie) si disponibles
+      let villeName = null;
+      let categoryName = null;
+
+      const fetches = [];
+      if (data.id_ville) {
+        fetches.push(
+          supabase
+            .from('ville')
+            .select('nom_ville')
+            .eq('id_ville', data.id_ville)
+            .maybeSingle()
+            .then((r) => { villeName = r.data?.nom_ville || null; })
+        );
+      }
+      if (data.id_category) {
+        fetches.push(
+          supabase
+            .from('category')
+            .select('nom_category')
+            .eq('id_category', data.id_category)
+            .maybeSingle()
+            .then((r) => { categoryName = r.data?.nom_category || null; })
+        );
+      }
+      if (fetches.length) {
+        await Promise.all(fetches);
+      }
+
+      setEvent({ ...data, villeName, categoryName });
+    } catch (e) {
+      console.error('Erreur fetchEventById:', e);
+      setError("Erreur réseau lors de la récupération de l'événement.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!event && paramId) {
+      fetchEventById(paramId);
+    }
+  }, [paramId]);
+
+  // Fallbacks et extraction des champs
+  const eventTitle = event?.titre || 'Titre non disponible';
+  const eventDate = formatDate(event?.date_event);
+  const eventDescription = event?.description || 'Aucune description disponible';
+  const eventPhoto = event?.image_url || 'https://placehold.co/400x300/222/fff?text=Pas+Image';
+  const eventVille = event?.villeName || event?.lieu_detail || 'Lieu non défini';
+  const eventType = event?.categoryName || 'Type inconnu';
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Bouton de retour */}
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Retour"
+        >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
 
-        {/* Image de l'événement */}
-        <Image 
-          source={{ uri: eventPhoto }} 
-          style={styles.eventImage} 
-          resizeMode="cover"
-          onError={() => console.log("Erreur chargement image:", eventPhoto)}
-        />
-
-        {/* Contenu de la carte de l'événement */}
-        <View style={styles.contentContainer}>
-          <Text style={styles.eventTitle}>{eventTitle}</Text>
-          
-          <View style={styles.detailsContainer}>
-            <View style={styles.detailRow}>
-              <Ionicons name="calendar-outline" size={20} color="#8A2BE2" />
-              <Text style={styles.eventDate}>{eventDate}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Ionicons name="location-outline" size={20} color="#8A2BE2" />
-              <Text style={styles.eventLocation}>{eventVille}</Text>
-            </View>
-            
-            <View style={styles.detailRow}>
-              <Ionicons name="pricetag-outline" size={20} color="#8A2BE2" />
-              <Text style={styles.eventType}>{eventType}</Text>
-            </View>
+        {loading ? (
+          <View style={{ marginTop: 120, alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#8A2BE2" />
+            <Text style={{ color: '#ccc', marginTop: 10 }}>Chargement de l'événement...</Text>
           </View>
-
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionTitle}>Description</Text>
-            <Text style={styles.eventDescription}>{eventDescription}</Text>
-          </View>
-
-          {/* Boutons d'action */}
-          <View style={styles.actionContainer}>
-            <TouchableOpacity style={styles.actionButton}>
-              <Ionicons name="heart-outline" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>Intéressé</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
-              <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-              <Text style={styles.actionButtonText}>Participer</Text>
+        ) : error ? (
+          <View style={{ marginTop: 120, alignItems: 'center', paddingHorizontal: 20 }}>
+            <Text style={{ color: '#fff', marginBottom: 10 }}>{error}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                if (paramId) fetchEventById(paramId);
+                else Alert.alert('Erreur', 'Aucun identifiant d\'événement fourni.');
+              }}
+              style={styles.retryButton}
+            >
+              <Text style={{ color: '#fff' }}>Réessayer</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <>
+            <Image
+              source={{ uri: eventPhoto }}
+              style={styles.eventImage}
+              resizeMode="cover"
+              onError={() => console.log('Erreur chargement image:', eventPhoto)}
+            />
+
+            <View style={styles.contentContainer}>
+              <Text style={styles.eventTitle}>{eventTitle}</Text>
+
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailRow}>
+                  <Ionicons name="calendar-outline" size={20} color="#8A2BE2" />
+                  <Text style={styles.eventDate}>{eventDate}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={20} color="#8A2BE2" />
+                  <Text style={styles.eventLocation}>{eventVille}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Ionicons name="pricetag-outline" size={20} color="#8A2BE2" />
+                  <Text style={styles.eventType}>{eventType}</Text>
+                </View>
+              </View>
+
+              <View style={styles.descriptionContainer}>
+                <Text style={styles.descriptionTitle}>Description</Text>
+                <Text style={styles.eventDescription}>{eventDescription}</Text>
+              </View>
+
+              <View style={styles.actionContainer}>
+                <TouchableOpacity style={styles.actionButton}>
+                  <Ionicons name="heart-outline" size={24} color="#fff" />
+                  <Text style={styles.actionButtonText}>Intéressé</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
+                  <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
+                  <Text style={styles.actionButtonText}>Participer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -107,12 +210,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 50,
     left: 20,
-    zIndex: 1,
+    zIndex: 2,
     backgroundColor: 'rgba(0,0,0,0.7)',
     padding: 12,
     borderRadius: 25,
     borderWidth: 1,
     borderColor: '#333',
+  },
+  retryButton: {
+    backgroundColor: '#8A2BE2',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   eventImage: {
     width: '100%',
