@@ -20,7 +20,6 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { supabase } from "../config/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import * as FileSystem from 'expo-file-system';
 
 export default function ImageUploader({ onUploadComplete }) {
   const navigation = useNavigation();
@@ -92,7 +91,6 @@ export default function ImageUploader({ onUploadComplete }) {
     try {
       console.log("Vérification de la configuration Supabase...");
       
-      // Test de base pour vérifier que Supabase répond
       const { data: testData, error: testError } = await supabase
         .from('ville')
         .select('count')
@@ -114,7 +112,6 @@ export default function ImageUploader({ onUploadComplete }) {
   const configureBucketPermissions = async () => {
     try {
       console.log("Vérification des permissions du bucket...");
-      console.log("Les permissions du bucket se configurent via l'interface web Supabase");
       return true;
     } catch (error) {
       console.log("Note: Les permissions se configurent via l'interface Supabase");
@@ -127,14 +124,12 @@ export default function ImageUploader({ onUploadComplete }) {
       console.log("Détection du bucket...");
       
       const methods = [
-        // Méthode 1: Accès direct
         async () => {
           const { data, error } = await supabase.storage
             .from('images')
             .list('', { limit: 1 });
           return { success: !error, method: 'direct_access' };
         },
-        // Méthode 2: List buckets
         async () => {
           const { data, error } = await supabase.storage.listBuckets();
           const exists = data?.some(bucket => bucket.name === 'images');
@@ -170,7 +165,6 @@ export default function ImageUploader({ onUploadComplete }) {
       setNetworkError(false);
       console.log("Vérification du bucket 'images'...");
       
-      // Test de connexion réseau
       try {
         const networkTest = await fetch('https://httpbin.org/get', { 
           method: 'GET',
@@ -189,7 +183,6 @@ export default function ImageUploader({ onUploadComplete }) {
         return;
       }
 
-      // Détection du bucket
       const bucketDetected = await forceBucketDetection();
       
       if (bucketDetected) {
@@ -216,7 +209,6 @@ export default function ImageUploader({ onUploadComplete }) {
       setLoadingData(true);
       setNetworkError(false);
       
-      // Vérifier la connexion réseau
       try {
         const networkTest = await fetch('https://httpbin.org/get', { 
           method: 'GET',
@@ -234,10 +226,8 @@ export default function ImageUploader({ onUploadComplete }) {
         return;
       }
       
-      // Charger les données depuis Supabase
       try {
         await Promise.all([fetchVilles(), fetchCategories()]);
-        
       } catch (error) {
         console.error("Erreur chargement données:", error);
         setNetworkError(true);
@@ -332,7 +322,7 @@ export default function ImageUploader({ onUploadComplete }) {
       
       if (!imageUri) {
         console.log("Aucune image à uploader");
-        return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
+        return null;
       }
 
       // Extraire l'extension du fichier
@@ -343,53 +333,80 @@ export default function ImageUploader({ onUploadComplete }) {
       
       console.log("Upload du fichier:", fileName);
       
-      try {
-        // Lire le fichier en base64
-        const fileInfo = await FileSystem.getInfoAsync(imageUri);
-        if (!fileInfo.exists) {
-          throw new Error("Le fichier n'existe pas");
-        }
-
-        const fileContent = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        // Convertir base64 en blob
-        const response = await fetch(`data:image/${fileExt};base64,${fileContent}`);
-        const blob = await response.blob();
-
-        // Upload avec le bon type MIME
-        const { data, error } = await supabase.storage
-          .from('images')
-          .upload(fileName, blob, {
-            contentType: `image/${fileExt}`,
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (error) {
-          console.error("Erreur upload:", error);
-          return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
-        }
-
-        console.log("Upload réussi!");
-        
-        // Récupérer l'URL publique
-        const { data: { publicUrl } } = supabase.storage
-          .from('images')
-          .getPublicUrl(data.path);
-
-        console.log("URL publique générée:", publicUrl);
-        return publicUrl;
-        
-      } catch (uploadError) {
-        console.error("Erreur lors de l'upload:", uploadError);
-        return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
+      // Méthode React Native compatible avec FormData
+      const formData = new FormData();
+      
+      // Déterminer le type MIME correct
+      let mimeType = 'image/jpeg';
+      if (fileExt === 'png') {
+        mimeType = 'image/png';
+      } else if (fileExt === 'gif') {
+        mimeType = 'image/gif';
       }
 
+      console.log("Type MIME détecté:", mimeType);
+
+      // Ajouter le fichier au FormData (méthode React Native)
+      formData.append('file', {
+        uri: imageUri,
+        type: mimeType,
+        name: fileName,
+      });
+
+      // Upload avec Supabase en utilisant FormData
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(fileName, formData, {
+          contentType: mimeType,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error("Erreur upload avec FormData:", error);
+        
+        // Essayer une méthode alternative si FormData échoue
+        console.log("Tentative méthode alternative...");
+        
+        try {
+          // Méthode alternative pour React Native
+          const response = await fetch(imageUri);
+          const blob = await response.blob();
+          
+          const { data: retryData, error: retryError } = await supabase.storage
+            .from('images')
+            .upload(fileName, blob, {
+              contentType: mimeType,
+            });
+
+          if (retryError) {
+            console.error("Erreur upload méthode alternative:", retryError);
+            return null;
+          }
+
+          console.log("Upload réussi avec méthode alternative!");
+          const { data: { publicUrl } } = supabase.storage
+            .from('images')
+            .getPublicUrl(retryData.path);
+
+          return publicUrl;
+        } catch (altError) {
+          console.error("Échec méthode alternative:", altError);
+          return null;
+        }
+      }
+
+      console.log("Upload réussi avec FormData!");
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(data.path);
+
+      console.log("URL publique générée:", publicUrl);
+      return publicUrl;
+      
     } catch (error) {
       console.error("Erreur détaillée traitement image:", error);
-      return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
+      return null;
     }
   };
 
@@ -459,14 +476,24 @@ export default function ImageUploader({ onUploadComplete }) {
       
       let imageUrl = null;
 
-      try {
-        const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
-        if (uploadedUrl && uploadedUrl.startsWith('http')) {
-          imageUrl = uploadedUrl;
-          console.log("Image uploadée avec succès:", imageUrl);
+      // Essayer l'upload seulement si le bucket existe
+      if (bucketExists) {
+        try {
+          const uploadedUrl = await uploadImageToStorage(imageUri, user.id);
+          if (uploadedUrl) {
+            imageUrl = uploadedUrl;
+            console.log("Image uploadée avec succès:", imageUrl);
+          } else {
+            console.log("Échec de l'upload, utilisation du placeholder");
+            imageUrl = "https://via.placeholder.com/600x400/8a2be2/ffffff?text=Event+Image";
+          }
+        } catch (uploadError) {
+          console.warn("Échec upload image:", uploadError);
+          imageUrl = "https://via.placeholder.com/600x400/8a2be2/ffffff?text=Event+Image";
         }
-      } catch (uploadError) {
-        console.warn("Échec upload image:", uploadError);
+      } else {
+        console.log("Bucket non disponible, utilisation du placeholder");
+        imageUrl = "https://via.placeholder.com/600x400/8a2be2/ffffff?text=Event+Image";
       }
 
       const insertData = {
@@ -539,34 +566,6 @@ export default function ImageUploader({ onUploadComplete }) {
     await loadInitialData();
   };
 
-  const debugBucketAccess = async () => {
-    try {
-      console.log("=== DEBUG BUCKET ACCESS ===");
-      
-      // Test de connexion de base
-      const { data: testData, error: testError } = await supabase
-        .from('ville')
-        .select('count')
-        .limit(1);
-      console.log("Test connexion:", testError ? `Erreur: ${testError.message}` : "OK");
-      
-      // List buckets
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      console.log("List buckets:", bucketsError ? `Erreur: ${bucketsError.message}` : `Buckets: ${buckets?.map(b => b.name).join(', ')}`);
-      
-      // Accès direct
-      const { data: files, error: filesError } = await supabase.storage
-        .from('images')
-        .list('', { limit: 1 });
-      console.log("Accès direct:", filesError ? `Erreur: ${filesError.message}` : `Fichiers: ${files?.length}`);
-      
-      console.log("=== FIN DEBUG ===");
-      
-    } catch (error) {
-      console.error("Erreur debug:", error);
-    }
-  };
-
   if (loadingData) {
     return (
       <View style={styles.loadingContainer}>
@@ -583,7 +582,6 @@ export default function ImageUploader({ onUploadComplete }) {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      {/* Notification temporaire */}
       {notificationVisible && (
         <Animated.View 
           style={[
@@ -613,7 +611,6 @@ export default function ImageUploader({ onUploadComplete }) {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Créer un événement</Text>
 
-        {/* Indicateur d'erreur réseau */}
         {networkError && (
           <View style={styles.networkErrorContainer}>
             <Ionicons name="cloud-offline" size={20} color="#fff" />
@@ -625,7 +622,6 @@ export default function ImageUploader({ onUploadComplete }) {
           </View>
         )}
 
-        {/* Statut du bucket */}
         {!networkError && (
           <View style={bucketExists ? styles.successContainer : styles.warningContainer}>
             <Ionicons 
@@ -720,11 +716,6 @@ export default function ImageUploader({ onUploadComplete }) {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Bouton debug */}
-        <TouchableOpacity onPress={debugBucketAccess} style={styles.debugButton}>
-          <Text style={styles.debugButtonText}>Debug</Text>
-        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -733,8 +724,6 @@ export default function ImageUploader({ onUploadComplete }) {
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: "#1a1a1a", padding: 20 },
   title: { fontSize: 22, fontWeight: "700", color: "#fff", marginBottom: 20, textAlign: "center" },
-  
-  // Notification styles
   notificationContainer: {
     position: "absolute",
     top: 0,
@@ -747,15 +736,9 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     marginTop: 10,
   },
-  notificationSuccess: {
-    backgroundColor: "#4CAF50",
-  },
-  notificationWarning: {
-    backgroundColor: "#FF9800",
-  },
-  notificationError: {
-    backgroundColor: "#F44336",
-  },
+  notificationSuccess: { backgroundColor: "#4CAF50" },
+  notificationWarning: { backgroundColor: "#FF9800" },
+  notificationError: { backgroundColor: "#F44336" },
   notificationText: {
     color: "#fff",
     flex: 1,
@@ -763,8 +746,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginHorizontal: 8,
   },
-
-  // Network error styles
   networkErrorContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -793,8 +774,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
-
-  // Bucket status styles
   successContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -815,132 +794,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ff9900",
   },
-  successText: {
-    color: "#4CAF50",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  warningText: {
-    color: "#ff9900",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-
-  // Debug button
-  debugButton: {
-    backgroundColor: "#444",
-    padding: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  debugButtonText: {
-    color: "#ccc",
-    fontSize: 12,
-  },
-
+  successText: { color: "#4CAF50", fontSize: 14, fontWeight: "600" },
+  warningText: { color: "#ff9900", fontSize: 14, fontWeight: "600" },
   input: { 
-    backgroundColor: "#333", 
-    color: "#fff", 
-    padding: 14, 
-    borderRadius: 8, 
-    marginBottom: 12, 
-    fontSize: 16, 
-    borderWidth: 1, 
-    borderColor: "#555" 
+    backgroundColor: "#333", color: "#fff", padding: 14, borderRadius: 8, 
+    marginBottom: 12, fontSize: 16, borderWidth: 1, borderColor: "#555" 
   },
-  textArea: { 
-    height: 100, 
-    textAlignVertical: "top" 
-  },
+  textArea: { height: 100, textAlignVertical: "top" },
   pickerContainer: { 
-    backgroundColor: "#333", 
-    borderRadius: 8, 
-    marginBottom: 12, 
-    borderWidth: 1, 
-    borderColor: "#555", 
-    height: 50, 
-    justifyContent: "center" 
+    backgroundColor: "#333", borderRadius: 8, marginBottom: 12, 
+    borderWidth: 1, borderColor: "#555", height: 50, justifyContent: "center" 
   },
-  picker: { 
-    color: "#fff" 
-  },
+  picker: { color: "#fff" },
   dateInputButton: { 
-    backgroundColor: "#333", 
-    padding: 14, 
-    borderRadius: 8, 
-    flexDirection: "row", 
-    alignItems: "center", 
-    marginBottom: 12, 
-    height: 50, 
-    borderWidth: 1, 
-    borderColor: "#555" 
+    backgroundColor: "#333", padding: 14, borderRadius: 8, flexDirection: "row", 
+    alignItems: "center", marginBottom: 12, height: 50, borderWidth: 1, borderColor: "#555" 
   },
-  dateInputText: { 
-    color: "#fff", 
-    fontSize: 16 
-  },
+  dateInputText: { color: "#fff", fontSize: 16 },
   pickImageButton: { 
-    backgroundColor: "#333", 
-    padding: 14, 
-    borderRadius: 8, 
-    flexDirection: "row", 
-    alignItems: "center", 
-    marginBottom: 12, 
-    height: 50, 
-    borderWidth: 1, 
-    borderColor: "#555" 
+    backgroundColor: "#333", padding: 14, borderRadius: 8, flexDirection: "row", 
+    alignItems: "center", marginBottom: 12, height: 50, borderWidth: 1, borderColor: "#555" 
   },
-  pickImageButtonText: { 
-    color: "#fff", 
-    fontSize: 16 
-  },
-  imagePreview: { 
-    width: 200, 
-    height: 150, 
-    borderRadius: 8, 
-    marginBottom: 12, 
-    alignSelf: "center" 
-  },
-  loader: { 
-    marginVertical: 20 
-  },
+  pickImageButtonText: { color: "#fff", fontSize: 16 },
+  imagePreview: { width: 200, height: 150, borderRadius: 8, marginBottom: 12, alignSelf: "center" },
+  loader: { marginVertical: 20 },
   buttonContainer: { 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    gap: 10, 
-    marginTop: 20 
+    flexDirection: "row", justifyContent: "space-between", gap: 10, marginTop: 20 
   },
-  button: { 
-    flex: 1, 
-    padding: 15, 
-    borderRadius: 8, 
-    alignItems: "center" 
-  },
-  uploadButton: { 
-    backgroundColor: "#8A2BE2" 
-  },
-  cancelButton: { 
-    backgroundColor: "#555" 
-  },
-  buttonDisabled: {
-    backgroundColor: "#666",
-    opacity: 0.6,
-  },
-  buttonText: { 
-    color: "#fff", 
-    fontSize: 16, 
-    fontWeight: "600" 
-  },
+  button: { flex: 1, padding: 15, borderRadius: 8, alignItems: "center" },
+  uploadButton: { backgroundColor: "#8A2BE2" },
+  cancelButton: { backgroundColor: "#555" },
+  buttonDisabled: { backgroundColor: "#666", opacity: 0.6 },
+  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   loadingContainer: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center", 
-    backgroundColor: "#1a1a1a" 
+    flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1a1a1a" 
   },
-  loadingText: { 
-    color: "#fff", 
-    marginTop: 10, 
-    marginBottom: 10 
-  }
+  loadingText: { color: "#fff", marginTop: 10, marginBottom: 10 }
 });
