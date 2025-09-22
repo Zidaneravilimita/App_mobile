@@ -1,16 +1,110 @@
 // src/components/Header.js
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../config/supabase';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function Header() {
+  const [avatarUri, setAvatarUri] = useState(null);
+
+  useEffect(() => {
+    const loadAvatar = async () => {
+      try {
+        // 1) Tenter de charger depuis Supabase (profil en ligne le plus récent)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (profile?.avatar_url) {
+            setAvatarUri(profile.avatar_url);
+            return;
+          }
+          // fallback: métadonnées utilisateur
+          const metaUrl = user.user_metadata?.avatar_url;
+          if (metaUrl) {
+            setAvatarUri(metaUrl);
+            return;
+          }
+        }
+
+        // 2) Fallback local (cache)
+        const savedProfile = await AsyncStorage.getItem('user_data');
+        if (savedProfile) {
+          const profile = JSON.parse(savedProfile);
+          if (profile?.avatar_url) {
+            setAvatarUri(profile.avatar_url);
+            return;
+          }
+        }
+        const savedUser = await AsyncStorage.getItem('user_profile');
+        if (savedUser) {
+          const userLocal = JSON.parse(savedUser);
+          const metaUrl = userLocal?.user_metadata?.avatar_url;
+          if (metaUrl) {
+            setAvatarUri(metaUrl);
+          }
+        }
+      } catch (e) {
+        // ignore and keep fallback
+      }
+    };
+    loadAvatar();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Recharger l'avatar à chaque focus de l'écran
+      (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.id) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('avatar_url')
+              .eq('id', user.id)
+              .maybeSingle();
+            if (profile?.avatar_url) {
+              setAvatarUri(profile.avatar_url);
+              return;
+            }
+            const metaUrl = user.user_metadata?.avatar_url;
+            if (metaUrl) {
+              setAvatarUri(metaUrl);
+              return;
+            }
+          }
+        } catch {}
+      })();
+      return undefined;
+    }, [])
+  );
+
+  const getImageUri = (uri) => {
+    if (!uri) return null;
+    // Cache-busting si HTTP(S)
+    if (uri.startsWith('http')) {
+      const t = Date.now();
+      return uri.includes('?') ? `${uri}&t=${t}` : `${uri}?t=${t}`;
+    }
+    return uri;
+  };
   return (
     <View style={styles.headerContainer}>
       <TouchableOpacity>
-        <Image
-          source={require('../../assets/images/Avatar/avatar.jpg')} 
-          style={styles.avatar}
-        />
+        {avatarUri ? (
+          <Image
+            source={{ uri: getImageUri(avatarUri) }}
+            onError={() => setAvatarUri(null)}
+            style={styles.avatar}
+          />
+        ) : (
+          <Ionicons name="person-circle" size={40} color="#888" />
+        )}
       </TouchableOpacity>
       <View style={styles.logoContainer}>
         <Ionicons name="sparkles" size={24} color="#8A2BE2" />
