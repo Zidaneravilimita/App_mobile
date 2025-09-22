@@ -20,6 +20,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { supabase } from "../config/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as FileSystem from 'expo-file-system';
 
 export default function ImageUploader({ onUploadComplete }) {
   const navigation = useNavigation();
@@ -84,7 +85,6 @@ export default function ImageUploader({ onUploadComplete }) {
     } else {
       setNetworkError(true);
       showNotification("Problème de configuration", "error");
-      loadDefaultData();
     }
   };
 
@@ -113,44 +113,12 @@ export default function ImageUploader({ onUploadComplete }) {
 
   const configureBucketPermissions = async () => {
     try {
-      console.log("Configuration des permissions du bucket...");
-      
-      // Policies pour accès public
-      const policies = [
-        {
-          name: 'Public Access',
-          bucket_id: 'images',
-          operation: 'SELECT',
-          definition: 'true',
-          check: 'true'
-        },
-        {
-          name: 'Authenticated Upload',
-          bucket_id: 'images',
-          operation: 'INSERT',
-          definition: 'auth.role() = "authenticated"',
-          check: 'true'
-        }
-      ];
-
-      for (const policy of policies) {
-        try {
-          const { error } = await supabase
-            .from('storage.policies')
-            .insert(policy)
-            .select();
-
-          if (error && !error.message.includes('duplicate key')) {
-            console.log("Erreur policy:", policy.name, error);
-          }
-        } catch (policyError) {
-          console.log("Policy peut exister déjà:", policy.name);
-        }
-      }
-      
-      console.log("Policies configurées");
+      console.log("Vérification des permissions du bucket...");
+      console.log("Les permissions du bucket se configurent via l'interface web Supabase");
+      return true;
     } catch (error) {
-      console.error("Erreur configuration permissions:", error);
+      console.log("Note: Les permissions se configurent via l'interface Supabase");
+      return false;
     }
   };
 
@@ -184,6 +152,7 @@ export default function ImageUploader({ onUploadComplete }) {
         } catch (error) {
           console.log(`Échec méthode:`, error);
         }
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       console.log("Bucket non détecté par aucune méthode");
@@ -261,7 +230,7 @@ export default function ImageUploader({ onUploadComplete }) {
         console.log("Aucune connexion internet pour les données:", networkError);
         setNetworkError(true);
         showNotification("Connexion internet requise", "error");
-        loadDefaultData();
+        setLoadingData(false);
         return;
       }
       
@@ -272,49 +241,15 @@ export default function ImageUploader({ onUploadComplete }) {
       } catch (error) {
         console.error("Erreur chargement données:", error);
         setNetworkError(true);
-        showNotification("Erreur de chargement", "error");
-        loadDefaultData();
+        showNotification("Erreur de chargement des données", "error");
       }
       
     } catch (error) {
       console.error("Erreur chargement initial:", error);
       setNetworkError(true);
       showNotification("Erreur de chargement", "error");
-      loadDefaultData();
     } finally {
       setLoadingData(false);
-    }
-  };
-
-  // Charger des données par défaut en cas d'erreur
-  const loadDefaultData = () => {
-    console.log("Chargement des données par défaut");
-    
-    const defaultVilles = [
-      { id_ville: 1, nom_ville: "Paris" },
-      { id_ville: 2, nom_ville: "Lyon" },
-      { id_ville: 3, nom_ville: "Marseille" },
-      { id_ville: 4, nom_ville: "Toulouse" },
-      { id_ville: 5, nom_ville: "Bordeaux" }
-    ];
-    
-    const defaultCategories = [
-      { id_category: 1, nom_category: "Concert" },
-      { id_category: 2, nom_category: "Festival" },
-      { id_category: 3, nom_category: "Exposition" },
-      { id_category: 4, nom_category: "Conférence" },
-      { id_category: 5, nom_category: "Sport" }
-    ];
-    
-    setVilles(defaultVilles);
-    setCategories(defaultCategories);
-    
-    if (defaultVilles.length > 0) {
-      setSelectedVilleId(defaultVilles[0].id_ville);
-    }
-    
-    if (defaultCategories.length > 0) {
-      setSelectedCategoryId(defaultCategories[0].id_category);
     }
   };
 
@@ -334,11 +269,12 @@ export default function ImageUploader({ onUploadComplete }) {
         setVilles(data);
         setSelectedVilleId(data[0].id_ville);
       } else {
-        throw new Error('No cities found');
+        console.log("Aucune ville trouvée dans la base de données");
+        setVilles([]);
       }
     } catch (err) {
       console.error("Erreur fetch villes:", err);
-      throw err;
+      setVilles([]);
     }
   };
 
@@ -358,11 +294,12 @@ export default function ImageUploader({ onUploadComplete }) {
         setCategories(data);
         setSelectedCategoryId(data[0].id_category);
       } else {
-        throw new Error('No categories found');
+        console.log("Aucune catégorie trouvée dans la base de données");
+        setCategories([]);
       }
     } catch (err) {
       console.error("Erreur fetch categories:", err);
-      throw err;
+      setCategories([]);
     }
   };
 
@@ -393,31 +330,51 @@ export default function ImageUploader({ onUploadComplete }) {
     try {
       console.log("Tentative d'upload vers le bucket 'images'...");
       
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-      
-      const timestamp = new Date().getTime();
-      const fileExt = imageUri.split('.').pop() || 'jpg';
-      const fileName = `${userId}_${timestamp}.${fileExt}`;
+      if (!imageUri) {
+        console.log("Aucune image à uploader");
+        return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
+      }
+
+      // Extraire l'extension du fichier
+      const filename = imageUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename || '');
+      const fileExt = match ? match[1].toLowerCase() : 'jpg';
+      const fileName = `${userId}_${Date.now()}.${fileExt}`;
       
       console.log("Upload du fichier:", fileName);
       
       try {
+        // Lire le fichier en base64
+        const fileInfo = await FileSystem.getInfoAsync(imageUri);
+        if (!fileInfo.exists) {
+          throw new Error("Le fichier n'existe pas");
+        }
+
+        const fileContent = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        // Convertir base64 en blob
+        const response = await fetch(`data:image/${fileExt};base64,${fileContent}`);
+        const blob = await response.blob();
+
+        // Upload avec le bon type MIME
         const { data, error } = await supabase.storage
           .from('images')
           .upload(fileName, blob, {
-            contentType: blob.type || `image/${fileExt}`,
+            contentType: `image/${fileExt}`,
             cacheControl: '3600',
             upsert: false
           });
 
         if (error) {
           console.error("Erreur upload:", error);
-          return "https://placehold.co/600x400/8A2BE2/white?text=Image+Event";
+          return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
         }
 
         console.log("Upload réussi!");
         
+        // Récupérer l'URL publique
         const { data: { publicUrl } } = supabase.storage
           .from('images')
           .getPublicUrl(data.path);
@@ -427,12 +384,12 @@ export default function ImageUploader({ onUploadComplete }) {
         
       } catch (uploadError) {
         console.error("Erreur lors de l'upload:", uploadError);
-        return "https://placehold.co/600x400/8A2BE2/white?text=Image+Event";
+        return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
       }
 
     } catch (error) {
       console.error("Erreur détaillée traitement image:", error);
-      return "https://placehold.co/600x400/8A2BE2/white?text=Image+Event";
+      return "https://placehold.co/600x400/8a2be2/ffffff?text=Event+Image";
     }
   };
 
@@ -480,6 +437,11 @@ export default function ImageUploader({ onUploadComplete }) {
   const uploadEvent = async () => {
     if (!eventTitle.trim() || !eventDescription.trim() || !eventDate || !eventLieu.trim() || !imageUri) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      return;
+    }
+
+    if (!selectedVilleId || !selectedCategoryId) {
+      Alert.alert("Erreur", "Veuillez sélectionner une ville et une catégorie");
       return;
     }
 
@@ -639,10 +601,11 @@ export default function ImageUploader({ onUploadComplete }) {
             } 
             size={20} 
             color="#fff" 
+            style={{ marginRight: 8 }}
           />
           <Text style={styles.notificationText}>{notification.message}</Text>
-          <TouchableOpacity onPress={hideNotification}>
-            <Ionicons name="close" size={20} color="#fff" />
+          <TouchableOpacity onPress={hideNotification} style={{ padding: 4 }}>
+            <Ionicons name="close" size={18} color="#fff" />
           </TouchableOpacity>
         </Animated.View>
       )}
@@ -669,6 +632,7 @@ export default function ImageUploader({ onUploadComplete }) {
               name={bucketExists ? "checkmark-circle" : "warning"} 
               size={20} 
               color={bucketExists ? "#4CAF50" : "#ff9900"} 
+              style={{ marginRight: 8 }}
             />
             <Text style={bucketExists ? styles.successText : styles.warningText}>
               {bucketExists ? "Storage prêt ✓" : "Vérification storage..."}
@@ -703,6 +667,7 @@ export default function ImageUploader({ onUploadComplete }) {
 
         <View style={styles.pickerContainer}>
           <Picker selectedValue={selectedVilleId} onValueChange={setSelectedVilleId} style={styles.picker}>
+            <Picker.Item label="Sélectionner une ville" value={null} />
             {villes.map((ville) => (
               <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
             ))}
@@ -711,6 +676,7 @@ export default function ImageUploader({ onUploadComplete }) {
 
         <View style={styles.pickerContainer}>
           <Picker selectedValue={selectedCategoryId} onValueChange={setSelectedCategoryId} style={styles.picker}>
+            <Picker.Item label="Sélectionner une catégorie" value={null} />
             {categories.map((category) => (
               <Picker.Item key={category.id_category} label={category.nom_category} value={category.id_category} />
             ))}
@@ -745,9 +711,9 @@ export default function ImageUploader({ onUploadComplete }) {
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.button, styles.uploadButton]} 
+            style={[styles.button, styles.uploadButton, (!selectedVilleId || !selectedCategoryId) && styles.buttonDisabled]} 
             onPress={uploadEvent} 
-            disabled={uploading || checkingBucket || networkError}
+            disabled={uploading || checkingBucket || networkError || !selectedVilleId || !selectedCategoryId}
           >
             <Text style={styles.buttonText}>
               {uploading ? "Publication..." : (networkError ? "Hors ligne" : "Publier")}
@@ -780,7 +746,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     zIndex: 1000,
     marginTop: 10,
-    gap: 10,
   },
   notificationSuccess: {
     backgroundColor: "#4CAF50",
@@ -796,6 +761,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: "500",
+    marginHorizontal: 8,
   },
 
   // Network error styles
@@ -818,8 +784,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.2)",
-    padding: 8,
-    borderRadius: 6,
+    padding: 5,
+    borderRadius: 4,
     gap: 4,
   },
   retryButtonText: {
@@ -853,13 +819,11 @@ const styles = StyleSheet.create({
     color: "#4CAF50",
     fontSize: 14,
     fontWeight: "600",
-    marginLeft: 10,
   },
   warningText: {
     color: "#ff9900",
     fontSize: 14,
     fontWeight: "600",
-    marginLeft: 10,
   },
 
   // Debug button
@@ -875,21 +839,108 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  input: { backgroundColor: "#333", color: "#fff", padding: 14, borderRadius: 8, marginBottom: 12, fontSize: 16, borderWidth: 1, borderColor: "#555" },
-  textArea: { height: 100, textAlignVertical: "top" },
-  pickerContainer: { backgroundColor: "#333", borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: "#555", height: 50, justifyContent: "center" },
-  picker: { color: "#fff" },
-  dateInputButton: { backgroundColor: "#333", padding: 14, borderRadius: 8, flexDirection: "row", alignItems: "center", marginBottom: 12, height: 50, borderWidth: 1, borderColor: "#555" },
-  dateInputText: { color: "#fff", fontSize: 16 },
-  pickImageButton: { backgroundColor: "#333", padding: 14, borderRadius: 8, flexDirection: "row", alignItems: "center", marginBottom: 12, height: 50, borderWidth: 1, borderColor: "#555" },
-  pickImageButtonText: { color: "#fff", fontSize: 16 },
-  imagePreview: { width: 200, height: 150, borderRadius: 8, marginBottom: 12, alignSelf: "center" },
-  loader: { marginVertical: 20 },
-  buttonContainer: { flexDirection: "row", justifyContent: "space-between", gap: 10, marginTop: 20 },
-  button: { flex: 1, padding: 15, borderRadius: 8, alignItems: "center" },
-  uploadButton: { backgroundColor: "#8A2BE2" },
-  cancelButton: { backgroundColor: "#555" },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1a1a1a" },
-  loadingText: { color: "#fff", marginTop: 10, marginBottom: 10 }
+  input: { 
+    backgroundColor: "#333", 
+    color: "#fff", 
+    padding: 14, 
+    borderRadius: 8, 
+    marginBottom: 12, 
+    fontSize: 16, 
+    borderWidth: 1, 
+    borderColor: "#555" 
+  },
+  textArea: { 
+    height: 100, 
+    textAlignVertical: "top" 
+  },
+  pickerContainer: { 
+    backgroundColor: "#333", 
+    borderRadius: 8, 
+    marginBottom: 12, 
+    borderWidth: 1, 
+    borderColor: "#555", 
+    height: 50, 
+    justifyContent: "center" 
+  },
+  picker: { 
+    color: "#fff" 
+  },
+  dateInputButton: { 
+    backgroundColor: "#333", 
+    padding: 14, 
+    borderRadius: 8, 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginBottom: 12, 
+    height: 50, 
+    borderWidth: 1, 
+    borderColor: "#555" 
+  },
+  dateInputText: { 
+    color: "#fff", 
+    fontSize: 16 
+  },
+  pickImageButton: { 
+    backgroundColor: "#333", 
+    padding: 14, 
+    borderRadius: 8, 
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginBottom: 12, 
+    height: 50, 
+    borderWidth: 1, 
+    borderColor: "#555" 
+  },
+  pickImageButtonText: { 
+    color: "#fff", 
+    fontSize: 16 
+  },
+  imagePreview: { 
+    width: 200, 
+    height: 150, 
+    borderRadius: 8, 
+    marginBottom: 12, 
+    alignSelf: "center" 
+  },
+  loader: { 
+    marginVertical: 20 
+  },
+  buttonContainer: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    gap: 10, 
+    marginTop: 20 
+  },
+  button: { 
+    flex: 1, 
+    padding: 15, 
+    borderRadius: 8, 
+    alignItems: "center" 
+  },
+  uploadButton: { 
+    backgroundColor: "#8A2BE2" 
+  },
+  cancelButton: { 
+    backgroundColor: "#555" 
+  },
+  buttonDisabled: {
+    backgroundColor: "#666",
+    opacity: 0.6,
+  },
+  buttonText: { 
+    color: "#fff", 
+    fontSize: 16, 
+    fontWeight: "600" 
+  },
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    backgroundColor: "#1a1a1a" 
+  },
+  loadingText: { 
+    color: "#fff", 
+    marginTop: 10, 
+    marginBottom: 10 
+  }
 });
