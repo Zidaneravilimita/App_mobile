@@ -16,7 +16,7 @@ export default function WelcomeScreen({ navigation }) {
 
   // Gère la navigation vers l'écran de connexion/inscription pour les visiteurs
   const handleVisitorPress = () => {
-    navigation.navigate('Login');
+    navigation.navigate('Login', { mode: 'visitor' });
   };
 
   return (

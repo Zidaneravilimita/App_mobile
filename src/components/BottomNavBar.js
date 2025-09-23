@@ -4,7 +4,7 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
-export default function BottomNavBar({ onHomePress }) {
+export default function BottomNavBar({ onHomePress, hideAdd = false }) {
   const navigation = useNavigation();
 
   return (
@@ -19,13 +19,15 @@ export default function BottomNavBar({ onHomePress }) {
         <Ionicons name="search" size={24} color="#fff" />
       </TouchableOpacity>
 
-      {/* Bouton Add */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => navigation.navigate('Add')} // navigation directe vers ImageUploader
-      >
-        <Ionicons name="add" size={30} color="#fff" />
-      </TouchableOpacity>
+      {/* Bouton Add (masqué pour les visiteurs) */}
+      {!hideAdd && (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('Add')}
+        >
+          <Ionicons name="add" size={30} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       {/* Bouton Chat */}
       <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Chat')}>

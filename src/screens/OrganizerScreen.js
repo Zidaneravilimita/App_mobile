@@ -21,8 +21,6 @@ export default function OrganizerScreen({ navigation }) {
    */
   const handleSignup = async () => {
     setLoading(true);
-    // TODO: Implémenter la logique d'inscription Supabase pour les organisateurs.
-    // Par exemple, en ajoutant un champ 'role' dans la table 'profiles'.
     try {
       if (username && email && password && confirmPassword) {
         if (password !== confirmPassword) {
@@ -30,12 +28,58 @@ export default function OrganizerScreen({ navigation }) {
           setLoading(false);
           return;
         }
+        if (password.length < 6) {
+          Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères.");
+          setLoading(false);
+          return;
+        }
+
         console.log('Tentative d\'inscription pour un organisateur:', email);
-        // Simuler un appel API
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        Alert.alert("Succès", "Compte d'organisateur créé ! Vous pouvez maintenant ajouter votre premier événement.");
-        // Navigue directement vers l'écran de création d'événement
-        navigation.navigate('EventCreator');
+
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: password,
+          options: {
+            data: {
+              username: username.trim(),
+              role: 'organisateur',
+            },
+          },
+        });
+
+        if (signUpError) {
+          console.error('Erreur signUp:', signUpError);
+          Alert.alert('Erreur', signUpError.message || "Inscription impossible");
+          setLoading(false);
+          return;
+        }
+
+        const userId = signUpData?.user?.id;
+        if (userId) {
+          // Créer/mettre à jour le profil avec le rôle organisateur
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: userId,
+              username: username.trim(),
+              email: email.trim(),
+              role: 'organisateur',
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'id' });
+          if (profileError) {
+            console.warn('Profil non créé, continuer quand même:', profileError);
+          }
+        }
+
+        Alert.alert(
+          "Succès",
+          signUpData?.session
+            ? "Compte organisateur créé et connecté !"
+            : "Compte créé. Vérifiez votre email pour confirmer."
+        );
+
+        // Naviguer vers un écran existant pour créer un événement
+        navigation.navigate('Add');
       } else {
         Alert.alert("Erreur", "Veuillez remplir tous les champs.");
       }

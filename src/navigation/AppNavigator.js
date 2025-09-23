@@ -17,6 +17,7 @@ import EventDetailsScreen from '../screens/EventDetailsScreen';
 import ProfileScreen from '../screens/ProfileScreen';   // ✅ Ajout du profil
 import ChatScreen from '../screens/ChatScreen';       // (si tu veux gérer le chat plus tard)
 import ImageUploader from '../components/ImageUploader';
+import VisitorHomeScreen from '../screens/VisitorHomeScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +41,7 @@ export default function AppNavigator() {
 
         {/* Application principale */}
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="VisitorHome" component={VisitorHomeScreen} />
         <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
         
         {/* ✅ Nouvel écran Profil accessible depuis BottomNavBar */}

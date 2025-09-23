@@ -59,7 +59,9 @@ export default function LoginScreen({ navigation, route }) {
       showNotification("Connexion réussie ✅", "success");
 
       setTimeout(() => {
-        navigation.reset({ index: 0, routes: [{ name: "Home" }] });
+        const mode = route.params?.mode;
+        const target = mode === 'visitor' ? 'VisitorHome' : 'Home';
+        navigation.reset({ index: 0, routes: [{ name: target }] });
       }, 1000);
     } catch (err) {
       console.error("Erreur connexion:", err);
