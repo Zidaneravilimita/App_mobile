@@ -1,15 +1,40 @@
 {
   "root": "D:\\MonApp",
   "reactNativePath": "D:\\MonApp\\node_modules\\react-native",
-  "reactNativeVersion": "0.79",
+  "reactNativeVersion": "0.81",
   "dependencies": {
+    "@react-native-async-storage/async-storage": {
+      "root": "D:\\MonApp\\node_modules\\@react-native-async-storage\\async-storage",
+      "name": "@react-native-async-storage/async-storage",
+      "platforms": {
+        "ios": {
+          "podspecPath": "D:\\MonApp\\node_modules\\@react-native-async-storage\\async-storage\\RNCAsyncStorage.podspec",
+          "version": "2.2.0",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "D:\\MonApp\\node_modules\\@react-native-async-storage\\async-storage\\android",
+          "packageImportPath": "import com.reactnativecommunity.asyncstorage.AsyncStoragePackage;",
+          "packageInstance": "new AsyncStoragePackage()",
+          "buildTypes": [],
+          "libraryName": "rnasyncstorage",
+          "componentDescriptors": [],
+          "cmakeListsPath": "D:/MonApp/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
     "@react-native-community/datetimepicker": {
       "root": "D:\\MonApp\\node_modules\\@react-native-community\\datetimepicker",
       "name": "@react-native-community/datetimepicker",
       "platforms": {
         "ios": {
           "podspecPath": "D:\\MonApp\\node_modules\\@react-native-community\\datetimepicker\\RNDateTimePicker.podspec",
-          "version": "8.4.1",
+          "version": "8.4.4",
           "configurations": [],
           "scriptPhases": []
         },
@@ -62,11 +87,22 @@
       "platforms": {
         "ios": {
           "podspecPath": "D:\\MonApp\\node_modules\\expo\\Expo.podspec",
-          "version": "53.0.20",
+          "version": "54.0.0",
           "configurations": [],
           "scriptPhases": []
         },
-        "android": null
+        "android": {
+          "sourceDir": "D:\\MonApp\\node_modules\\expo\\android",
+          "packageImportPath": "import expo.modules.ExpoModulesPackage;",
+          "packageInstance": "new ExpoModulesPackage()",
+          "buildTypes": [],
+          "componentDescriptors": [],
+          "cmakeListsPath": "D:/MonApp/node_modules/expo/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
       }
     },
     "react-native-gesture-handler": {
@@ -75,7 +111,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "D:\\MonApp\\node_modules\\react-native-gesture-handler\\RNGestureHandler.podspec",
-          "version": "2.24.0",
+          "version": "2.28.0",
           "configurations": [],
           "scriptPhases": []
         },
@@ -128,7 +164,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "D:\\MonApp\\node_modules\\react-native-reanimated\\RNReanimated.podspec",
-          "version": "3.17.5",
+          "version": "4.1.0",
           "configurations": [],
           "scriptPhases": []
         },
@@ -153,7 +189,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "D:\\MonApp\\node_modules\\react-native-safe-area-context\\react-native-safe-area-context.podspec",
-          "version": "5.4.0",
+          "version": "5.6.1",
           "configurations": [],
           "scriptPhases": []
         },
@@ -181,7 +217,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "D:\\MonApp\\node_modules\\react-native-screens\\RNScreens.podspec",
-          "version": "4.11.1",
+          "version": "4.16.0",
           "configurations": [],
           "scriptPhases": []
         },
@@ -202,9 +238,35 @@
             "RNSScreenComponentDescriptor",
             "RNSScreenFooterComponentDescriptor",
             "RNSScreenContentWrapperComponentDescriptor",
-            "RNSModalScreenComponentDescriptor"
+            "RNSModalScreenComponentDescriptor",
+            "RNSBottomTabsComponentDescriptor"
           ],
           "cmakeListsPath": "D:/MonApp/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-worklets": {
+      "root": "D:\\MonApp\\node_modules\\react-native-worklets",
+      "name": "react-native-worklets",
+      "platforms": {
+        "ios": {
+          "podspecPath": "D:\\MonApp\\node_modules\\react-native-worklets\\RNWorklets.podspec",
+          "version": "0.5.1",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "D:\\MonApp\\node_modules\\react-native-worklets\\android",
+          "packageImportPath": "import com.swmansion.worklets.WorkletsPackage;",
+          "packageInstance": "new WorkletsPackage()",
+          "buildTypes": [],
+          "libraryName": "rnworklets",
+          "componentDescriptors": [],
+          "cmakeListsPath": "D:/MonApp/node_modules/react-native-worklets/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
