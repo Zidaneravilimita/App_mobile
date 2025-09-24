@@ -20,7 +20,6 @@ import BottomNavBar from "../components/BottomNavBar";
 import { supabase } from "../config/supabase";
 
 export default function VisitorHomeScreen({ navigation }) {
-  // événements bruts et filtrés
   const [rawEvents, setRawEvents] = useState([]);
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -32,10 +31,9 @@ export default function VisitorHomeScreen({ navigation }) {
   const [villes, setVilles] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState("all");
 
-  // Nouveau : seul filtre de date (all | upcoming | past)
+  // Seul filtre de date (all | upcoming | past)
   const [dateFilter, setDateFilter] = useState("all");
 
-  // Charger les villes depuis Supabase
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase
@@ -50,7 +48,6 @@ export default function VisitorHomeScreen({ navigation }) {
     }
   };
 
-  // Charger les catégories depuis Supabase
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -65,7 +62,7 @@ export default function VisitorHomeScreen({ navigation }) {
     }
   };
 
-  // Charger les événements depuis Supabase (stocke dans rawEvents)
+  // Charger les événements (tri côté serveur : décroissant => plus récents / à venir d'abord)
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
@@ -84,15 +81,11 @@ export default function VisitorHomeScreen({ navigation }) {
           ville (id_ville, nom_ville)
         `);
 
-      if (selectedVilleId !== "all") {
-        query = query.eq("id_ville", selectedVilleId);
-      }
+      if (selectedVilleId !== "all") query = query.eq("id_ville", selectedVilleId);
+      if (selectedCategoryId) query = query.eq("id_category", selectedCategoryId);
 
-      if (selectedCategoryId) {
-        query = query.eq("id_category", selectedCategoryId);
-      }
-
-      const { data, error } = await query.order("date_event", { ascending: true });
+      // Descendant : plus récent / à venir en tête
+      const { data, error } = await query.order("date_event", { ascending: false });
       if (error) throw error;
 
       setRawEvents(data || []);
@@ -105,7 +98,7 @@ export default function VisitorHomeScreen({ navigation }) {
     }
   };
 
-  // Filtre de date : upcoming / past / all ; tri ascendant par date (prochaines d'abord)
+  // Filtre de date (upcoming / past / all) et tri décroissant par date
   const filterAndSortEvents = () => {
     const now = Date.now();
     const toTs = (ev) => {
@@ -129,13 +122,14 @@ export default function VisitorHomeScreen({ navigation }) {
       });
     }
 
+    // Tri décroissant : plus récent / à venir d'abord
     list.sort((a, b) => {
       const ta = toTs(a);
       const tb = toTs(b);
       if (ta === null && tb === null) return 0;
       if (ta === null) return 1;
       if (tb === null) return -1;
-      return ta - tb;
+      return tb - ta;
     });
 
     setEvents(list);
@@ -149,12 +143,10 @@ export default function VisitorHomeScreen({ navigation }) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Recharger les événements côté serveur quand ville/catégorie changent
   useEffect(() => {
     fetchEvents();
   }, [selectedVilleId, selectedCategoryId]);
 
-  // Appliquer filtre local quand rawEvents ou dateFilter changent
   useEffect(() => {
     filterAndSortEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps

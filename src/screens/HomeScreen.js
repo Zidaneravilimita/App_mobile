@@ -22,7 +22,7 @@ import { supabase } from "../config/supabase";
 export default function HomeScreen({ navigation }) {
   const [currentContent, setCurrentContent] = useState("main");
   const [rawEvents, setRawEvents] = useState([]); // événements bruts depuis Supabase
-  const [events, setEvents] = useState([]); // événements après filtres
+  const [events, setEvents] = useState([]); // événements après filtres/tri
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
 
@@ -32,7 +32,7 @@ export default function HomeScreen({ navigation }) {
   const [villes, setVilles] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState("all");
 
-  // Nouveau : seul filtre de date (all | upcoming | past)
+  // Seul filtre de date (all | upcoming | past)
   const [dateFilter, setDateFilter] = useState("all");
 
   const handleAddPress = () => setCurrentContent("uploader");
@@ -75,6 +75,7 @@ export default function HomeScreen({ navigation }) {
   };
 
   // Charger les événements depuis Supabase (stocke dans rawEvents)
+  // Récupération côté serveur triée DESC pour afficher par défaut les plus récents / à venir en tête
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
@@ -103,7 +104,8 @@ export default function HomeScreen({ navigation }) {
         query = query.eq("id_category", selectedCategoryId);
       }
 
-      const { data, error } = await query.order("date_event", { ascending: true });
+      // Descendant => plus récent / à venir d'abord
+      const { data, error } = await query.order("date_event", { ascending: false });
       if (error) throw error;
 
       setRawEvents(data || []);
@@ -116,10 +118,9 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Filtre de date et tri (toujours par date ascendante : prochaines d'abord)
+  // Filtre de date (upcoming / past / all) et tri décroissant par date (plus récent d'abord)
   const filterAndSortEvents = () => {
     const now = Date.now();
-
     const toTs = (ev) => {
       const d = ev?.date_event;
       if (!d) return null;
@@ -129,7 +130,6 @@ export default function HomeScreen({ navigation }) {
 
     let list = (rawEvents || []).slice();
 
-    // Filtre par date
     if (dateFilter === "upcoming") {
       list = list.filter((ev) => {
         const ts = toTs(ev);
@@ -142,14 +142,14 @@ export default function HomeScreen({ navigation }) {
       });
     }
 
-    // Tri ascendant par date (dates manquantes en fin)
+    // Tri décroissant : plus récent / à venir d'abord
     list.sort((a, b) => {
       const ta = toTs(a);
       const tb = toTs(b);
       if (ta === null && tb === null) return 0;
       if (ta === null) return 1;
       if (tb === null) return -1;
-      return ta - tb;
+      return tb - ta;
     });
 
     setEvents(list);
@@ -362,11 +362,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 40,
   },
-  sidePicker: {
+  smallPickerWrapper: {
     flex: 1,
-    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#555",
+    borderRadius: 8,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    height: 40,
   },
-  rowFilters: { flexDirection: "row", alignItems: "center" },
+  rowFilters: { flexDirection: "row" },
   pickerStyle: {
     color: "#fff",
   },
