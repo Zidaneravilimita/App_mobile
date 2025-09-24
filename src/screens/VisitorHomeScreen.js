@@ -20,6 +20,8 @@ import BottomNavBar from "../components/BottomNavBar";
 import { supabase } from "../config/supabase";
 
 export default function VisitorHomeScreen({ navigation }) {
+  // événements bruts et filtrés
+  const [rawEvents, setRawEvents] = useState([]);
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
@@ -30,6 +32,9 @@ export default function VisitorHomeScreen({ navigation }) {
   const [villes, setVilles] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState("all");
 
+  // Nouveau : seul filtre de date (all | upcoming | past)
+  const [dateFilter, setDateFilter] = useState("all");
+
   // Charger les villes depuis Supabase
   const fetchVilles = async () => {
     try {
@@ -38,7 +43,7 @@ export default function VisitorHomeScreen({ navigation }) {
         .select("id_ville, nom_ville")
         .order("nom_ville", { ascending: true });
       if (error) throw error;
-      setVilles(data);
+      setVilles(data || []);
     } catch (e) {
       console.error("Erreur chargement villes:", e);
       Alert.alert("Erreur", "Impossible de charger les villes.");
@@ -53,14 +58,14 @@ export default function VisitorHomeScreen({ navigation }) {
         .select("id_category, nom_category, photo")
         .order("nom_category", { ascending: true });
       if (error) throw error;
-      setCategories(data);
+      setCategories(data || []);
     } catch (e) {
       console.error("Erreur chargement categories:", e);
       Alert.alert("Erreur", "Impossible de charger les catégories.");
     }
   };
 
-  // Charger les événements depuis Supabase
+  // Charger les événements depuis Supabase (stocke dans rawEvents)
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
@@ -90,13 +95,50 @@ export default function VisitorHomeScreen({ navigation }) {
       const { data, error } = await query.order("date_event", { ascending: true });
       if (error) throw error;
 
-      setEvents(data);
+      setRawEvents(data || []);
     } catch (e) {
       console.error("Erreur chargement événements:", e);
       Alert.alert("Erreur", "Impossible de charger les événements.");
+      setRawEvents([]);
     } finally {
       setLoadingEvents(false);
     }
+  };
+
+  // Filtre de date : upcoming / past / all ; tri ascendant par date (prochaines d'abord)
+  const filterAndSortEvents = () => {
+    const now = Date.now();
+    const toTs = (ev) => {
+      const d = ev?.date_event;
+      if (!d) return null;
+      const t = Date.parse(d);
+      return Number.isFinite(t) ? t : null;
+    };
+
+    let list = (rawEvents || []).slice();
+
+    if (dateFilter === "upcoming") {
+      list = list.filter((ev) => {
+        const ts = toTs(ev);
+        return ts !== null && ts >= now;
+      });
+    } else if (dateFilter === "past") {
+      list = list.filter((ev) => {
+        const ts = toTs(ev);
+        return ts !== null && ts < now;
+      });
+    }
+
+    list.sort((a, b) => {
+      const ta = toTs(a);
+      const tb = toTs(b);
+      if (ta === null && tb === null) return 0;
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      return ta - tb;
+    });
+
+    setEvents(list);
   };
 
   useEffect(() => {
@@ -107,9 +149,16 @@ export default function VisitorHomeScreen({ navigation }) {
     return () => clearTimeout(timer);
   }, []);
 
+  // Recharger les événements côté serveur quand ville/catégorie changent
   useEffect(() => {
     fetchEvents();
   }, [selectedVilleId, selectedCategoryId]);
+
+  // Appliquer filtre local quand rawEvents ou dateFilter changent
+  useEffect(() => {
+    filterAndSortEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawEvents, dateFilter]);
 
   const handleEventPress = (event) => {
     navigation.navigate("EventDetails", { event });
@@ -137,22 +186,36 @@ export default function VisitorHomeScreen({ navigation }) {
             />
           </View>
 
-          <Text style={styles.sectionTitle}>Filtrer par ville</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={selectedVilleId}
-              onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
-              style={styles.pickerStyle}
-            >
-              <Picker.Item label="Toutes les villes" value="all" />
-              {villes.map((ville) => (
-                <Picker.Item
-                  key={ville.id_ville}
-                  label={ville.nom_ville}
-                  value={ville.id_ville}
-                />
-              ))}
-            </Picker>
+          {/* Ville + Filtre de date côte à côte */}
+          <View style={styles.rowFilters}>
+            <View style={[styles.pickerWrapper, styles.sidePicker]}>
+              <Picker
+                selectedValue={selectedVilleId}
+                onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+                style={styles.pickerStyle}
+              >
+                <Picker.Item label="Toutes les villes" value="all" />
+                {villes.map((ville) => (
+                  <Picker.Item
+                    key={ville.id_ville}
+                    label={ville.nom_ville}
+                    value={ville.id_ville}
+                  />
+                ))}
+              </Picker>
+            </View>
+
+            <View style={[styles.pickerWrapper, styles.sidePicker]}>
+              <Picker
+                selectedValue={dateFilter}
+                onValueChange={(val) => setDateFilter(val)}
+                style={styles.pickerStyle}
+              >
+                <Picker.Item label="Toutes les dates" value="all" />
+                <Picker.Item label="À venir" value="upcoming" />
+                <Picker.Item label="Passés" value="past" />
+              </Picker>
+            </View>
           </View>
 
           <Text style={styles.popularTitle}>Événements disponibles</Text>
@@ -178,6 +241,7 @@ export default function VisitorHomeScreen({ navigation }) {
                 onPress={() => {
                   setSelectedVilleId("all");
                   setSelectedCategoryId(null);
+                  setDateFilter("all");
                 }}
               >
                 <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
@@ -204,70 +268,75 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  notificationText: { 
-    color: "#fff", 
-    fontSize: 12, 
-    fontWeight: "500" 
+  notificationText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
   },
-  pickerWrapper: { 
-    marginVertical: 10, 
-    borderWidth: 1, 
-    borderColor: "#555", 
-    borderRadius: 8, 
-    backgroundColor: "#333", 
-    justifyContent: "center", 
-    height: 40 
+  pickerWrapper: {
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "#555",
+    borderRadius: 8,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    height: 40,
   },
-  pickerStyle: { 
-    color: "#fff" 
+  sidePicker: {
+    flex: 1,
+    marginRight: 8,
   },
-  categoryContainer: { 
-    height: 140, 
-    marginVertical: 5, 
-    marginBottom: 20 
+  rowFilters: { flexDirection: "row", alignItems: "center" },
+  pickerStyle: {
+    color: "#fff",
   },
-  loader: { 
-    marginTop: 20 
+  categoryContainer: {
+    height: 140,
+    marginVertical: 5,
+    marginBottom: 20,
   },
-  sectionTitle: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    marginTop: 15 
+  loader: {
+    marginTop: 20,
   },
-  popularTitle: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    marginTop: 15, 
-    marginBottom: 10 
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
   },
-  noEventsContainer: { 
-    alignItems: "center", 
-    padding: 40 
+  popularTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
+    marginBottom: 10,
   },
-  noEventsText: { 
-    fontSize: 20, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    marginTop: 15, 
-    marginBottom: 8 
+  noEventsContainer: {
+    alignItems: "center",
+    padding: 40,
   },
-  noEventsSubtext: { 
-    fontSize: 14, 
-    color: "#ccc", 
-    textAlign: "center", 
-    marginBottom: 25 
+  noEventsText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
+    marginBottom: 8,
   },
-  resetButton: { 
-    backgroundColor: "#8A2BE2", 
-    paddingHorizontal: 20, 
-    paddingVertical: 12, 
-    borderRadius: 8 
+  noEventsSubtext: {
+    fontSize: 14,
+    color: "#ccc",
+    textAlign: "center",
+    marginBottom: 25,
   },
-  resetButtonText: { 
-    color: "#fff", 
-    fontWeight: "bold" 
+  resetButton: {
+    backgroundColor: "#8A2BE2",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  resetButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
 

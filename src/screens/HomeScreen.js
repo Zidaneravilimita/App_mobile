@@ -21,7 +21,8 @@ import { supabase } from "../config/supabase";
 
 export default function HomeScreen({ navigation }) {
   const [currentContent, setCurrentContent] = useState("main");
-  const [events, setEvents] = useState([]);
+  const [rawEvents, setRawEvents] = useState([]); // événements bruts depuis Supabase
+  const [events, setEvents] = useState([]); // événements après filtres
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
 
@@ -31,12 +32,16 @@ export default function HomeScreen({ navigation }) {
   const [villes, setVilles] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState("all");
 
+  // Nouveau : seul filtre de date (all | upcoming | past)
+  const [dateFilter, setDateFilter] = useState("all");
+
   const handleAddPress = () => setCurrentContent("uploader");
   const handleHomePress = () => {
     setCurrentContent("main");
-    fetchEvents(); 
+    fetchEvents();
     setSelectedCategoryId(null);
     setSelectedVilleId("all");
+    setDateFilter("all");
   };
 
   // Charger les villes depuis Supabase
@@ -47,7 +52,7 @@ export default function HomeScreen({ navigation }) {
         .select("id_ville, nom_ville")
         .order("nom_ville", { ascending: true });
       if (error) throw error;
-      setVilles(data);
+      setVilles(data || []);
     } catch (e) {
       console.error("Erreur chargement villes:", e);
       Alert.alert("Erreur", "Impossible de charger les villes.");
@@ -62,14 +67,14 @@ export default function HomeScreen({ navigation }) {
         .select("id_category, nom_category, photo")
         .order("nom_category", { ascending: true });
       if (error) throw error;
-      setCategories(data);
+      setCategories(data || []);
     } catch (e) {
       console.error("Erreur chargement categories:", e);
       Alert.alert("Erreur", "Impossible de charger les catégories.");
     }
   };
 
-  // Charger les événements depuis Supabase
+  // Charger les événements depuis Supabase (stocke dans rawEvents)
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
@@ -101,21 +106,60 @@ export default function HomeScreen({ navigation }) {
       const { data, error } = await query.order("date_event", { ascending: true });
       if (error) throw error;
 
-      setEvents(data);
+      setRawEvents(data || []);
     } catch (e) {
       console.error("Erreur chargement événements:", e);
       Alert.alert("Erreur", "Impossible de charger les événements.");
+      setRawEvents([]);
     } finally {
       setLoadingEvents(false);
     }
+  };
+
+  // Filtre de date et tri (toujours par date ascendante : prochaines d'abord)
+  const filterAndSortEvents = () => {
+    const now = Date.now();
+
+    const toTs = (ev) => {
+      const d = ev?.date_event;
+      if (!d) return null;
+      const t = Date.parse(d);
+      return Number.isFinite(t) ? t : null;
+    };
+
+    let list = (rawEvents || []).slice();
+
+    // Filtre par date
+    if (dateFilter === "upcoming") {
+      list = list.filter((ev) => {
+        const ts = toTs(ev);
+        return ts !== null && ts >= now;
+      });
+    } else if (dateFilter === "past") {
+      list = list.filter((ev) => {
+        const ts = toTs(ev);
+        return ts !== null && ts < now;
+      });
+    }
+
+    // Tri ascendant par date (dates manquantes en fin)
+    list.sort((a, b) => {
+      const ta = toTs(a);
+      const tb = toTs(b);
+      if (ta === null && tb === null) return 0;
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      return ta - tb;
+    });
+
+    setEvents(list);
   };
 
   useEffect(() => {
     fetchVilles();
     fetchCategories();
     fetchEvents();
-    
-    // Cacher la notification après 3 secondes
+
     const timer = setTimeout(() => {
       setShowNotification(false);
     }, 3000);
@@ -123,10 +167,16 @@ export default function HomeScreen({ navigation }) {
     return () => clearTimeout(timer);
   }, []);
 
-  // Recharger les événements à chaque filtre
+  // Recharger les événements à chaque filtre serveur (ville/catégorie)
   useEffect(() => {
     fetchEvents();
   }, [selectedVilleId, selectedCategoryId]);
+
+  // Appliquer filtre local quand rawEvents ou dateFilter changent
+  useEffect(() => {
+    filterAndSortEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawEvents, dateFilter]);
 
   const handleEventPress = (event) => {
     navigation.navigate("EventDetails", { event });
@@ -156,15 +206,14 @@ export default function HomeScreen({ navigation }) {
     return (
       <>
         <Header />
-        
-        {/* Notification temporaire */}
+
         {showNotification && (
           <View style={styles.notification}>
             <Ionicons name="cloud-done" size={16} color="#fff" />
             <Text style={styles.notificationText}>Connecté à Supabase</Text>
           </View>
         )}
-        
+
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <Text style={styles.sectionTitle}>Catégories</Text>
           <View style={styles.categoryContainer}>
@@ -174,22 +223,36 @@ export default function HomeScreen({ navigation }) {
             />
           </View>
 
-          <Text style={styles.sectionTitle}>Filtrer par ville</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={selectedVilleId}
-              onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
-              style={styles.pickerStyle}
-            >
-              <Picker.Item label="Toutes les villes" value="all" />
-              {villes.map((ville) => (
-                <Picker.Item
-                  key={ville.id_ville}
-                  label={ville.nom_ville}
-                  value={ville.id_ville}
-                />
-              ))}
-            </Picker>
+          {/* Ville + Filtre de date côte à côte */}
+          <View style={styles.rowFilters}>
+            <View style={[styles.pickerWrapper, styles.sidePicker]}>
+              <Picker
+                selectedValue={selectedVilleId}
+                onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+                style={styles.pickerStyle}
+              >
+                <Picker.Item label="Toutes les villes" value="all" />
+                {villes.map((ville) => (
+                  <Picker.Item
+                    key={ville.id_ville}
+                    label={ville.nom_ville}
+                    value={ville.id_ville}
+                  />
+                ))}
+              </Picker>
+            </View>
+
+            <View style={[styles.pickerWrapper, styles.sidePicker]}>
+              <Picker
+                selectedValue={dateFilter}
+                onValueChange={(val) => setDateFilter(val)}
+                style={styles.pickerStyle}
+              >
+                <Picker.Item label="Toutes les dates" value="all" />
+                <Picker.Item label="À venir" value="upcoming" />
+                <Picker.Item label="Passés" value="past" />
+              </Picker>
+            </View>
           </View>
 
           <Text style={styles.popularTitle}>Événements disponibles</Text>
@@ -215,6 +278,7 @@ export default function HomeScreen({ navigation }) {
                 onPress={() => {
                   setSelectedVilleId("all");
                   setSelectedCategoryId(null);
+                  setDateFilter("all");
                 }}
               >
                 <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
@@ -249,110 +313,115 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  notificationText: { 
-    color: "#fff", 
-    fontSize: 12, 
-    fontWeight: "500" 
+  notificationText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "500",
   },
-  uploaderContainer: { 
-    flex: 1, 
-    width: "100%", 
-    justifyContent: "center", 
-    alignItems: "center" 
+  uploaderContainer: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  uploaderPlaceholder: { 
-    alignItems: "center", 
-    padding: 40 
+  uploaderPlaceholder: {
+    alignItems: "center",
+    padding: 40,
   },
-  placeholderTitle: { 
-    fontSize: 24, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    marginTop: 20, 
-    marginBottom: 10 
+  placeholderTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 20,
+    marginBottom: 10,
   },
-  placeholderText: { 
-    fontSize: 16, 
-    color: "#ccc", 
-    textAlign: "center", 
-    marginBottom: 30, 
-    lineHeight: 22 
+  placeholderText: {
+    fontSize: 16,
+    color: "#ccc",
+    textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 22,
   },
-  retryButton: { 
-    backgroundColor: "#8A2BE2", 
-    paddingHorizontal: 30, 
-    paddingVertical: 12, 
-    borderRadius: 8 
+  retryButton: {
+    backgroundColor: "#8A2BE2",
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  retryButtonText: { 
-    color: "#fff", 
-    fontWeight: "bold", 
-    fontSize: 16 
+  retryButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
-  pickerWrapper: { 
-    marginVertical: 10, 
-    borderWidth: 1, 
-    borderColor: "#555", 
-    borderRadius: 8, 
-    backgroundColor: "#333", 
-    justifyContent: "center", 
-    height: 40 
+  pickerWrapper: {
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "#555",
+    borderRadius: 8,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    height: 40,
   },
-  pickerStyle: { 
-    color: "#fff" 
+  sidePicker: {
+    flex: 1,
+    marginRight: 8,
   },
-  categoryContainer: { 
-    height: 140, 
-    marginVertical: 5, 
-    marginBottom: 20 
+  rowFilters: { flexDirection: "row", alignItems: "center" },
+  pickerStyle: {
+    color: "#fff",
   },
-  loader: { 
-    marginTop: 20 
+  categoryContainer: {
+    height: 140,
+    marginVertical: 5,
+    marginBottom: 20,
   },
-  sectionTitle: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    marginTop: 15 
+  loader: {
+    marginTop: 20,
   },
-  popularTitle: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    marginTop: 15, 
-    marginBottom: 10 
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
   },
-  noEventsContainer: { 
-    alignItems: "center", 
-    padding: 40 
+  popularTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
+    marginBottom: 10,
   },
-  noEventsText: { 
-    fontSize: 20, 
-    fontWeight: "bold", 
-    color: "#fff", 
-    marginTop: 15, 
-    marginBottom: 8 
+  noEventsContainer: {
+    alignItems: "center",
+    padding: 40,
   },
-  noEventsSubtext: { 
-    fontSize: 14, 
-    color: "#ccc", 
-    textAlign: "center", 
-    marginBottom: 25 
+  noEventsText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#fff",
+    marginTop: 15,
+    marginBottom: 8,
   },
-  resetButton: { 
-    backgroundColor: "#8A2BE2", 
-    paddingHorizontal: 20, 
-    paddingVertical: 12, 
-    borderRadius: 8 
+  noEventsSubtext: {
+    fontSize: 14,
+    color: "#ccc",
+    textAlign: "center",
+    marginBottom: 25,
   },
-  resetButtonText: { 
-    color: "#fff", 
-    fontWeight: "bold" 
+  resetButton: {
+    backgroundColor: "#8A2BE2",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  backButton: { 
-    position: "absolute", 
-    top: 60, 
-    left: 20, 
-    zIndex: 10 
+  resetButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  backButton: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    zIndex: 10,
   },
 });

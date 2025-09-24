@@ -87,7 +87,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "D:\\MonApp\\node_modules\\expo\\Expo.podspec",
-          "version": "54.0.0",
+          "version": "54.0.10",
           "configurations": [],
           "scriptPhases": []
         },

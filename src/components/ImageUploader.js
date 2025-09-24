@@ -338,16 +338,16 @@ export default function ImageUploader({ onUploadComplete }) {
       
       // Méthode React Native compatible avec FormData
       const formData = new FormData();
-      
-      // Déterminer le type MIME correct
+        
+        // Déterminer le type MIME correct
       let mimeType = 'image/jpeg';
       if (fileExt === 'png') {
-        mimeType = 'image/png';
-      } else if (fileExt === 'gif') {
-        mimeType = 'image/gif';
-      }
+          mimeType = 'image/png';
+        } else if (fileExt === 'gif') {
+          mimeType = 'image/gif';
+        }
 
-      console.log("Type MIME détecté:", mimeType);
+        console.log("Type MIME détecté:", mimeType);
 
       // Ajouter le fichier au FormData (méthode React Native)
       formData.append('file', {
@@ -357,15 +357,15 @@ export default function ImageUploader({ onUploadComplete }) {
       });
 
       // Upload avec Supabase en utilisant FormData
-      const { data, error } = await supabase.storage
-        .from('images')
+        const { data, error } = await supabase.storage
+          .from('images')
         .upload(fileName, formData, {
-          contentType: mimeType,
-          cacheControl: '3600',
-          upsert: false
-        });
+            contentType: mimeType,
+            cacheControl: '3600',
+            upsert: false
+          });
 
-      if (error) {
+        if (error) {
         console.error("Erreur upload avec FormData:", error);
         
         // Essayer une méthode alternative si FormData échoue
@@ -397,16 +397,16 @@ export default function ImageUploader({ onUploadComplete }) {
           console.error("Échec méthode alternative:", altError);
           return null;
         }
-      }
+        }
 
       console.log("Upload réussi avec FormData!");
-      const { data: { publicUrl } } = supabase.storage
-        .from('images')
-        .getPublicUrl(data.path);
+        const { data: { publicUrl } } = supabase.storage
+          .from('images')
+          .getPublicUrl(data.path);
 
-      console.log("URL publique générée:", publicUrl);
-      return publicUrl;
-      
+        console.log("URL publique générée:", publicUrl);
+        return publicUrl;
+
     } catch (error) {
       console.error("Erreur détaillée traitement image:", error);
       return null;
