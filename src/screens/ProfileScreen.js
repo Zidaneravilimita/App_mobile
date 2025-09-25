@@ -94,6 +94,20 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  // Helper: return a public URL for a stored path or pass-through http URLs
+  const getPublicAvatarUrl = (pathOrUrl) => {
+    if (!pathOrUrl) return null;
+    if (pathOrUrl.startsWith('http')) return pathOrUrl;
+    try {
+      const { data } = supabase.storage.from('images').getPublicUrl(pathOrUrl);
+      // supabase v1/v2 returns data.publicUrl or data.publicURL
+      return data?.publicUrl || data?.publicURL || null;
+    } catch (e) {
+      console.warn('Impossible d’obtenir l’URL publique:', e);
+      return null;
+    }
+  };
+
   const initializeProfile = async () => {
     try {
       setLoading(true);
@@ -162,6 +176,10 @@ export default function ProfileScreen({ navigation }) {
         created_at: user.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+
+      // Ensure avatar_url is a public URL (if stored as a storage path)
+      const publicAvatar = getPublicAvatarUrl(currentProfile.avatar_url);
+      currentProfile.avatar_url = publicAvatar || currentProfile.avatar_url;
 
       setProfile(currentProfile);
       await loadUserStats(user.id, supabase);
@@ -279,6 +297,7 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  // pickImage only selects image and stores local uri in newAvatar
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -293,59 +312,100 @@ export default function ProfileScreen({ navigation }) {
         quality: 0.8,
       });
       if (!result.canceled) {
+        // result.assets[0].uri is a local URI (file://...) - keep local until save
         setNewAvatar(result.assets[0].uri);
       }
-    } catch {
+    } catch (e) {
+      console.error('pickImage erreur', e);
       Alert.alert('Erreur', 'Impossible de sélectionner une image.');
     }
   };
 
+  // Save profile: if newAvatar is local (not http) upload to storage then update profiles.avatar_url
   const handleSaveProfile = async () => {
     try {
       if (!user) return;
       setLoading(true);
+      let avatarUrlToSave = profile?.avatar_url || newAvatar;
+
+      // If newAvatar is a local URI (file:// or content://) upload it to Supabase storage bucket 'images'
+      if (newAvatar && !newAvatar.startsWith('http')) {
+        try {
+          // fetch local file and convert to blob
+          const response = await fetch(newAvatar);
+          const blob = await response.blob();
+
+          const extMatch = (newAvatar.match(/\.(\w+)(\?.*)?$/) || [])[1];
+          const ext = extMatch ? extMatch.replace(/\?.*$/, '') : 'jpg';
+          const filePath = `avatars/${user.id}_${Date.now()}.${ext}`;
+
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('images')
+            .upload(filePath, blob, { upsert: true });
+
+          if (uploadError) {
+            console.warn('Upload avatar échoué:', uploadError);
+          } else {
+            // get public URL
+            const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
+            avatarUrlToSave = publicData?.publicUrl || publicData?.publicURL || avatarUrlToSave;
+          }
+        } catch (e) {
+          console.warn('Erreur upload avatar:', e);
+        }
+      }
+
       const updatedProfile = {
         ...profile,
         username: newUsername.trim(),
         email: newEmail.trim(),
         bio: newBio.trim(),
-        avatar_url: newAvatar,
+        avatar_url: avatarUrlToSave,
         updated_at: new Date().toISOString(),
       };
+
       const updatedUser = {
         ...user,
         email: newEmail.trim(),
         user_metadata: {
           ...user.user_metadata,
           username: newUsername.trim(),
-          avatar_url: newAvatar,
+          avatar_url: avatarUrlToSave,
         }
       };
+
       if (isSupabaseAvailable) {
         try {
-          const { supabase } = await import('../config/supabase');
-          await supabase.from('profiles').update({
+          // update profiles table avatar_url and other fields
+          await supabase.from('profiles').upsert({
+            id: user.id,
             username: newUsername.trim(),
             bio: newBio.trim(),
-            avatar_url: newAvatar,
+            avatar_url: avatarUrlToSave,
             updated_at: new Date().toISOString(),
-          }).eq('id', user.id);
+            email: newEmail.trim(),
+          }, { returning: 'minimal' });
+
+          // if email changed update auth email
           if (newEmail !== user.email) {
             await supabase.auth.updateUser({
               email: newEmail.trim(),
-              data: { username: newUsername.trim(), avatar_url: newAvatar }
+              data: { username: newUsername.trim(), avatar_url: avatarUrlToSave }
             });
           }
-        } catch {
-          console.warn('Sauvegarde Supabase échouée, locale uniquement');
+        } catch (e) {
+          console.warn('Sauvegarde Supabase échouée, locale uniquement', e);
         }
       }
+
+      // save locally as fallback
       await saveProfileLocally(updatedUser, updatedProfile);
       setUser(updatedUser);
       setProfile(updatedProfile);
       setEditing(false);
       showMessage(isSupabaseAvailable ? "Profil mis à jour" : "Profil mis à jour localement");
-    } catch {
+    } catch (e) {
+      console.error('handleSaveProfile erreur', e);
       Alert.alert('Erreur', 'Impossible de mettre à jour le profil');
     } finally {
       setLoading(false);

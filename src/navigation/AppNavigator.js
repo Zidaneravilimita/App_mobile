@@ -13,11 +13,14 @@ import OrganizerScreen from '../screens/OrganizerScreen';
 
 // Application principale
 import HomeScreen from '../screens/HomeScreen';
-import EventDetailsScreen from '../screens/EventDetailsScreen';
-import ProfileScreen from '../screens/ProfileScreen';   // ✅ Ajout du profil
-import ChatScreen from '../screens/ChatScreen';       // (si tu veux gérer le chat plus tard)
-import ImageUploader from '../components/ImageUploader';
 import VisitorHomeScreen from '../screens/VisitorHomeScreen';
+import EventDetailsScreen from '../screens/EventDetailsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import ChatScreen from '../screens/ChatScreen';
+import ImageUploader from '../components/ImageUploader';
+
+// Nouvel écran de recherche
+import SearchScreen from '../screens/SearchScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -37,21 +40,21 @@ export default function AppNavigator() {
 
         {/* Écrans spécifiques aux organisateurs */}
         <Stack.Screen name="OrganizerScreen" component={OrganizerScreen} />
-       
 
         {/* Application principale */}
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="VisitorHome" component={VisitorHomeScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
-        
-        {/* ✅ Nouvel écran Profil accessible depuis BottomNavBar */}
+
+        {/* Profil */}
         <Stack.Screen name="Profile" component={ProfileScreen} />
 
-        {/* Si tu veux un chat plus tard */}
-         <Stack.Screen name="Chat" component={ChatScreen} /> 
+        {/* Chat (optionnel) */}
+        <Stack.Screen name="Chat" component={ChatScreen} />
 
-         {/* Si tu veux un ADD  */}
-         <Stack.Screen name="Add" component={ImageUploader} /> 
+        {/* Upload / Add */}
+        <Stack.Screen name="Add" component={ImageUploader} />
       </Stack.Navigator>
     </NavigationContainer>
   );
