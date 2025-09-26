@@ -26,9 +26,10 @@ export default function ImageUploader({ onUploadComplete }) {
   const [imageUri, setImageUri] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [villes, setVilles] = useState([]);
-  const [selectedVilleId, setSelectedVilleId] = useState(null);
+  // <-- changed: use empty string as picker value (avoids `value` null warning)
+  const [selectedVilleId, setSelectedVilleId] = useState("");
   const [categories, setCategories] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventDescription, setEventDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -167,6 +168,7 @@ export default function ImageUploader({ onUploadComplete }) {
       console.log("Vérification du bucket 'images'...");
       setShowStorageBanner(true);
       
+      // network test: handle failures gracefully (don't rethrow)
       try {
         const networkTest = await fetch('https://httpbin.org/get', { 
           method: 'GET',
@@ -174,10 +176,12 @@ export default function ImageUploader({ onUploadComplete }) {
         });
         
         if (!networkTest.ok) {
+          console.log("Network test returned non-ok:", networkTest.status);
           throw new Error('Network test failed');
         }
-      } catch (networkError) {
-        console.log("Aucune connexion internet:", networkError);
+      } catch (networkErr) {
+        // don't let this bubble as an uncaught error — mark offline and return
+        console.log("Aucune connexion internet (ou fetch bloqué):", networkErr);
         setNetworkError(true);
         showNotification("Aucune connexion internet", "error");
         setBucketExists(false);
@@ -185,7 +189,10 @@ export default function ImageUploader({ onUploadComplete }) {
         return;
       }
 
-      const bucketDetected = await forceBucketDetection();
+      const bucketDetected = await forceBucketDetection().catch((err) => {
+        console.warn("forceBucketDetection échoué:", err);
+        return false;
+      });
       
       if (bucketDetected) {
         setBucketExists(true);
@@ -260,14 +267,17 @@ export default function ImageUploader({ onUploadComplete }) {
       
       if (data && data.length > 0) {
         setVilles(data);
-        setSelectedVilleId(data[0].id_ville);
+        // store as string for Picker
+        setSelectedVilleId(String(data[0].id_ville));
       } else {
         console.log("Aucune ville trouvée dans la base de données");
         setVilles([]);
+        setSelectedVilleId(""); // avoid null
       }
     } catch (err) {
       console.error("Erreur fetch villes:", err);
       setVilles([]);
+      setSelectedVilleId("");
     }
   };
 
@@ -285,14 +295,17 @@ export default function ImageUploader({ onUploadComplete }) {
       
       if (data && data.length > 0) {
         setCategories(data);
-        setSelectedCategoryId(data[0].id_category);
+        // store as string for Picker
+        setSelectedCategoryId(String(data[0].id_category));
       } else {
         console.log("Aucune catégorie trouvée dans la base de données");
         setCategories([]);
+        setSelectedCategoryId("");
       }
     } catch (err) {
       console.error("Erreur fetch categories:", err);
       setCategories([]);
+      setSelectedCategoryId("");
     }
   };
 
@@ -666,19 +679,27 @@ export default function ImageUploader({ onUploadComplete }) {
         />
 
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={selectedVilleId} onValueChange={setSelectedVilleId} style={styles.picker}>
-            <Picker.Item label="Sélectionner une ville" value={null} />
+          <Picker
+            selectedValue={selectedVilleId}
+            onValueChange={(val) => setSelectedVilleId(String(val))}
+            style={styles.picker}
+          >
+            <Picker.Item label="Sélectionner une ville" value="" />
             {villes.map((ville) => (
-              <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+              <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={String(ville.id_ville)} />
             ))}
           </Picker>
         </View>
 
         <View style={styles.pickerContainer}>
-          <Picker selectedValue={selectedCategoryId} onValueChange={setSelectedCategoryId} style={styles.picker}>
-            <Picker.Item label="Sélectionner une catégorie" value={null} />
+          <Picker
+            selectedValue={selectedCategoryId}
+            onValueChange={(val) => setSelectedCategoryId(String(val))}
+            style={styles.picker}
+          >
+            <Picker.Item label="Sélectionner une catégorie" value="" />
             {categories.map((category) => (
-              <Picker.Item key={category.id_category} label={category.nom_category} value={category.id_category} />
+              <Picker.Item key={category.id_category} label={category.nom_category} value={String(category.id_category)} />
             ))}
           </Picker>
         </View>

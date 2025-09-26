@@ -18,6 +18,7 @@ import CategoryScroll from "../components/CategoryScroll";
 import EventCard from "../components/EventCard";
 import BottomNavBar from "../components/BottomNavBar";
 import { supabase } from "../config/supabase";
+import ImageUploader from "../components/ImageUploader";
 
 export default function HomeScreen({ navigation }) {
   const [currentContent, setCurrentContent] = useState("main");
@@ -184,21 +185,15 @@ export default function HomeScreen({ navigation }) {
 
   const renderMainContent = () => {
     if (currentContent === "uploader") {
+      // Affiche le formulaire ImageUploader et revient à l'accueil après upload
       return (
-        <View style={styles.uploaderContainer}>
-          <TouchableOpacity style={styles.backButton} onPress={handleHomePress}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.uploaderPlaceholder}>
-            <Ionicons name="camera" size={80} color="#666" />
-            <Text style={styles.placeholderTitle}>Créer un événement</Text>
-            <Text style={styles.placeholderText}>
-              La création d'événements sera disponible ici.
-            </Text>
-            <TouchableOpacity style={styles.retryButton} onPress={handleHomePress}>
-              <Text style={styles.retryButtonText}>Retour</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={{ flex: 1 }}>
+          <ImageUploader
+            onUploadComplete={() => {
+              // refresh et retour à l'affichage principal
+              handleHomePress();
+            }}
+          />
         </View>
       );
     }
