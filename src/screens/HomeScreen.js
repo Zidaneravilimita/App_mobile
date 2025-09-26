@@ -36,7 +36,12 @@ export default function HomeScreen({ navigation }) {
   // Seul filtre de date (all | upcoming | past)
   const [dateFilter, setDateFilter] = useState("all");
 
-  const handleAddPress = () => setCurrentContent("uploader");
+  // afficher le formulaire uploader inline
+  const handleAddPress = () => {
+    console.log("handleAddPress called");
+    setCurrentContent("uploader");
+  };
+
   const handleHomePress = () => {
     setCurrentContent("main");
     fetchEvents();
@@ -185,12 +190,13 @@ export default function HomeScreen({ navigation }) {
 
   const renderMainContent = () => {
     if (currentContent === "uploader") {
-      // Affiche le formulaire ImageUploader et revient à l'accueil après upload
       return (
         <View style={{ flex: 1 }}>
           <ImageUploader
             onUploadComplete={() => {
-              // refresh et retour à l'affichage principal
+              handleHomePress();
+            }}
+            onCancel={() => {
               handleHomePress();
             }}
           />

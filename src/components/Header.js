@@ -4,10 +4,12 @@ import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 export default function Header() {
   const [avatarUri, setAvatarUri] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const navigation = useNavigation();
 
   useEffect(() => {
     const loadAvatar = async () => {
@@ -56,9 +58,24 @@ export default function Header() {
     loadAvatar();
   }, []);
 
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const { count, error } = await supabase
+        .from('notifications_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_sent', false);
+      
+      if (!error) {
+        setUnreadCount(count || 0);
+      }
+    } catch (e) {
+      console.warn('Error loading unread count:', e);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      // Recharger l'avatar à chaque focus de l'écran
+      // Recharger l'avatar et le compteur à chaque focus de l'écran
       (async () => {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -80,8 +97,12 @@ export default function Header() {
           }
         } catch {}
       })();
+      
+      // Charger le compteur de notifications non lues
+      loadUnreadCount();
+      
       return undefined;
-    }, [])
+    }, [loadUnreadCount])
   );
 
   const getImageUri = (uri) => {
@@ -110,11 +131,18 @@ export default function Header() {
         <Ionicons name="sparkles" size={24} color="#8A2BE2" />
         <Text style={styles.logoText}>EVENT PARTY</Text>
       </View>
-      <TouchableOpacity style={styles.notificationContainer}>
+      <TouchableOpacity 
+        style={styles.notificationContainer}
+        onPress={() => navigation.navigate('Notify')}
+      >
         <Ionicons name="notifications" size={24} color="#fff" />
-        <View style={styles.notificationBadge}>
-          <Text style={styles.badgeText}>12</Text>
-        </View>
+        {unreadCount > 0 && (
+          <View style={styles.notificationBadge}>
+            <Text style={styles.badgeText}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );

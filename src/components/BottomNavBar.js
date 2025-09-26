@@ -21,7 +21,7 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
         <Text style={styles.label}>Accueil</Text>
       </TouchableOpacity>
 
-      {/* Bouton Recherche (placeholder pour plus tard) */}
+      {/* Bouton Recherche */}
       <TouchableOpacity
         style={styles.navItem}
         onPress={() => {
@@ -47,6 +47,15 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
         <View style={{ width: 60 }} />
       )}
 
+      {/* Bouton Chat (inversé avec Profil) */}
+      <TouchableOpacity
+        style={styles.navItem}
+        onPress={() => navigation.navigate("Chat")}
+      >
+        <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+        <Text style={styles.label}>Chat</Text>
+      </TouchableOpacity>
+
       {/* Bouton Profil */}
       <TouchableOpacity
         style={styles.navItem}
@@ -54,15 +63,6 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
       >
         <Ionicons name="person-outline" size={24} color="#fff" />
         <Text style={styles.label}>Profil</Text>
-      </TouchableOpacity>
-
-      {/* Bouton Chat */}
-      <TouchableOpacity
-        style={styles.navItem}
-        onPress={() => navigation.navigate("Chat")}
-      >
-        <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-        <Text style={styles.label}>Chat</Text>
       </TouchableOpacity>
     </View>
   );

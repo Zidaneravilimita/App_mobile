@@ -22,6 +22,10 @@ import ImageUploader from '../components/ImageUploader';
 // Nouvel écran de recherche
 import SearchScreen from '../screens/SearchScreen';
 
+// Écran des notifications
+import NotifyScreen from '../screens/NotifyScreen';
+import NotifyDetailScreen from '../screens/NotifyDetailScreen';
+
 const Stack = createNativeStackNavigator();
 
 /**
@@ -46,6 +50,10 @@ export default function AppNavigator() {
         <Stack.Screen name="VisitorHome" component={VisitorHomeScreen} />
         <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+        
+        {/* Notifications */}
+        <Stack.Screen name="Notify" component={NotifyScreen} />
+        <Stack.Screen name="NotifyDetail" component={NotifyDetailScreen} />
 
         {/* Profil */}
         <Stack.Screen name="Profile" component={ProfileScreen} />

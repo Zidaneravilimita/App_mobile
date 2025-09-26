@@ -1,5 +1,5 @@
 // src/components/ImageUploader.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Image,
@@ -21,7 +21,7 @@ import { supabase } from "../config/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-export default function ImageUploader({ onUploadComplete }) {
+export default function ImageUploader({ onUploadComplete, onCancel }) {
   const navigation = useNavigation();
   const [imageUri, setImageUri] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -45,149 +45,149 @@ export default function ImageUploader({ onUploadComplete }) {
   // États pour la notification temporaire
   const [notification, setNotification] = useState({ message: "", type: "" });
   const [notificationVisible, setNotificationVisible] = useState(false);
-  const [slideAnim] = useState(new Animated.Value(-100));
-
-  useEffect(() => {
-    initializeApp();
-  }, []);
-
-  // Afficher une notification temporaire
-  const showNotification = (message, type = "info") => {
-    setNotification({ message, type });
-    setNotificationVisible(true);
-    
+  const slideAnim = useRef(new Animated.Value(-100)).current;
+ 
+   useEffect(() => {
+     initializeApp();
+   }, []);
+ 
+   // Afficher une notification temporaire
+   const showNotification = (message, type = "info") => {
+     setNotification({ message, type });
+     setNotificationVisible(true);
+     
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 400,
-      useNativeDriver: true,
+      useNativeDriver: false, // fallback JS driver (no RCTAnimation natif)
     }).start(() => {
-      setTimeout(() => {
-        hideNotification();
-      }, 3000);
-    });
-  };
-
-  // Cacher la notification
-  const hideNotification = () => {
+       setTimeout(() => {
+         hideNotification();
+       }, 3000);
+     });
+   };
+ 
+   // Cacher la notification
+   const hideNotification = () => {
     Animated.timing(slideAnim, {
       toValue: -100,
       duration: 400,
-      useNativeDriver: true,
+      useNativeDriver: false, // fallback JS driver
     }).start(() => {
-      setNotificationVisible(false);
-    });
-  };
+       setNotificationVisible(false);
+     });
+   };
+ 
+   const initializeApp = async () => {
+     const configOk = await checkSupabaseConfig();
+     if (configOk) {
+       await loadInitialData();
+       await checkBucketExists();
+     } else {
+       setNetworkError(true);
+       showNotification("Problème de configuration", "error");
+     }
+   };
 
-  const initializeApp = async () => {
-    const configOk = await checkSupabaseConfig();
-    if (configOk) {
-      await loadInitialData();
-      await checkBucketExists();
-    } else {
-      setNetworkError(true);
-      showNotification("Problème de configuration", "error");
-    }
-  };
+   const checkSupabaseConfig = async () => {
+     try {
+       console.log("Vérification de la configuration Supabase...");
+       
+       const { data: testData, error: testError } = await supabase
+         .from('ville')
+         .select('count')
+         .limit(1);
+       
+       if (testError) {
+         console.error("Erreur test Supabase:", testError);
+         return false;
+       }
+       
+       console.log("Supabase configuré correctement");
+       return true;
+     } catch (error) {
+       console.error("Erreur configuration Supabase:", error);
+       return false;
+     }
+   };
 
-  const checkSupabaseConfig = async () => {
-    try {
-      console.log("Vérification de la configuration Supabase...");
-      
-      const { data: testData, error: testError } = await supabase
-        .from('ville')
-        .select('count')
-        .limit(1);
-      
-      if (testError) {
-        console.error("Erreur test Supabase:", testError);
-        return false;
-      }
-      
-      console.log("Supabase configuré correctement");
-      return true;
-    } catch (error) {
-      console.error("Erreur configuration Supabase:", error);
-      return false;
-    }
-  };
+   const configureBucketPermissions = async () => {
+     try {
+       console.log("Vérification des permissions du bucket...");
+       return true;
+     } catch (error) {
+       console.log("Note: Les permissions se configurent via l'interface Supabase");
+       return false;
+     }
+   };
 
-  const configureBucketPermissions = async () => {
-    try {
-      console.log("Vérification des permissions du bucket...");
-      return true;
-    } catch (error) {
-      console.log("Note: Les permissions se configurent via l'interface Supabase");
-      return false;
-    }
-  };
+   const forceBucketDetection = async () => {
+     try {
+       console.log("Détection du bucket...");
+       
+       const methods = [
+         async () => {
+           const { data, error } = await supabase.storage
+             .from('images')
+             .list('', { limit: 1 });
+           return { success: !error, method: 'direct_access' };
+         },
+         async () => {
+           const { data, error } = await supabase.storage.listBuckets();
+           const exists = data?.some(bucket => bucket.name === 'images');
+           return { success: exists && !error, method: 'list_buckets' };
+         }
+       ];
+       
+       for (const method of methods) {
+         try {
+           const result = await method();
+           if (result.success) {
+             console.log(`Bucket détecté via: ${result.method}`);
+             return true;
+           }
+         } catch (error) {
+           console.log(`Échec méthode:`, error);
+         }
+         await new Promise(resolve => setTimeout(resolve, 1000));
+       }
+       
+       console.log("Bucket non détecté par aucune méthode");
+       return false;
+       
+     } catch (error) {
+       console.error("Erreur détection bucket:", error);
+       return false;
+     }
+   };
 
-  const forceBucketDetection = async () => {
-    try {
-      console.log("Détection du bucket...");
-      
-      const methods = [
-        async () => {
-          const { data, error } = await supabase.storage
-            .from('images')
-            .list('', { limit: 1 });
-          return { success: !error, method: 'direct_access' };
-        },
-        async () => {
-          const { data, error } = await supabase.storage.listBuckets();
-          const exists = data?.some(bucket => bucket.name === 'images');
-          return { success: exists && !error, method: 'list_buckets' };
-        }
-      ];
-      
-      for (const method of methods) {
-        try {
-          const result = await method();
-          if (result.success) {
-            console.log(`Bucket détecté via: ${result.method}`);
-            return true;
-          }
-        } catch (error) {
-          console.log(`Échec méthode:`, error);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      console.log("Bucket non détecté par aucune méthode");
-      return false;
-      
-    } catch (error) {
-      console.error("Erreur détection bucket:", error);
-      return false;
-    }
-  };
-
-  const checkBucketExists = async () => {
-    try {
-      setCheckingBucket(true);
-      setNetworkError(false);
-      console.log("Vérification du bucket 'images'...");
-      setShowStorageBanner(true);
-      
-      // network test: handle failures gracefully (don't rethrow)
-      try {
-        const networkTest = await fetch('https://httpbin.org/get', { 
-          method: 'GET',
-          headers: { 'Cache-Control': 'no-cache' }
-        });
-        
-        if (!networkTest.ok) {
-          console.log("Network test returned non-ok:", networkTest.status);
-          throw new Error('Network test failed');
-        }
-      } catch (networkErr) {
-        // don't let this bubble as an uncaught error — mark offline and return
-        console.log("Aucune connexion internet (ou fetch bloqué):", networkErr);
-        setNetworkError(true);
-        showNotification("Aucune connexion internet", "error");
-        setBucketExists(false);
-        setCheckingBucket(false);
-        return;
-      }
+   const checkBucketExists = async () => {
+     try {
+       setCheckingBucket(true);
+       setNetworkError(false);
+       console.log("Vérification du bucket 'images'...");
+       setShowStorageBanner(true);
+       
+       // network test: handle failures gracefully (don't rethrow)
+       try {
+         const networkTest = await fetch('https://httpbin.org/get', { 
+           method: 'GET',
+           headers: { 'Cache-Control': 'no-cache' }
+         });
+         
+         if (!networkTest.ok) {
+           console.log("Network test returned non-ok:", networkTest.status);
+           throw new Error('Network test failed');
+         }
+       } catch (networkErr) {
+         // don't let this bubble as an uncaught error — mark offline and return
+         console.log("Aucune connexion internet (ou fetch bloqué):", networkErr);
+         setNetworkError(true);
+         showNotification("Aucune connexion internet", "error");
+         setBucketExists(false);
+         setCheckingBucket(false);
+         return;
+       }
 
       const bucketDetected = await forceBucketDetection().catch((err) => {
         console.warn("forceBucketDetection échoué:", err);
@@ -583,6 +583,26 @@ export default function ImageUploader({ onUploadComplete }) {
     await loadInitialData();
   };
 
+  // Handle cancel: prefer onCancel callback, sinon safe goBack, sinon navigate Home
+  const handleCancel = () => {
+    try {
+      if (typeof onCancel === "function") {
+        onCancel();
+        return;
+      }
+      if (navigation && typeof navigation.canGoBack === "function" && navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+      navigation.navigate("Home");
+    } catch (e) {
+      console.warn("handleCancel fallback navigation error:", e);
+      try {
+        navigation.navigate("Home");
+      } catch {}
+    }
+  };
+
   if (loadingData) {
     return (
       <View style={styles.loadingContainer}>
@@ -727,7 +747,7 @@ export default function ImageUploader({ onUploadComplete }) {
         {uploading && <ActivityIndicator size="large" color="#8A2BE2" style={styles.loader} />}
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
             <Text style={styles.buttonText}>Annuler</Text>
           </TouchableOpacity>
           
