@@ -7,9 +7,11 @@ import {
   Alert,
   FlatList,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../config/supabase";
 import { useIsFocused } from "@react-navigation/native";
@@ -32,6 +34,68 @@ export default function NotifyScreen({ navigation }) {
   const [expoToken, setExpoToken] = useState(null);
   const responseListener = useRef(null);
   const focused = useIsFocused();
+
+  // Guarded registration for push notifications.
+  // On Expo SDK 53+, remote push with Expo Go is not supported.
+  // We return null and show an explanation instead of crashing.
+  const registerForPushNotificationsAsync = async () => {
+    try {
+      // Web: require VAPID key to use push. If not configured, skip.
+      if (Platform.OS === "web") {
+        console.warn(
+          "Web detected: configure 'notification.vapidPublicKey' in app.json to use web push, otherwise skipping token registration."
+        );
+        Alert.alert(
+          "Notifications (Web)",
+          "Le push web nécessite une 'vapidPublicKey' dans app.json. Insérez la clé VAPID ou utilisez un build natif."
+        );
+        return null;
+      }
+
+      // If running inside Expo Go, skip remote push token retrieval
+      if (Constants?.appOwnership === "expo") {
+        console.warn(
+          "Expo Go detected: remote push notifications are not available on Expo Go in SDK 53+. Use a Development Build."
+        );
+        Alert.alert(
+          "Notifications push (Expo Go)",
+          "Les notifications push distantes ne fonctionnent plus dans Expo Go (SDK 53+). Créez un Development Build pour obtenir un token push."
+        );
+        return null;
+      }
+
+      if (!Device.isDevice) {
+        Alert.alert("Notifications", "Doit être exécuté sur un appareil physique.");
+        return null;
+      }
+
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== "granted") {
+        Alert.alert("Notifications", "Permission non accordée.");
+        return null;
+      }
+
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.MAX,
+        });
+      }
+
+      // For EAS projects, try to use projectId if available
+      let projectId = Constants?.expoConfig?.extra?.eas?.projectId || Constants?.easConfig?.projectId;
+      const token = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+      return token?.data ?? null;
+    } catch (e) {
+      console.warn("registerForPushNotificationsAsync error:", e);
+      return null;
+    }
+  };
 
   useEffect(() => {
     // register token and load notifications on mount
