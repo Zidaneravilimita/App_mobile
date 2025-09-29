@@ -105,24 +105,29 @@ export default function NotifyScreen({ navigation }) {
       await loadNotifications();
     })();
 
-    // handle user tapping system notification -> navigate to details or to this screen
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        try {
-          const data = response?.notification?.request?.content?.data || {};
-          // if payload contains event object, go to EventDetails
-          if (data.event) {
-            navigation.navigate("EventDetails", { event: data.event });
-            return;
+    // On Expo Go or Web, skip response listener to avoid any internal push linkage
+    const isExpoGo = Constants?.appOwnership === "expo";
+    const isWeb = Platform.OS === "web";
+    if (!isExpoGo && !isWeb) {
+      // handle user tapping system notification -> navigate to details or to this screen
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          try {
+            const data = response?.notification?.request?.content?.data || {};
+            // if payload contains event object, go to EventDetails
+            if (data.event) {
+              navigation.navigate("EventDetails", { event: data.event });
+              return;
+            }
+            // otherwise open Notify screen
+            navigation.navigate("Notify");
+          } catch (e) {
+            console.warn("Notification response handler failed:", e);
+            navigation.navigate("Notify");
           }
-          // otherwise open Notify screen
-          navigation.navigate("Notify");
-        } catch (e) {
-          console.warn("Notification response handler failed:", e);
-          navigation.navigate("Notify");
         }
-      }
-    );
+      );
+    }
 
     return () => {
       if (responseListener.current)
@@ -161,7 +166,10 @@ export default function NotifyScreen({ navigation }) {
         .from("notifications_queue")
         .update({ is_sent: true, sent_at: new Date().toISOString() })
         .neq("is_sent", true);
-      await Notifications.setBadgeCountAsync(0);
+      // Avoid badge operations on Web or Expo Go
+      if (Platform.OS !== "web" && Constants?.appOwnership !== "expo") {
+        await Notifications.setBadgeCountAsync(0);
+      }
       loadNotifications();
       Alert.alert("Ok", "Notifications marquées comme lues.");
     } catch (e) {
@@ -181,7 +189,9 @@ export default function NotifyScreen({ navigation }) {
 
   const clearBadge = async () => {
     try {
-      await Notifications.setBadgeCountAsync(0);
+      if (Platform.OS !== "web" && Constants?.appOwnership !== "expo") {
+        await Notifications.setBadgeCountAsync(0);
+      }
       Alert.alert("Ok", "Badge réinitialisé.");
     } catch (e) {
       console.warn("clearBadge error:", e);

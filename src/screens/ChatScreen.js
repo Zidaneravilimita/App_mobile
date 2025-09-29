@@ -1,5 +1,5 @@
 // src/screens/ChatScreen.js
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -13,25 +13,98 @@ import {
   Platform 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../config/supabase';
 
-export default function ChatScreen({ navigation }) {
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Salut 👋', sender: 'other' },
-    { id: '2', text: 'Bienvenue dans le chat !', sender: 'other' },
-  ]);
+export default function ChatScreen({ navigation, route }) {
+  const chatId = route?.params?.chatId || 'global';
+  const title = route?.params?.title || 'Chat';
+
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const currentUserRef = useRef(null);
+  const listRef = useRef(null);
 
-  const sendMessage = () => {
-    if (newMessage.trim() === '') return;
+  const mapRowToItem = (row) => ({
+    id: String(row.id),
+    text: row.text,
+    sender: row.user_id === currentUserRef.current?.id ? 'me' : 'other',
+    created_at: row.created_at,
+  });
 
-    const newMsg = {
-      id: Date.now().toString(),
-      text: newMessage,
-      sender: 'me',
-    };
+  const loadMessages = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true })
+        .limit(200);
+      if (error) throw error;
+      setMessages((data || []).map(mapRowToItem));
+    } catch (e) {
+      console.warn('loadMessages error:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setMessages([...messages, newMsg]);
-    setNewMessage('');
+  useEffect(() => {
+    // fetch current user then load messages and subscribe
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        currentUserRef.current = data?.user || null;
+      } catch (e) {
+        console.warn('getUser error:', e);
+      }
+      await loadMessages();
+
+      // realtime subscription for new messages in this chat
+      const channel = supabase.channel(`chat:${chatId}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `chat_id=eq.${chatId}`,
+        }, (payload) => {
+          const row = payload.new;
+          setMessages((prev) => [...prev, mapRowToItem(row)]);
+          // slight delay to ensure list updates before scrolling
+          setTimeout(() => listRef.current?.scrollToEnd?.({ animated: true }), 50);
+        })
+        .subscribe();
+
+      return () => {
+        try { supabase.removeChannel(channel); } catch {}
+      };
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatId]);
+
+  const sendMessage = async () => {
+    const text = newMessage.trim();
+    if (!text) return;
+    const user = currentUserRef.current;
+    if (!user?.id) {
+      console.warn('No authenticated user');
+      return;
+    }
+    try {
+      setNewMessage('');
+      const { error } = await supabase.from('messages').insert({
+        chat_id: chatId,
+        user_id: user.id,
+        text,
+      });
+      if (error) throw error;
+      // The realtime listener will append the message when INSERT succeeds.
+    } catch (e) {
+      console.warn('sendMessage error:', e);
+      // rollback input if needed
+      setNewMessage(text);
+    }
   };
 
   const renderMessage = ({ item }) => (
@@ -54,15 +127,17 @@ export default function ChatScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chat</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
       </View>
 
       {/* Chat body */}
       <FlatList
+        ref={listRef}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
         contentContainerStyle={styles.messagesContainer}
+        onContentSizeChange={() => listRef.current?.scrollToEnd?.({ animated: true })}
       />
 
       {/* Input zone */}
