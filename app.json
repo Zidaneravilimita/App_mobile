@@ -3,11 +3,10 @@
     "name": "MonApp",
     "slug": "MonApp",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -22,7 +21,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.ravilimita.MonApp"
+      "package": "com.ravilimita.monapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,12 +29,14 @@
     "plugins": [
       "expo-font",
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
         "projectId": "791eb8c6-204b-4ee4-9db7-5898faf70d10"
       }
-    }
+    },
+    "owner": "ravilimita"
   }
 }
