@@ -30,7 +30,8 @@
       "expo-font",
       "expo-secure-store",
       "expo-localization",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-system-ui"
     ],
     "extra": {
       "eas": {
