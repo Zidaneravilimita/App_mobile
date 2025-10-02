@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toggleFavorite, isFavorite } from '../config/favorites';
 import { useI18n } from '../i18n';
 import { useTheme } from '../theme';
+import { ensureOrganizerDm } from '../services/organizerMessaging';
 
 export default function EventDetailsScreen({ route, navigation }) {
   const { t } = useI18n();
@@ -145,6 +146,10 @@ export default function EventDetailsScreen({ route, navigation }) {
       const userId = await getCurrentUserId();
       const res = await toggleFavorite(userId, event);
       setFavActive(res.active);
+      // If now marked as interested, navigate to confirmation page
+      if (res.active) {
+        navigation.navigate('Interested', { event, userId });
+      }
     } catch (e) {
       console.warn('Toggle favorite error', e);
     } finally {
@@ -180,6 +185,59 @@ export default function EventDetailsScreen({ route, navigation }) {
   }, []);
 
   const canEdit = currentUserId && event?.id_user && currentUserId === event.id_user;
+
+  const handleParticipate = async () => {
+    try {
+      const idEvt = event?.id_event || paramId;
+      if (!idEvt) {
+        Alert.alert('Erreur', t('errorNoEventId'));
+        return;
+      }
+      if (!currentUserId) {
+        Alert.alert('Info', t('loginRequired') || 'Veuillez vous connecter pour participer.');
+        return;
+      }
+
+      // Ensure organizer id is present; HomeScreen's event may not include id_user
+      let ev = event;
+      if (!ev?.id_user) {
+        try {
+          const { data, error } = await supabase
+            .from('events')
+            .select('id_event, id_user, titre')
+            .eq('id_event', idEvt)
+            .maybeSingle();
+          if (!error && data) {
+            ev = { ...ev, ...data };
+            setEvent((prev) => ({ ...(prev || {}), ...data }));
+          }
+        } catch {}
+      }
+
+      if (!ev?.id_user) {
+        Alert.alert('Erreur', t('genericError') || "Impossible de trouver l'organisateur.");
+        return;
+      }
+
+      const chatId = await ensureOrganizerDm({
+        event: ev,
+        userId: currentUserId,
+        initialText: t('participate_intro') || `Je souhaite participer à "${ev?.titre || ''}"`,
+      });
+      navigation.navigate('Chat', { chatId, title: ev?.titre || 'Chat' });
+    } catch (e) {
+      console.warn('handleParticipate error', e);
+      Alert.alert('Erreur', t('genericError') || 'Une erreur est survenue.');
+    }
+  };
+
+  const handleBuyTicket = () => {
+    if (!event?.id_event) {
+      Alert.alert('Erreur', t('errorNoEventId'));
+      return;
+    }
+    navigation.navigate('Ticket', { event });
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
@@ -251,9 +309,14 @@ export default function EventDetailsScreen({ route, navigation }) {
                   <Text style={[styles.actionButtonText, { color: colors.text }]}>{t('interested')}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.actionButton, styles.primaryButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                <TouchableOpacity style={[styles.actionButton, styles.primaryButton, { backgroundColor: colors.primary, borderColor: colors.primary }]} onPress={handleParticipate}>
                   <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-                  <Text style={styles.actionButtonText}>{t('participate')}</Text>
+                  <Text style={styles.actionButtonText}>{t('sendMessage')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleBuyTicket}>
+                  <Ionicons name="qr-code" size={24} color={colors.text} />
+                  <Text style={[styles.actionButtonText, { color: colors.text }]}>{t('buyTicket') || 'Acheter un billet'}</Text>
                 </TouchableOpacity>
 
                 {canEdit && (

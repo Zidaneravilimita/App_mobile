@@ -25,6 +25,8 @@ import EditEventScreen from '../screens/EditEventScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ImageUploader from '../components/ImageUploader';
+import TicketScreen from '../screens/TicketScreen';
+import InterestedScreen from '../screens/InterestedScreen';
 
 // Nouvel écran de recherche
 import SearchScreen from '../screens/SearchScreen';
@@ -77,6 +79,12 @@ export default function AppNavigator() {
 
         {/* Upload / Add */}
         <Stack.Screen name="Add" component={ImageUploader} />
+
+        {/* Tickets */}
+        <Stack.Screen name="Ticket" component={TicketScreen} />
+
+        {/* Interested confirmation */}
+        <Stack.Screen name="Interested" component={InterestedScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
