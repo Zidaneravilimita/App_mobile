@@ -17,9 +17,11 @@ import { supabase } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toggleFavorite, isFavorite } from '../config/favorites';
 import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 export default function EventDetailsScreen({ route, navigation }) {
   const { t } = useI18n();
+  const { colors } = useTheme();
   // Accepte soit un objet event passé via navigation, soit un id_event
   const paramEvent = route.params?.event || null;
   const paramId = route.params?.id_event || route.params?.id || null;
@@ -66,7 +68,7 @@ export default function EventDetailsScreen({ route, navigation }) {
       // Tenter de récupérer aussi le nom de la catégorie via relation si elle est configurée
       let { data, error: err } = await supabase
         .from('events')
-        .select('id_event, titre, description, date_event, image_url, id_ville, id_category, lieu_detail, category:category!events_id_category_fkey (nom_category)')
+        .select('id_event, id_user, titre, description, date_event, image_url, id_ville, id_category, lieu_detail, category:category!events_id_category_fkey (nom_category)')
         .eq('id_event', id)
         .maybeSingle();
 
@@ -158,11 +160,31 @@ export default function EventDetailsScreen({ route, navigation }) {
   const eventPhoto = event?.image_url || 'https://placehold.co/400x300/222/fff?text=Pas+Image';
   const eventVille = event?.villeName || event?.lieu_detail || t('unknownPlace');
   const eventType = event?.category?.nom_category || event?.nom_category || event?.categoryName || t('unknownType');
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!error && data?.user?.id) {
+          setCurrentUserId(data.user.id);
+          return;
+        }
+      } catch {}
+      try {
+        const raw = await AsyncStorage.getItem('user_profile');
+        const u = raw ? JSON.parse(raw) : null;
+        if (u?.id) setCurrentUserId(u.id);
+      } catch {}
+    })();
+  }, []);
+
+  const canEdit = currentUserId && event?.id_user && currentUserId === event.id_user;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -198,41 +220,48 @@ export default function EventDetailsScreen({ route, navigation }) {
               onError={() => console.log('Erreur chargement image:', eventPhoto)}
             />
 
-            <View style={styles.contentContainer}>
-              <Text style={styles.eventTitle}>{eventTitle}</Text>
+            <View style={[styles.contentContainer, { backgroundColor: colors.background }] }>
+              <Text style={[styles.eventTitle, { color: colors.text }]}>{eventTitle}</Text>
 
               <View style={styles.detailsContainer}>
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, { backgroundColor: colors.surface }]}>
                   <Ionicons name="calendar-outline" size={20} color="#8A2BE2" />
-                  <Text style={styles.eventDate}>{eventDate}</Text>
+                  <Text style={[styles.eventDate, { color: colors.text }]}>{eventDate}</Text>
                 </View>
 
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, { backgroundColor: colors.surface }]}>
                   <Ionicons name="location-outline" size={20} color="#8A2BE2" />
-                  <Text style={styles.eventLocation}>{eventVille}</Text>
+                  <Text style={[styles.eventLocation, { color: colors.text }]}>{eventVille}</Text>
                 </View>
 
-                <View style={styles.detailRow}>
+                <View style={[styles.detailRow, { backgroundColor: colors.surface }]}>
                   <Ionicons name="pricetag-outline" size={20} color="#8A2BE2" />
-                  <Text style={styles.eventType}>{eventType}</Text>
+                  <Text style={[styles.eventType, { color: colors.text }]}>{eventType}</Text>
                 </View>
               </View>
 
               <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionTitle}>{t('description')}</Text>
-                <Text style={styles.eventDescription}>{eventDescription}</Text>
+                <Text style={[styles.descriptionTitle, { color: colors.text }]}>{t('description')}</Text>
+                <Text style={[styles.eventDescription, { backgroundColor: colors.surface, color: colors.subtext }]}>{eventDescription}</Text>
               </View>
 
               <View style={styles.actionContainer}>
-                <TouchableOpacity style={styles.actionButton} onPress={handleToggleFavorite} disabled={favBusy}>
+                <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={handleToggleFavorite} disabled={favBusy}>
                   <Ionicons name={favActive ? 'heart' : 'heart-outline'} size={24} color={favActive ? '#FF4D4F' : '#fff'} />
-                  <Text style={styles.actionButtonText}>{t('interested')}</Text>
+                  <Text style={[styles.actionButtonText, { color: colors.text }]}>{t('interested')}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
+                <TouchableOpacity style={[styles.actionButton, styles.primaryButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                   <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
                   <Text style={styles.actionButtonText}>{t('participate')}</Text>
                 </TouchableOpacity>
+
+                {canEdit && (
+                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => navigation.navigate('EditEvent', { id_event: event.id_event })}>
+                    <Ionicons name="create-outline" size={24} color={colors.text} />
+                    <Text style={[styles.actionButtonText, { color: colors.text }]}>{t('editEvent')}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </>

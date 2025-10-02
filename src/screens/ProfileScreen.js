@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../config/supabase';
+import { useI18n } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -64,6 +65,7 @@ const MENU_ITEMS = [
 ];
 
 export default function ProfileScreen({ navigation }) {
+  const { t, lang } = useI18n();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [userStats, setUserStats] = useState(DEFAULT_STATS);
@@ -499,7 +501,7 @@ export default function ProfileScreen({ navigation }) {
         {renderConnectionStatus()}
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#8A2BE2" />
-          <Text style={styles.loadingText}>Chargement de votre profil...</Text>
+          <Text style={styles.loadingText}>{t('loadingProfile')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -512,14 +514,14 @@ export default function ProfileScreen({ navigation }) {
         {renderConnectionStatus()}
         <View style={styles.centered}>
           <Ionicons name="person-circle" size={80} color="#666" />
-          <Text style={styles.noUserTitle}>Aucun utilisateur connecté</Text>
-          <Text style={styles.noUserSubtitle}>Connectez-vous pour accéder à votre profil</Text>
+          <Text style={styles.noUserTitle}>{t('noUserTitle')}</Text>
+          <Text style={styles.noUserSubtitle}>{t('noUserSubtitle')}</Text>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => navigation.replace('Login')}
           >
             <Ionicons name="log-in" size={20} color="#fff" />
-            <Text style={styles.loginText}>Se connecter</Text>
+            <Text style={styles.loginText}>{t('login')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -543,7 +545,7 @@ export default function ProfileScreen({ navigation }) {
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Mon Profil</Text>
+            <Text style={styles.headerTitle}>{t('profileTitle')}</Text>
             <TouchableOpacity onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={24} color="#fff" />
             </TouchableOpacity>
@@ -595,7 +597,7 @@ export default function ProfileScreen({ navigation }) {
               ) : (
                 <>
                   <Ionicons name={editing ? 'checkmark' : 'pencil'} size={18} color="#fff" />
-                  <Text style={styles.editText}>{editing ? 'Sauvegarder' : 'Modifier'}</Text>
+                  <Text style={styles.editText}>{editing ? t('save') : t('edit')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -606,52 +608,51 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{userStats.eventsCreated}</Text>
-            <Text style={styles.statLabel}>Événements créés</Text>
+            <Text style={styles.statLabel}>{t('eventsCreated')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{userStats.eventsAttended}</Text>
-            <Text style={styles.statLabel}>Participations</Text>
+            <Text style={styles.statLabel}>{t('participations')}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>{userStats.followers}</Text>
-            <Text style={styles.statLabel}>Abonnés</Text>
+            <Text style={styles.statLabel}>{t('followers')}</Text>
           </View>
         </View>
 
         {/* Menu */}
         <View style={styles.menuContainer}>
-          <Text style={styles.menuTitle}>Options</Text>
+          <Text style={styles.menuTitle}>{t('options')}</Text>
           {MENU_ITEMS.map((item) => (
             <TouchableOpacity key={item.id} style={styles.menuItem} onPress={() => handleMenuPress(item.id)}>
               <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
                 <Ionicons name={item.icon} size={22} color={item.color} />
               </View>
-              <Text style={styles.menuText}>{item.title}</Text>
+              <Text style={styles.menuText}>{t(`menu_${item.id}`)}</Text>
               <Ionicons name="chevron-forward" size={20} color="#666" />
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Infos utilisateur */}
         <View style={styles.userInfoSection}>
-          <Text style={styles.infoTitle}>Informations du compte</Text>
+          <Text style={styles.infoTitle}>{t('profileTitle')}</Text>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Mode:</Text>
-            <Text style={styles.infoValue}>{isSupabaseAvailable ? 'Connecté' : 'Hors ligne'}</Text>
+            <Text style={styles.infoValue}>{isSupabaseAvailable ? t('connected') : t('offline')}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>ID Utilisateur:</Text>
+            <Text style={styles.infoLabel}>ID:</Text>
             <Text style={styles.infoValue}>{user.id.substring(0, 8)}...</Text>
           </View>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Inscrit le:</Text>
-            <Text style={styles.infoValue}>{user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'Non dispo'}</Text>
+            <Text style={styles.infoValue}>{user.created_at ? new Date(user.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
           </View>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Dernière maj:</Text>
-            <Text style={styles.infoValue}>{currentProfile.updated_at ? new Date(currentProfile.updated_at).toLocaleDateString('fr-FR') : 'Non dispo'}</Text>
+            <Text style={styles.infoValue}>{currentProfile.updated_at ? new Date(currentProfile.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
           </View>
         </View>
       </Animated.ScrollView>

@@ -19,26 +19,25 @@ import EventCard from "../components/EventCard";
 import BottomNavBar from "../components/BottomNavBar";
 import { supabase } from "../config/supabase";
 import ImageUploader from "../components/ImageUploader";
+import { useTheme } from "../theme";
 
 export default function HomeScreen({ navigation }) {
+  const { colors } = useTheme();
   const [currentContent, setCurrentContent] = useState("main");
-  const [rawEvents, setRawEvents] = useState([]); // événements bruts depuis Supabase
-  const [events, setEvents] = useState([]); // événements après filtres/tri
+  const [rawEvents, setRawEvents] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [showNotification, setShowNotification] = useState(true);
-
-  const [categories, setCategories] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   const [villes, setVilles] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState("all");
 
-  // Seul filtre de date (all | upcoming | past)
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+
   const [dateFilter, setDateFilter] = useState("all");
 
-  // afficher le formulaire uploader inline
   const handleAddPress = () => {
-    console.log("handleAddPress called");
     setCurrentContent("uploader");
   };
 
@@ -50,7 +49,6 @@ export default function HomeScreen({ navigation }) {
     setDateFilter("all");
   };
 
-  // Charger les villes depuis Supabase
   const fetchVilles = async () => {
     try {
       const { data, error } = await supabase
@@ -65,7 +63,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Charger les catégories depuis Supabase
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
@@ -80,8 +77,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Charger les événements depuis Supabase (stocke dans rawEvents)
-  // Récupération côté serveur triée DESC pour afficher par défaut les plus récents / à venir en tête
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
@@ -100,20 +95,15 @@ export default function HomeScreen({ navigation }) {
           ville (id_ville, nom_ville)
         `);
 
-      // Filtrage par ville (ID)
       if (selectedVilleId !== "all") {
         query = query.eq("id_ville", selectedVilleId);
       }
-
-      // Filtrage par catégorie
       if (selectedCategoryId) {
         query = query.eq("id_category", selectedCategoryId);
       }
 
-      // Descendant => plus récent / à venir d'abord
       const { data, error } = await query.order("date_event", { ascending: false });
       if (error) throw error;
-
       setRawEvents(data || []);
     } catch (e) {
       console.error("Erreur chargement événements:", e);
@@ -124,7 +114,6 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Filtre de date (upcoming / past / all) et tri décroissant par date (plus récent d'abord)
   const filterAndSortEvents = () => {
     const now = Date.now();
     const toTs = (ev) => {
@@ -133,9 +122,7 @@ export default function HomeScreen({ navigation }) {
       const t = Date.parse(d);
       return Number.isFinite(t) ? t : null;
     };
-
     let list = (rawEvents || []).slice();
-
     if (dateFilter === "upcoming") {
       list = list.filter((ev) => {
         const ts = toTs(ev);
@@ -147,8 +134,6 @@ export default function HomeScreen({ navigation }) {
         return ts !== null && ts < now;
       });
     }
-
-    // Tri décroissant : plus récent / à venir d'abord
     list.sort((a, b) => {
       const ta = toTs(a);
       const tb = toTs(b);
@@ -157,7 +142,6 @@ export default function HomeScreen({ navigation }) {
       if (tb === null) return -1;
       return tb - ta;
     });
-
     setEvents(list);
   };
 
@@ -165,20 +149,14 @@ export default function HomeScreen({ navigation }) {
     fetchVilles();
     fetchCategories();
     fetchEvents();
-
-    const timer = setTimeout(() => {
-      setShowNotification(false);
-    }, 3000);
-
+    const timer = setTimeout(() => setShowNotification(false), 3000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Recharger les événements à chaque filtre serveur (ville/catégorie)
   useEffect(() => {
     fetchEvents();
   }, [selectedVilleId, selectedCategoryId]);
 
-  // Appliquer filtre local quand rawEvents ou dateFilter changent
   useEffect(() => {
     filterAndSortEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,14 +170,7 @@ export default function HomeScreen({ navigation }) {
     if (currentContent === "uploader") {
       return (
         <View style={{ flex: 1 }}>
-          <ImageUploader
-            onUploadComplete={() => {
-              handleHomePress();
-            }}
-            onCancel={() => {
-              handleHomePress();
-            }}
-          />
+          <ImageUploader onUploadComplete={handleHomePress} onCancel={handleHomePress} />
         </View>
       );
     }
@@ -218,37 +189,21 @@ export default function HomeScreen({ navigation }) {
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <Text style={styles.sectionTitle}>Catégories</Text>
           <View style={styles.categoryContainer}>
-            <CategoryScroll
-              categories={categories}
-              onSelectCategory={(id) => setSelectedCategoryId(id)}
-            />
+            <CategoryScroll categories={categories} onSelectCategory={(id) => setSelectedCategoryId(id)} />
           </View>
 
-          {/* Ville + Filtre de date côte à côte */}
           <View style={styles.rowFilters}>
             <View style={[styles.pickerWrapper, styles.sidePicker]}>
-              <Picker
-                selectedValue={selectedVilleId}
-                onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
-                style={styles.pickerStyle}
-              >
+              <Picker selectedValue={selectedVilleId} onValueChange={(itemValue) => setSelectedVilleId(itemValue)} style={styles.pickerStyle}>
                 <Picker.Item label="Toutes les villes" value="all" />
                 {villes.map((ville) => (
-                  <Picker.Item
-                    key={ville.id_ville}
-                    label={ville.nom_ville}
-                    value={ville.id_ville}
-                  />
+                  <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
                 ))}
               </Picker>
             </View>
 
             <View style={[styles.pickerWrapper, styles.sidePicker]}>
-              <Picker
-                selectedValue={dateFilter}
-                onValueChange={(val) => setDateFilter(val)}
-                style={styles.pickerStyle}
-              >
+              <Picker selectedValue={dateFilter} onValueChange={(val) => setDateFilter(val)} style={styles.pickerStyle}>
                 <Picker.Item label="Toutes les dates" value="all" />
                 <Picker.Item label="À venir" value="upcoming" />
                 <Picker.Item label="Passés" value="past" />
@@ -261,27 +216,14 @@ export default function HomeScreen({ navigation }) {
             <ActivityIndicator size="large" color="#8A2BE2" style={styles.loader} />
           ) : events.length > 0 ? (
             events.map((event) => (
-              <EventCard
-                key={event.id_event}
-                event={event}
-                onPress={() => handleEventPress(event)}
-              />
+              <EventCard key={event.id_event} event={event} onPress={() => handleEventPress(event)} />
             ))
           ) : (
             <View style={styles.noEventsContainer}>
               <Ionicons name="search" size={60} color="#666" />
               <Text style={styles.noEventsText}>Aucun événement trouvé</Text>
-              <Text style={styles.noEventsSubtext}>
-                Essayez de changer les filtres ou revenez plus tard
-              </Text>
-              <TouchableOpacity
-                style={styles.resetButton}
-                onPress={() => {
-                  setSelectedVilleId("all");
-                  setSelectedCategoryId(null);
-                  setDateFilter("all");
-                }}
-              >
+              <Text style={styles.noEventsSubtext}>Essayez de changer les filtres ou revenez plus tard</Text>
+              <TouchableOpacity style={styles.resetButton} onPress={() => { setSelectedVilleId("all"); setSelectedCategoryId(null); setDateFilter("all"); }}>
                 <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
               </TouchableOpacity>
             </View>
@@ -292,9 +234,9 @@ export default function HomeScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {renderMainContent()}
         <BottomNavBar onAddPress={handleAddPress} onHomePress={handleHomePress} />
       </View>
@@ -303,8 +245,8 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#1a1a1a" },
-  container: { flex: 1, backgroundColor: "#1a1a1a" },
+  safeArea: { flex: 1 },
+  container: { flex: 1 },
   scrollViewContent: { paddingBottom: 20, paddingHorizontal: 15 },
   notification: {
     flexDirection: "row",
@@ -314,112 +256,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 8,
   },
-  notificationText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  uploaderContainer: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  uploaderPlaceholder: {
-    alignItems: "center",
-    padding: 40,
-  },
-  placeholderTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: "#ccc",
-    textAlign: "center",
-    marginBottom: 30,
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: "#8A2BE2",
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  pickerWrapper: {
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: "#555",
-    borderRadius: 8,
-    backgroundColor: "#333",
-    justifyContent: "center",
-    height: 40,
-  },
-  smallPickerWrapper: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#555",
-    borderRadius: 8,
-    backgroundColor: "#333",
-    justifyContent: "center",
-    height: 40,
-  },
-  rowFilters: { flexDirection: "row" },
-  pickerStyle: {
-    color: "#fff",
-  },
-  categoryContainer: {
-    height: 140,
-    marginVertical: 5,
-    marginBottom: 20,
-  },
-  loader: {
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#fff",
-    marginTop: 15,
-  },
-  popularTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#fff",
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  noEventsContainer: {
-    alignItems: "center",
-    padding: 40,
-  },
-  noEventsText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-    marginTop: 15,
-    marginBottom: 8,
-  },
-  noEventsSubtext: {
-    fontSize: 14,
-    color: "#ccc",
-    textAlign: "center",
-    marginBottom: 25,
-  },
-  resetButton: {
-    backgroundColor: "#8A2BE2",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
+  notificationText: { color: "#fff", fontSize: 12, fontWeight: "500" },
+
   resetButtonText: {
     color: "#fff",
     fontWeight: "bold",

@@ -21,6 +21,7 @@ import MyEventsScreen from '../screens/MyEventsScreen';
 import AttendedScreen from '../screens/AttendedScreen';
 import HelpScreen from '../screens/HelpScreen';
 import PrivacyScreen from '../screens/PrivacyScreen';
+import EditEventScreen from '../screens/EditEventScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ImageUploader from '../components/ImageUploader';
@@ -62,6 +63,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Attended" component={AttendedScreen} />
         <Stack.Screen name="Help" component={HelpScreen} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} />
+        <Stack.Screen name="EditEvent" component={EditEventScreen} />
         
         {/* Notifications */}
         <Stack.Screen name="Notify" component={NotifyScreen} />

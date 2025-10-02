@@ -5,9 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../config/supabase';
 import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 export default function MyEventsScreen({ navigation }) {
   const { t } = useI18n();
+  const { colors } = useTheme();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,13 +51,13 @@ export default function MyEventsScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('myEvents')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('myEvents')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -65,15 +67,25 @@ export default function MyEventsScreen({ navigation }) {
         </View>
       ) : items.length === 0 ? (
         <View style={styles.centered}>
-          <Ionicons name="calendar-outline" size={48} color="#666" />
-          <Text style={styles.emptyText}>{t('noCreatedEvents')}</Text>
+          <Ionicons name="calendar-outline" size={48} color={colors.muted} />
+          <Text style={[styles.emptyText, { color: colors.text }]}>{t('noCreatedEvents')}</Text>
         </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={(it) => String(it.id_event)}
           contentContainerStyle={{ padding: 16 }}
-          renderItem={renderItem}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={[styles.row, { backgroundColor: colors.surface }]}
+              onPress={() => navigation.navigate('EventDetails', { id_event: item.id_event })}>
+              <Ionicons name="calendar" size={18} color={colors.primary} />
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{item.titre || 'Sans titre'}</Text>
+              <Text style={[styles.meta, { color: colors.subtext }]}>
+                {item.date_event ? new Date(item.date_event).toLocaleDateString('fr-FR') : ''}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+            </TouchableOpacity>
+          )}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
         />
       )}
@@ -82,12 +94,12 @@ export default function MyEventsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#1a1a1a' },
+  safeArea: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
   iconBtn: { padding: 6 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerTitle: { fontSize: 18, fontWeight: '700' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#222', padding: 12, borderRadius: 10 },
-  title: { color: '#fff', fontSize: 15, flex: 1, marginLeft: 8 },
-  meta: { color: '#bbb', fontSize: 12, marginRight: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 10 },
+  title: { fontSize: 15, flex: 1, marginLeft: 8 },
+  meta: { fontSize: 12, marginRight: 6 },
 });
