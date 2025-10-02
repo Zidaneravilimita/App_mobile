@@ -2,15 +2,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, StatusBar, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../i18n';
 
 export default function PrivacyScreen({ navigation }) {
+  const { t } = useI18n();
   const requestDeleteAccount = () => {
     Alert.alert(
-      'Supprimer mon compte',
-      'Pour des raisons de sécurité, la suppression totale nécessite une confirmation. Voulez-vous envoyer une demande ?',
+      t('deleteConfirmTitle'),
+      t('deleteConfirmMsg'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Envoyer', onPress: () => Alert.alert('Envoyé', 'Votre demande a été prise en compte.') },
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('send'), onPress: () => Alert.alert(t('sent'), t('requestReceived')) },
       ]
     );
   };
@@ -22,15 +24,15 @@ export default function PrivacyScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Confidentialité</Text>
+        <Text style={styles.headerTitle}>{t('privacy')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
       <View style={styles.container}>
-        <Text style={styles.text}>Politique de confidentialité et conditions d'utilisation à venir.</Text>
+        <Text style={styles.text}>{t('policyComing')}</Text>
         <TouchableOpacity onPress={requestDeleteAccount} style={styles.dangerBtn}>
           <Ionicons name="trash" size={18} color="#fff" />
-          <Text style={styles.dangerText}>Supprimer mon compte</Text>
+          <Text style={styles.dangerText}>{t('deleteAccount')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

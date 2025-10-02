@@ -2,8 +2,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, StatusBar, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../i18n';
 
 export default function HelpScreen({ navigation }) {
+  const { t } = useI18n();
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
@@ -11,12 +13,12 @@ export default function HelpScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Aide & Support</Text>
+        <Text style={styles.headerTitle}>{t('helpSupport')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
       <View style={styles.container}>
-        <Text style={styles.text}>FAQ à venir. Pour toute aide, contactez-nous :</Text>
+        <Text style={styles.text}>{t('faqComing')}</Text>
         <TouchableOpacity onPress={() => Linking.openURL('mailto:support@eventparty.com')} style={styles.btn}>
           <Ionicons name="mail" size={18} color="#fff" />
           <Text style={styles.btnText}>support@eventparty.com</Text>

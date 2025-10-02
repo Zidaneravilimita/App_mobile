@@ -16,8 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toggleFavorite, isFavorite } from '../config/favorites';
+import { useI18n } from '../i18n';
 
 export default function EventDetailsScreen({ route, navigation }) {
+  const { t } = useI18n();
   // Accepte soit un objet event passé via navigation, soit un id_event
   const paramEvent = route.params?.event || null;
   const paramId = route.params?.id_event || route.params?.id || null;
@@ -150,12 +152,12 @@ export default function EventDetailsScreen({ route, navigation }) {
 
 
   // Fallbacks et extraction des champs
-  const eventTitle = event?.titre || 'Titre non disponible';
+  const eventTitle = event?.titre || t('unknownTitle');
   const eventDate = formatDate(event?.date_event);
-  const eventDescription = event?.description || 'Aucune description disponible';
+  const eventDescription = event?.description || '';
   const eventPhoto = event?.image_url || 'https://placehold.co/400x300/222/fff?text=Pas+Image';
-  const eventVille = event?.villeName || event?.lieu_detail || 'Lieu non défini';
-  const eventType = event?.category?.nom_category || event?.nom_category || event?.categoryName || 'Type inconnu';
+  const eventVille = event?.villeName || event?.lieu_detail || t('unknownPlace');
+  const eventType = event?.category?.nom_category || event?.nom_category || event?.categoryName || t('unknownType');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -172,7 +174,7 @@ export default function EventDetailsScreen({ route, navigation }) {
         {loading ? (
           <View style={{ marginTop: 120, alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#8A2BE2" />
-            <Text style={{ color: '#ccc', marginTop: 10 }}>Chargement de l'événement...</Text>
+            <Text style={{ color: '#ccc', marginTop: 10 }}>{t('loadingEvent')}</Text>
           </View>
         ) : error ? (
           <View style={{ marginTop: 120, alignItems: 'center', paddingHorizontal: 20 }}>
@@ -180,11 +182,11 @@ export default function EventDetailsScreen({ route, navigation }) {
             <TouchableOpacity
               onPress={() => {
                 if (paramId) fetchEventById(paramId);
-                else Alert.alert('Erreur', 'Aucun identifiant d\'événement fourni.');
+                else Alert.alert('Erreur', t('errorNoEventId'));
               }}
               style={styles.retryButton}
             >
-              <Text style={{ color: '#fff' }}>Réessayer</Text>
+              <Text style={{ color: '#fff' }}>{t('retry')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -217,19 +219,19 @@ export default function EventDetailsScreen({ route, navigation }) {
               </View>
 
               <View style={styles.descriptionContainer}>
-                <Text style={styles.descriptionTitle}>Description</Text>
+                <Text style={styles.descriptionTitle}>{t('description')}</Text>
                 <Text style={styles.eventDescription}>{eventDescription}</Text>
               </View>
 
               <View style={styles.actionContainer}>
                 <TouchableOpacity style={styles.actionButton} onPress={handleToggleFavorite} disabled={favBusy}>
                   <Ionicons name={favActive ? 'heart' : 'heart-outline'} size={24} color={favActive ? '#FF4D4F' : '#fff'} />
-                  <Text style={styles.actionButtonText}>Intéressée</Text>
+                  <Text style={styles.actionButtonText}>{t('interested')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>
                   <Ionicons name="checkmark-circle-outline" size={24} color="#fff" />
-                  <Text style={styles.actionButtonText}>Participer</Text>
+                  <Text style={styles.actionButtonText}>{t('participate')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -4,8 +4,10 @@ import { View, Text, StyleSheet, SafeAreaView, StatusBar, FlatList, TouchableOpa
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../config/supabase';
+import { useI18n } from '../i18n';
 
 export default function MyEventsScreen({ navigation }) {
+  const { t } = useI18n();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +55,7 @@ export default function MyEventsScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes Événements</Text>
+        <Text style={styles.headerTitle}>{t('myEvents')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
@@ -64,7 +66,7 @@ export default function MyEventsScreen({ navigation }) {
       ) : items.length === 0 ? (
         <View style={styles.centered}>
           <Ionicons name="calendar-outline" size={48} color="#666" />
-          <Text style={styles.emptyText}>Aucun événement créé</Text>
+          <Text style={styles.emptyText}>{t('noCreatedEvents')}</Text>
         </View>
       ) : (
         <FlatList

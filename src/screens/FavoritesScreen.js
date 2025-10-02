@@ -6,8 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFavorites, removeFavorite } from '../config/favorites';
 import { supabase } from '../config/supabase';
+import { useI18n } from '../i18n';
 
 export default function FavoritesScreen({ navigation }) {
+  const { t } = useI18n();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,20 +79,20 @@ export default function FavoritesScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes Favoris</Text>
+        <Text style={styles.headerTitle}>{t('myFavorites')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#8A2BE2" />
-          <Text style={styles.loading}>Chargement...</Text>
+          <Text style={styles.loading}>{t('loading')}</Text>
         </View>
       ) : items.length === 0 ? (
         <View style={styles.centered}>
           <Ionicons name="heart-outline" size={48} color="#666" />
-          <Text style={styles.emptyText}>Aucun favori pour le moment</Text>
-          <Text style={styles.emptySub}>Cliquez sur "Intéressée" dans une fiche événement</Text>
+          <Text style={styles.emptyText}>{t('emptyFavorites')}</Text>
+          <Text style={styles.emptySub}>{t('emptyFavoritesHint')}</Text>
         </View>
       ) : (
         <FlatList
