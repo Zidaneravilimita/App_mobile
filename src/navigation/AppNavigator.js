@@ -15,6 +15,12 @@ import OrganizerScreen from '../screens/OrganizerScreen';
 import HomeScreen from '../screens/HomeScreen';
 import VisitorHomeScreen from '../screens/VisitorHomeScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import MyEventsScreen from '../screens/MyEventsScreen';
+import AttendedScreen from '../screens/AttendedScreen';
+import HelpScreen from '../screens/HelpScreen';
+import PrivacyScreen from '../screens/PrivacyScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ImageUploader from '../components/ImageUploader';
@@ -50,6 +56,12 @@ export default function AppNavigator() {
         <Stack.Screen name="VisitorHome" component={VisitorHomeScreen} />
         <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+        <Stack.Screen name="Favorites" component={FavoritesScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="MyEvents" component={MyEventsScreen} />
+        <Stack.Screen name="Attended" component={AttendedScreen} />
+        <Stack.Screen name="Help" component={HelpScreen} />
+        <Stack.Screen name="Privacy" component={PrivacyScreen} />
         
         {/* Notifications */}
         <Stack.Screen name="Notify" component={NotifyScreen} />

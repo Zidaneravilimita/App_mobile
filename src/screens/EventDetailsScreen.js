@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { toggleFavorite, isFavorite } from '../config/favorites';
 
 export default function EventDetailsScreen({ route, navigation }) {
   // Accepte soit un objet event passé via navigation, soit un id_event
@@ -23,6 +25,21 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [event, setEvent] = useState(paramEvent);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [favActive, setFavActive] = useState(false);
+  const [favBusy, setFavBusy] = useState(false);
+
+  const getCurrentUserId = async () => {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data?.user?.id) return data.user.id;
+    } catch {}
+    try {
+      const raw = await AsyncStorage.getItem('user_profile');
+      const u = raw ? JSON.parse(raw) : null;
+      if (u?.id) return u.id;
+    } catch {}
+    return 'demo-user-123';
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Date inconnue';
@@ -106,6 +123,32 @@ export default function EventDetailsScreen({ route, navigation }) {
     }
   }, [paramId]);
 
+  useEffect(() => {
+    // Update favorite state when event changes
+    const checkFav = async () => {
+      if (!event?.id_event) return setFavActive(false);
+      const userId = await getCurrentUserId();
+      const active = await isFavorite(userId, event.id_event);
+      setFavActive(active);
+    };
+    checkFav();
+  }, [event?.id_event]);
+
+  const handleToggleFavorite = async () => {
+    if (!event?.id_event || favBusy) return;
+    setFavBusy(true);
+    try {
+      const userId = await getCurrentUserId();
+      const res = await toggleFavorite(userId, event);
+      setFavActive(res.active);
+    } catch (e) {
+      console.warn('Toggle favorite error', e);
+    } finally {
+      setFavBusy(false);
+    }
+  };
+
+
   // Fallbacks et extraction des champs
   const eventTitle = event?.titre || 'Titre non disponible';
   const eventDate = formatDate(event?.date_event);
@@ -179,9 +222,9 @@ export default function EventDetailsScreen({ route, navigation }) {
               </View>
 
               <View style={styles.actionContainer}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="heart-outline" size={24} color="#fff" />
-                  <Text style={styles.actionButtonText}>Intéressé</Text>
+                <TouchableOpacity style={styles.actionButton} onPress={handleToggleFavorite} disabled={favBusy}>
+                  <Ionicons name={favActive ? 'heart' : 'heart-outline'} size={24} color={favActive ? '#FF4D4F' : '#fff'} />
+                  <Text style={styles.actionButtonText}>Intéressée</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.actionButton, styles.primaryButton]}>

@@ -460,12 +460,12 @@ export default function ProfileScreen({ navigation }) {
 
   const handleMenuPress = (itemId) => {
     const actions = {
-      events: () => Alert.alert('Mes Événements', `Vous avez créé ${userStats.eventsCreated} événement(s)`),
-      favorites: () => Alert.alert('Favoris', 'Fonctionnalité en cours de développement'),
-      settings: () => Alert.alert('Paramètres', 'Fonctionnalité en cours de développement'),
-      notifications: () => Alert.alert('Notifications', 'Fonctionnalité en cours de développement'),
-      help: () => Alert.alert('Aide & Support', 'support@eventparty.com'),
-      privacy: () => Alert.alert('Confidentialité', 'Consultez notre politique de confidentialité'),
+      events: () => navigation.navigate('MyEvents'),
+      favorites: () => navigation.navigate('Favorites'),
+      settings: () => navigation.navigate('Settings'),
+      notifications: () => navigation.navigate('Notify'),
+      help: () => navigation.navigate('Help'),
+      privacy: () => navigation.navigate('Privacy'),
     };
     actions[itemId]?.();
   };
