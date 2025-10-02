@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
+import { useTheme } from '../theme';
 
 export default function ChatScreen({ navigation, route }) {
+  const { colors } = useTheme();
   const chatId = route?.params?.chatId || 'global';
   const title = route?.params?.title || 'Chat';
 
@@ -107,27 +109,35 @@ export default function ChatScreen({ navigation, route }) {
     }
   };
 
-  const renderMessage = ({ item }) => (
-    <View
-      style={[
-        styles.messageBubble,
-        item.sender === 'me' ? styles.myMessage : styles.otherMessage,
-      ]}
-    >
-      <Text style={styles.messageText}>{item.text}</Text>
-    </View>
-  );
+  const renderMessage = ({ item }) => {
+    const isMe = item.sender === 'me';
+    const bubbleStyle = [
+      styles.messageBubble,
+      isMe
+        ? { backgroundColor: colors.primary, alignSelf: 'flex-end', borderBottomRightRadius: 0 }
+        : { backgroundColor: colors.surface, alignSelf: 'flex-start', borderBottomLeftRadius: 0 },
+    ];
+    const textStyle = [
+      styles.messageText,
+      { color: isMe ? '#fff' : colors.text },
+    ];
+    return (
+      <View style={bubbleStyle}>
+        <Text style={textStyle}>{item.text}</Text>
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }] }>
+      <StatusBar barStyle="light-content" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }] }>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
       </View>
 
       {/* Chat body */}
@@ -145,15 +155,15 @@ export default function ChatScreen({ navigation, route }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={80}
       >
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }] }>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
             placeholder="Écrire un message..."
-            placeholderTextColor="#aaa"
+            placeholderTextColor={colors.subtext}
             value={newMessage}
             onChangeText={setNewMessage}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+          <TouchableOpacity style={[styles.sendButton, { backgroundColor: colors.primary }]} onPress={sendMessage}>
             <Ionicons name="send" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -163,21 +173,17 @@ export default function ChatScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
+  safeArea: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#fff',
     marginLeft: 15,
   },
   messagesContainer: {
@@ -191,39 +197,20 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginVertical: 5,
   },
-  myMessage: {
-    backgroundColor: '#8A2BE2',
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 0,
-  },
-  otherMessage: {
-    backgroundColor: '#333',
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 0,
-  },
-  messageText: {
-    color: '#fff',
-    fontSize: 16,
-  },
+  messageText: { fontSize: 16 },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#222',
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#333',
+    
   },
   input: {
     flex: 1,
-    backgroundColor: '#333',
-    color: '#fff',
+    
     padding: 10,
     borderRadius: 20,
     marginRight: 10,
   },
-  sendButton: {
-    backgroundColor: '#8A2BE2',
-    borderRadius: 20,
-    padding: 10,
-  },
+  sendButton: { borderRadius: 20, padding: 10 },
 });

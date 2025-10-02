@@ -18,8 +18,10 @@ import CategoryScroll from "../components/CategoryScroll";
 import EventCard from "../components/EventCard";
 import BottomNavBar from "../components/BottomNavBar";
 import { supabase } from "../config/supabase";
+import { useI18n } from "../i18n";
 
 export default function VisitorHomeScreen({ navigation }) {
+  const { t } = useI18n();
   const [rawEvents, setRawEvents] = useState([]);
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
@@ -170,7 +172,7 @@ export default function VisitorHomeScreen({ navigation }) {
         )}
 
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <Text style={styles.sectionTitle}>Catégories</Text>
+          <Text style={styles.sectionTitle}>{t('categories')}</Text>
           <View style={styles.categoryContainer}>
             <CategoryScroll
               categories={categories}
@@ -210,7 +212,7 @@ export default function VisitorHomeScreen({ navigation }) {
             </View>
           </View>
 
-          <Text style={styles.popularTitle}>Événements disponibles</Text>
+          <Text style={styles.popularTitle}>{t('available_events')}</Text>
           {loadingEvents ? (
             <ActivityIndicator size="large" color="#8A2BE2" style={styles.loader} />
           ) : events.length > 0 ? (

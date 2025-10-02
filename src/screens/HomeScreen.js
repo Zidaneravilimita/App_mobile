@@ -20,9 +20,11 @@ import BottomNavBar from "../components/BottomNavBar";
 import { supabase } from "../config/supabase";
 import ImageUploader from "../components/ImageUploader";
 import { useTheme } from "../theme";
+import { useI18n } from "../i18n";
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const [currentContent, setCurrentContent] = useState("main");
   const [rawEvents, setRawEvents] = useState([]);
   const [events, setEvents] = useState([]);
@@ -180,21 +182,34 @@ export default function HomeScreen({ navigation }) {
         <Header />
 
         {showNotification && (
-          <View style={styles.notification}>
+          <View style={[styles.notification, { backgroundColor: colors.primary }]}>
             <Ionicons name="cloud-done" size={16} color="#fff" />
             <Text style={styles.notificationText}>Connecté à Supabase</Text>
           </View>
         )}
 
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <Text style={styles.sectionTitle}>Catégories</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('categories')}</Text>
           <View style={styles.categoryContainer}>
             <CategoryScroll categories={categories} onSelectCategory={(id) => setSelectedCategoryId(id)} />
           </View>
 
           <View style={styles.rowFilters}>
-            <View style={[styles.pickerWrapper, styles.sidePicker]}>
-              <Picker selectedValue={selectedVilleId} onValueChange={(itemValue) => setSelectedVilleId(itemValue)} style={styles.pickerStyle}>
+            <View
+              style={[
+                styles.pickerPill,
+                { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: '#000', overflow: 'hidden' },
+              ]}
+            >
+              <Ionicons name="location-outline" size={18} color={colors.primary} style={styles.pickerIcon} />
+              <Picker
+                selectedValue={selectedVilleId}
+                onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
+                mode="dropdown"
+                dropdownIconColor={colors.muted}
+                dropdownIconRippleColor="transparent"
+                style={[styles.pickerFlex, { color: colors.text, backgroundColor: 'transparent' }]}
+              >
                 <Picker.Item label="Toutes les villes" value="all" />
                 {villes.map((ville) => (
                   <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
@@ -202,8 +217,21 @@ export default function HomeScreen({ navigation }) {
               </Picker>
             </View>
 
-            <View style={[styles.pickerWrapper, styles.sidePicker]}>
-              <Picker selectedValue={dateFilter} onValueChange={(val) => setDateFilter(val)} style={styles.pickerStyle}>
+            <View
+              style={[
+                styles.pickerPill,
+                { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: '#000', overflow: 'hidden' },
+              ]}
+            >
+              <Ionicons name="calendar-outline" size={18} color={colors.primary} style={styles.pickerIcon} />
+              <Picker
+                selectedValue={dateFilter}
+                onValueChange={(val) => setDateFilter(val)}
+                mode="dropdown"
+                dropdownIconColor={colors.muted}
+                dropdownIconRippleColor="transparent"
+                style={[styles.pickerFlex, { color: colors.text, backgroundColor: 'transparent' }]}
+              >
                 <Picker.Item label="Toutes les dates" value="all" />
                 <Picker.Item label="À venir" value="upcoming" />
                 <Picker.Item label="Passés" value="past" />
@@ -211,20 +239,20 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
 
-          <Text style={styles.popularTitle}>Événements disponibles</Text>
+          <Text style={{ color: colors.text, ...styles.popularTitle }}>{t('available_events')}</Text>
           {loadingEvents ? (
-            <ActivityIndicator size="large" color="#8A2BE2" style={styles.loader} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ ...styles.loader }} />
           ) : events.length > 0 ? (
             events.map((event) => (
               <EventCard key={event.id_event} event={event} onPress={() => handleEventPress(event)} />
             ))
           ) : (
-            <View style={styles.noEventsContainer}>
-              <Ionicons name="search" size={60} color="#666" />
-              <Text style={styles.noEventsText}>Aucun événement trouvé</Text>
-              <Text style={styles.noEventsSubtext}>Essayez de changer les filtres ou revenez plus tard</Text>
-              <TouchableOpacity style={styles.resetButton} onPress={() => { setSelectedVilleId("all"); setSelectedCategoryId(null); setDateFilter("all"); }}>
-                <Text style={styles.resetButtonText}>Réinitialiser les filtres</Text>
+            <View style={{ ...styles.noEventsContainer }}>
+              <Ionicons name="search" size={60} color={colors.muted} />
+              <Text style={{ color: colors.text, ...styles.noEventsText }}>Aucun événement trouvé</Text>
+              <Text style={{ color: colors.subtext, ...styles.noEventsSubtext }}>Essayez de changer les filtres ou revenez plus tard</Text>
+              <TouchableOpacity style={{ ...styles.resetButton }} onPress={() => { setSelectedVilleId("all"); setSelectedCategoryId(null); setDateFilter("all"); }}>
+                <Text style={{ color: "#fff", fontWeight: "bold", ...styles.resetButtonText }}>Réinitialiser les filtres</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -248,24 +276,33 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1 },
   scrollViewContent: { paddingBottom: 20, paddingHorizontal: 15 },
-  notification: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#10b981",
-    paddingVertical: 8,
-    gap: 8,
+  notification: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, gap: 8 },
+  notificationText: { color: '#fff', fontSize: 12, fontWeight: '500' },
+  sectionTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 15 },
+  categoryContainer: { height: 140, marginVertical: 5, marginBottom: 20 },
+  rowFilters: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 10 },
+  pickerPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 22,
+    height: 44,
+    paddingHorizontal: 10,
+    // subtle shadow (Android + iOS)
+    elevation: 1,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
-  notificationText: { color: "#fff", fontSize: 12, fontWeight: "500" },
-
-  resetButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  backButton: {
-    position: "absolute",
-    top: 60,
-    left: 20,
-    zIndex: 10,
-  },
+  pickerIcon: { marginRight: 8 },
+  pickerFlex: { flex: 1 },
+  loader: { marginTop: 20 },
+  popularTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 15, marginBottom: 10 },
+  noEventsContainer: { alignItems: 'center', padding: 40 },
+  noEventsText: { fontSize: 20, fontWeight: 'bold', marginTop: 15, marginBottom: 8 },
+  noEventsSubtext: { fontSize: 14, textAlign: 'center', marginBottom: 25 },
+  resetButton: { backgroundColor: '#8A2BE2', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
+  resetButtonText: { color: '#fff', fontWeight: 'bold' },
+  backButton: { position: 'absolute', top: 60, left: 20, zIndex: 10 },
 });

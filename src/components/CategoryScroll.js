@@ -12,8 +12,12 @@ import {
 } from "react-native";
 import { supabase } from "../config/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../theme";
+import { useI18n } from "../i18n";
 
 export default function CategoryScroll({ onSelectCategory }) {
+  const { colors } = useTheme();
+  const { t } = useI18n();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -74,7 +78,7 @@ export default function CategoryScroll({ onSelectCategory }) {
       return (
         <ActivityIndicator
           size="large"
-          color="#8A2BE2"
+          color={colors.primary}
           style={styles.activityIndicator}
         />
       );
@@ -82,8 +86,8 @@ export default function CategoryScroll({ onSelectCategory }) {
     if (error) {
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={fetchCategories}>
+          <Text style={[styles.errorText, { color: colors.subtext }]}>{error}</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={fetchCategories}>
             <Text style={styles.retryButtonText}>Réessayer</Text>
           </TouchableOpacity>
         </View>
@@ -92,7 +96,7 @@ export default function CategoryScroll({ onSelectCategory }) {
     if (categories.length === 0) {
       return (
         <View style={styles.noCategoriesContainer}>
-          <Text style={styles.noCategoriesText}>Aucune catégorie trouvée.</Text>
+          <Text style={[styles.noCategoriesText, { color: colors.subtext }]}>Aucune catégorie trouvée.</Text>
         </View>
       );
     }
@@ -109,14 +113,15 @@ export default function CategoryScroll({ onSelectCategory }) {
           style={[
             styles.categoryCard,
             styles.showAllCard,
-            selectedCategoryId === null && styles.selectedCard,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+            selectedCategoryId === null && { borderColor: colors.primary, backgroundColor: colors.card },
           ]}
           onPress={handleShowAllPress}
         >
           <View style={styles.showAllIconContainer}>
-            <Ionicons name="grid-outline" size={40} color="#8A2BE2" />
+            <Ionicons name="grid-outline" size={40} color={colors.primary} />
           </View>
-          <Text style={styles.categoryTitle}>Tout</Text>
+          <Text style={[styles.categoryTitle, { color: colors.text }]}>{t('category_all')}</Text>
         </TouchableOpacity>
 
         {categories.map((category) => (
@@ -124,18 +129,19 @@ export default function CategoryScroll({ onSelectCategory }) {
             key={category.id_category}
             style={[
               styles.categoryCard,
-              selectedCategoryId === category.id_category && styles.selectedCard,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              selectedCategoryId === category.id_category && { borderColor: colors.primary, backgroundColor: colors.card },
             ]}
             onPress={() => handleCategoryPress(category)}
           >
             <Image
               source={{ uri: category.photo }}
-              style={styles.categoryImage}
+              style={[styles.categoryImage, { backgroundColor: colors.border }]}
               onError={() =>
                 console.log("Erreur image catégorie:", category.nom_category)
               }
             />
-            <Text style={styles.categoryTitle} numberOfLines={2}>
+            <Text style={[styles.categoryTitle, { color: colors.text }]} numberOfLines={2}>
               {category.nom_category || "Nom inconnu"}
             </Text>
           </TouchableOpacity>
@@ -150,7 +156,6 @@ export default function CategoryScroll({ onSelectCategory }) {
 const styles = StyleSheet.create({
   container: {
     height: 140,
-    backgroundColor: "#1a1a1a",
   },
   scrollView: {
     flex: 1,
@@ -160,7 +165,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   categoryCard: {
-    backgroundColor: "#333",
     width: 100,
     height: 120,
     borderRadius: 12,
@@ -168,17 +172,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#555",
+    // borderColor themed inline
     padding: 6,
-    elevation: 3,
+    elevation: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  selectedCard: {
-    borderColor: "#8A2BE2",
-    backgroundColor: "#444",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
   },
   showAllCard: {
     justifyContent: "center",
@@ -193,10 +193,8 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: "#555",
   },
   categoryTitle: {
-    color: "#fff",
     fontWeight: "bold",
     fontSize: 11,
     textAlign: "center",
@@ -220,7 +218,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   retryButton: {
-    backgroundColor: "#8A2BE2",
     paddingHorizontal: 15,
     paddingVertical: 8,
     borderRadius: 6,
@@ -236,7 +233,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   noCategoriesText: {
-    color: "#aaa",
     fontSize: 14,
   },
 });

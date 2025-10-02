@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTheme } from '../theme';
 
 export default function Header() {
+  const { colors } = useTheme();
   const [avatarUri, setAvatarUri] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigation = useNavigation();
@@ -115,30 +117,30 @@ export default function Header() {
     return uri;
   };
   return (
-    <View style={styles.headerContainer}>
+    <View style={[styles.headerContainer, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
       <TouchableOpacity>
         {avatarUri ? (
           <Image
             source={{ uri: getImageUri(avatarUri) }}
             onError={() => setAvatarUri(null)}
-            style={styles.avatar}
+            style={[styles.avatar, { borderColor: colors.border }]}
           />
         ) : (
-          <Ionicons name="person-circle" size={40} color="#888" />
+          <Ionicons name="person-circle" size={40} color={colors.muted} />
         )}
       </TouchableOpacity>
       <View style={styles.logoContainer}>
-        <Ionicons name="sparkles" size={24} color="#8A2BE2" />
-        <Text style={styles.logoText}>EVENT PARTY</Text>
+        <Ionicons name="sparkles" size={24} color={colors.primary} />
+        <Text style={[styles.logoText, { color: colors.text }]}>EVENT PARTY</Text>
       </View>
       <TouchableOpacity 
         style={styles.notificationContainer}
         onPress={() => navigation.navigate('Notify')}
       >
-        <Ionicons name="notifications" size={24} color="#fff" />
+        <Ionicons name="notifications" size={24} color={colors.text} />
         {unreadCount > 0 && (
-          <View style={styles.notificationBadge}>
-            <Text style={styles.badgeText}>
+          <View style={[styles.notificationBadge, { backgroundColor: colors.primary, borderColor: colors.background }] }>
+            <Text style={[styles.badgeText, { color: '#fff' }]}>
               {unreadCount > 99 ? '99+' : unreadCount}
             </Text>
           </View>
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
     marginTop: 35,
   },
   avatar: {
@@ -162,14 +164,12 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#fff',
   },
   logoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   logoText: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 5,
@@ -181,17 +181,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -6,
     top: -6,
-    backgroundColor: '#8A2BE2',
     borderRadius: 10,
     width: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#1a1a1a',
   },
   badgeText: {
-    color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
   },

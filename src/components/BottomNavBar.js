@@ -3,12 +3,16 @@ import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../theme";
+import { useI18n } from "../i18n";
 
 export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false }) {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const { t } = useI18n();
 
   return (
-    <View style={styles.navBarContainer}>
+    <View style={[styles.navBarContainer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
       {/* Bouton Accueil */}
       <TouchableOpacity
         style={styles.navItem}
@@ -17,8 +21,8 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
           navigation.navigate("Home");
         }}
       >
-        <Ionicons name="home-outline" size={24} color="#fff" />
-        <Text style={styles.label}>Accueil</Text>
+        <Ionicons name="home-outline" size={24} color={colors.text} />
+        <Text style={[styles.label, { color: colors.text }]}>{t('home')}</Text>
       </TouchableOpacity>
 
       {/* Bouton Recherche */}
@@ -28,14 +32,14 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
           navigation.navigate("Search");
         }}
       >
-        <Ionicons name="search-outline" size={24} color="#fff" />
-        <Text style={styles.label}>Recherche</Text>
+        <Ionicons name="search-outline" size={24} color={colors.text} />
+        <Text style={[styles.label, { color: colors.text }]}>{t('search')}</Text>
       </TouchableOpacity>
 
       {/* Bouton Add (masqué pour les visiteurs) */}
       {!hideAdd ? (
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: colors.primary, borderColor: colors.border }]}
           onPress={() => {
             if (onAddPress) onAddPress();
             else navigation.navigate("Add");
@@ -52,8 +56,8 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
         style={styles.navItem}
         onPress={() => navigation.navigate("Chat")}
       >
-        <Ionicons name="chatbubble-outline" size={24} color="#fff" />
-        <Text style={styles.label}>Chat</Text>
+        <Ionicons name="chatbubble-outline" size={24} color={colors.text} />
+        <Text style={[styles.label, { color: colors.text }]}>{t('chat')}</Text>
       </TouchableOpacity>
 
       {/* Bouton Profil */}
@@ -61,8 +65,8 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
         style={styles.navItem}
         onPress={() => navigation.navigate("Profile")}
       >
-        <Ionicons name="person-outline" size={24} color="#fff" />
-        <Text style={styles.label}>Profil</Text>
+        <Ionicons name="person-outline" size={24} color={colors.text} />
+        <Text style={[styles.label, { color: colors.text }]}>{t('profile')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -71,33 +75,28 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
 const styles = StyleSheet.create({
   navBarContainer: {
     height: 80,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "#1a1a1a",
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: "#333",
     paddingBottom: 20,
   },
   navItem: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 5,
   },
   addButton: {
-    backgroundColor: "#8A2BE2",
     borderRadius: 30,
     width: 60,
     height: 60,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     bottom: 20,
     borderWidth: 4,
-    borderColor: "#333",
   },
   label: {
-    color: "#fff",
     fontSize: 12,
     marginTop: 4,
   },

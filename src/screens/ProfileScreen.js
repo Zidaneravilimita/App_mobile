@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../config/supabase';
 import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 const { width } = Dimensions.get('window');
 
@@ -66,6 +67,7 @@ const MENU_ITEMS = [
 
 export default function ProfileScreen({ navigation }) {
   const { t, lang } = useI18n();
+  const { colors } = useTheme();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [userStats, setUserStats] = useState(DEFAULT_STATS);
@@ -496,12 +498,12 @@ export default function ProfileScreen({ navigation }) {
   // --- UI inchangée ---
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" />
         {renderConnectionStatus()}
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#8A2BE2" />
-          <Text style={styles.loadingText}>{t('loadingProfile')}</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.text }]}>{t('loadingProfile')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -509,15 +511,15 @@ export default function ProfileScreen({ navigation }) {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" />
         {renderConnectionStatus()}
         <View style={styles.centered}>
-          <Ionicons name="person-circle" size={80} color="#666" />
-          <Text style={styles.noUserTitle}>{t('noUserTitle')}</Text>
-          <Text style={styles.noUserSubtitle}>{t('noUserSubtitle')}</Text>
+          <Ionicons name="person-circle" size={80} color={colors.muted} />
+          <Text style={[styles.noUserTitle, { color: colors.text }]}>{t('noUserTitle')}</Text>
+          <Text style={[styles.noUserSubtitle, { color: colors.subtext }]}>{t('noUserSubtitle')}</Text>
           <TouchableOpacity
-            style={styles.loginButton}
+            style={[styles.loginButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.replace('Login')}
           >
             <Ionicons name="log-in" size={20} color="#fff" />
@@ -531,12 +533,12 @@ export default function ProfileScreen({ navigation }) {
   const currentProfile = profile || {};
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" />
       {renderConnectionStatus()}
 
       <Animated.ScrollView 
-        style={[styles.container, { opacity: fadeAnim }]}
+        style={[styles.container, { opacity: fadeAnim, backgroundColor: colors.background }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header avec gradient */}
@@ -569,15 +571,15 @@ export default function ProfileScreen({ navigation }) {
 
             {editing ? (
               <View style={styles.editContainer}>
-                <TextInput style={styles.editInput} value={newUsername} onChangeText={setNewUsername} placeholder="Nom d'utilisateur" placeholderTextColor="#ccc" />
-                <TextInput style={styles.editInput} value={newEmail} onChangeText={setNewEmail} placeholder="Email" keyboardType="email-address" placeholderTextColor="#ccc" />
-                <TextInput style={[styles.editInput, styles.bioInput]} value={newBio} onChangeText={setNewBio} placeholder="Bio (optionnelle)" placeholderTextColor="#ccc" multiline numberOfLines={3} />
+                <TextInput style={[styles.editInput, { backgroundColor: colors.card, color: colors.text }]} value={newUsername} onChangeText={setNewUsername} placeholder="Nom d'utilisateur" placeholderTextColor={colors.subtext} />
+                <TextInput style={[styles.editInput, { backgroundColor: colors.card, color: colors.text }]} value={newEmail} onChangeText={setNewEmail} placeholder="Email" keyboardType="email-address" placeholderTextColor={colors.subtext} />
+                <TextInput style={[styles.editInput, styles.bioInput, { backgroundColor: colors.card, color: colors.text }]} value={newBio} onChangeText={setNewBio} placeholder="Bio (optionnelle)" placeholderTextColor={colors.subtext} multiline numberOfLines={3} />
               </View>
             ) : (
               <View style={styles.userInfo}>
-                <Text style={styles.username}>{currentProfile.username || user.user_metadata?.username || 'Utilisateur'}</Text>
-                <Text style={styles.email}>{user.email}</Text>
-                {currentProfile.bio ? <Text style={styles.bio}>{currentProfile.bio}</Text> : null}
+                <Text style={[styles.username, { color: colors.text }]}>{currentProfile.username || user.user_metadata?.username || 'Utilisateur'}</Text>
+                <Text style={[styles.email, { color: colors.subtext }]}>{user.email}</Text>
+                {currentProfile.bio ? <Text style={[styles.bio, { color: colors.subtext }]}>{currentProfile.bio}</Text> : null}
                 <View style={styles.membershipBadge}>
                   <Ionicons name="diamond" size={14} color="#FFD700" />
                   <Text style={styles.membershipText}>
@@ -605,54 +607,53 @@ export default function ProfileScreen({ navigation }) {
         </LinearGradient>
 
         {/* Stats */}
-        <View style={styles.statsContainer}>
+        <View style={[styles.statsContainer, { backgroundColor: colors.surface, shadowOpacity: 0.08 }]}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userStats.eventsCreated}</Text>
-            <Text style={styles.statLabel}>{t('eventsCreated')}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{userStats.eventsCreated}</Text>
+            <Text style={[styles.statLabel, { color: colors.subtext }]}>{t('eventsCreated')}</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userStats.eventsAttended}</Text>
-            <Text style={styles.statLabel}>{t('participations')}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{userStats.eventsAttended}</Text>
+            <Text style={[styles.statLabel, { color: colors.subtext }]}>{t('participations')}</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{userStats.followers}</Text>
-            <Text style={styles.statLabel}>{t('followers')}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary }]}>{userStats.followers}</Text>
+            <Text style={[styles.statLabel, { color: colors.subtext }]}>{t('followers')}</Text>
           </View>
         </View>
 
         {/* Menu */}
-        <View style={styles.menuContainer}>
-          <Text style={styles.menuTitle}>{t('options')}</Text>
+        <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.menuTitle, { color: colors.text }]}>{t('options')}</Text>
           {MENU_ITEMS.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.menuItem} onPress={() => handleMenuPress(item.id)}>
+            <TouchableOpacity key={item.id} style={[styles.menuItem, { backgroundColor: colors.surface }]} onPress={() => handleMenuPress(item.id)}>
               <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
                 <Ionicons name={item.icon} size={22} color={item.color} />
               </View>
-              <Text style={styles.menuText}>{t(`menu_${item.id}`)}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#666" />
+              <Text style={[styles.menuText, { color: colors.text }]}>{t(`menu_${item.id}`)}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.muted} />
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={styles.userInfoSection}>
-          <Text style={styles.infoTitle}>{t('profileTitle')}</Text>
+        <View style={[styles.userInfoSection, { backgroundColor: colors.surface }]}>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Mode:</Text>
-            <Text style={styles.infoValue}>{isSupabaseAvailable ? t('connected') : t('offline')}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext }]}>Mode:</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>{isSupabaseAvailable ? t('connected') : t('offline')}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>ID:</Text>
-            <Text style={styles.infoValue}>{user.id.substring(0, 8)}...</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext }]}>ID:</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>{user.id.substring(0, 8)}...</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Inscrit le:</Text>
-            <Text style={styles.infoValue}>{user.created_at ? new Date(user.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext }]}>Inscrit le:</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>{user.created_at ? new Date(user.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Dernière maj:</Text>
-            <Text style={styles.infoValue}>{currentProfile.updated_at ? new Date(currentProfile.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext }]}>Dernière maj:</Text>
+            <Text style={[styles.infoValue, { color: colors.text }]}>{currentProfile.updated_at ? new Date(currentProfile.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
           </View>
         </View>
       </Animated.ScrollView>
@@ -662,15 +663,15 @@ export default function ProfileScreen({ navigation }) {
 
 // --- STYLES (identiques à ton code) ---
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#1a1a1a' },
+  safeArea: { flex: 1 },
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   statusBar: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 8, gap: 8 },
   statusText: { color: "#fff", fontSize: 12, fontWeight: "500" },
   refreshButton: { marginLeft: 10 },
-  loadingText: { color: '#fff', marginTop: 15, fontSize: 16 },
-  noUserTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginTop: 20, marginBottom: 8 },
-  noUserSubtitle: { fontSize: 16, color: '#ccc', textAlign: 'center', marginBottom: 30 },
+  loadingText: { marginTop: 15, fontSize: 16 },
+  noUserTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 20, marginBottom: 8 },
+  noUserSubtitle: { fontSize: 16, textAlign: 'center', marginBottom: 30 },
   headerGradient: { paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 10 },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
@@ -680,32 +681,33 @@ const styles = StyleSheet.create({
   avatarOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 60, justifyContent: 'center', alignItems: 'center' },
   statusIndicator: { position: 'absolute', bottom: 8, right: 8, width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: '#fff' },
   userInfo: { alignItems: 'center', marginBottom: 25 },
-  username: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 5 },
-  email: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginBottom: 8 },
-  bio: { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginBottom: 10, paddingHorizontal: 20 },
+  username: { fontSize: 28, fontWeight: 'bold', marginBottom: 5 },
+  email: { fontSize: 16, marginBottom: 8 },
+  bio: { fontSize: 14, textAlign: 'center', marginBottom: 10, paddingHorizontal: 20 },
   membershipBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,215,0,0.1)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 15, gap: 5 },
   membershipText: { color: '#FFD700', fontSize: 12, fontWeight: '600' },
   editContainer: { width: '100%', marginBottom: 20 },
-  editInput: { backgroundColor: 'rgba(255,255,255,0.1)', padding: 15, borderRadius: 10, color: '#fff', textAlign: 'center', marginBottom: 10, fontSize: 16 },
+  editInput: { padding: 15, borderRadius: 10, textAlign: 'center', marginBottom: 10, fontSize: 16 },
   bioInput: { textAlign: 'left', minHeight: 80, textAlignVertical: 'top' },
   editButton: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 25, alignItems: 'center', gap: 8 },
   saveButton: { backgroundColor: '#4CAF50' },
   editText: { color: '#fff', fontWeight: '600' },
-  statsContainer: { flexDirection: 'row', backgroundColor: '#222', marginHorizontal: 20, marginTop: -20, marginBottom: 30, borderRadius: 15, padding: 20, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8 },
+  statsContainer: { flexDirection: 'row', marginHorizontal: 20, marginTop: -20, marginBottom: 30, borderRadius: 15, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 8 },
   statItem: { flex: 1, alignItems: 'center' },
-  statNumber: { fontSize: 24, fontWeight: 'bold', color: '#8A2BE2', marginBottom: 5 },
-  statLabel: { fontSize: 12, color: '#ccc', textAlign: 'center' },
-  statDivider: { width: 1, backgroundColor: '#333', marginHorizontal: 10 },
+  statNumber: { fontSize: 24, fontWeight: 'bold', marginBottom: 5 },
+  statLabel: { fontSize: 12, textAlign: 'center' },
+  statDivider: { width: 1, marginHorizontal: 10 },
   menuContainer: { paddingHorizontal: 20, marginBottom: 20 },
-  menuTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', marginBottom: 15 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#222', padding: 15, borderRadius: 12, marginBottom: 8 },
+  menuTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 12, marginBottom: 8 },
   menuIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  menuText: { flex: 1, fontSize: 16, color: '#fff', fontWeight: '500' },
-  userInfoSection: { margin: 20, padding: 15, backgroundColor: '#333', borderRadius: 10, marginBottom: 40 },
-  infoTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 15 },
-  infoItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#444' },
-  infoLabel: { color: '#ccc', fontSize: 14 },
-  infoValue: { color: '#fff', fontSize: 14, fontWeight: '500' },
-  loginButton: { flexDirection: 'row', backgroundColor: '#8A2BE2', paddingVertical: 15, paddingHorizontal: 30, borderRadius: 25, alignItems: 'center', gap: 8 },
+  menuText: { flex: 1, fontSize: 16, fontWeight: '500' },
+  userInfoSection: { margin: 20, padding: 15, borderRadius: 10, marginBottom: 40 },
+  infoTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
+  infoItem: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1 },
+  infoLabel: { fontSize: 14 },
+  infoValue: { fontSize: 14, fontWeight: '500' },
+  loginButton: { flexDirection: 'row', paddingVertical: 15, paddingHorizontal: 30, borderRadius: 25, alignItems: 'center', gap: 8 },
   loginText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-});
+})
+;
