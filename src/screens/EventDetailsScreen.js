@@ -5,13 +5,13 @@ import {
   Text,
   StyleSheet,
   Image,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#333',
-    paddingVertical: 15,
+    paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     marginLeft: 8,
   },

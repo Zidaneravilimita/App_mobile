@@ -4141,6 +4141,37 @@ expo-constants@~18.0.9:
     "@expo/config" "~12.0.9"
     "@expo/env" "~2.0.7"
 
+expo-dev-client@^6.0.13:
+  version "6.0.13"
+  resolved "https://registry.npmjs.org/expo-dev-client/-/expo-dev-client-6.0.13.tgz"
+  integrity sha512-zW3uLx4fBk5jhUafxJcrmbCbhcIMN6Vy7ebUTzLWkHuB0uEh2qwI2bJpeHgXCY+9OzA8HGjT8EUsA5sPKEATfA==
+  dependencies:
+    expo-dev-launcher "6.0.13"
+    expo-dev-menu "7.0.13"
+    expo-dev-menu-interface "2.0.0"
+    expo-manifests "~1.0.8"
+    expo-updates-interface "~2.0.0"
+
+expo-dev-launcher@6.0.13:
+  version "6.0.13"
+  resolved "https://registry.npmjs.org/expo-dev-launcher/-/expo-dev-launcher-6.0.13.tgz"
+  integrity sha512-NmUOXKpSN0HaRneY4jeBgLpEYradw/uNHNGYVlE6bPTUXBw2P6cLChGqeclzq/Dj5eHoSCfSOgyFRfvfH1BcfQ==
+  dependencies:
+    expo-dev-menu "7.0.13"
+    expo-manifests "~1.0.8"
+
+expo-dev-menu-interface@2.0.0:
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/expo-dev-menu-interface/-/expo-dev-menu-interface-2.0.0.tgz"
+  integrity sha512-BvAMPt6x+vyXpThsyjjOYyjwfjREV4OOpQkZ0tNl+nGpsPfcY9mc6DRACoWnH9KpLzyIt3BOgh3cuy/h/OxQjw==
+
+expo-dev-menu@7.0.13:
+  version "7.0.13"
+  resolved "https://registry.npmjs.org/expo-dev-menu/-/expo-dev-menu-7.0.13.tgz"
+  integrity sha512-jxT19gqgCCGhi8AhoVTULwEPZK1PaaevLnLRzCo/1fKVM4YaEV0RgJPPuSe4xVloUWYVkCmfn0t32IPBHp2SSA==
+  dependencies:
+    expo-dev-menu-interface "2.0.0"
+
 expo-device@~8.0.8:
   version "8.0.9"
   resolved "https://registry.npmjs.org/expo-device/-/expo-device-8.0.9.tgz"

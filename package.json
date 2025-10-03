@@ -76,6 +76,7 @@
     "@react-native/gradle-plugin": "^0.81.4",
     "@react-native/metro-config": "^0.72.12",
     "babel-preset-expo": "^54.0.3",
+    "expo-dev-client": "^6.0.13",
     "metro": "^0.83.1",
     "metro-config": "^0.76.0",
     "metro-core": "^0.76.0",
