@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   actionContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 15,
+    gap: 8,
   },
   actionButton: {
     flex: 1,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#333',
     paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#555',
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: 'bold',
     marginLeft: 8,
   },

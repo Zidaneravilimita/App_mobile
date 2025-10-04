@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 /**
  * Composant de l'écran d'accueil.
@@ -9,6 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
  * @param {object} navigation - L'objet de navigation de React Navigation.
  */
 export default function WelcomeScreen({ navigation }) {
+  const { t } = useI18n();
+  const { colors } = useTheme();
+  
   // Gère la navigation vers l'écran d'inscription organisateur
   const handleOrganizerPress = () => {
     navigation.navigate('OrganizerScreen');
@@ -20,25 +25,25 @@ export default function WelcomeScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <Ionicons name="sparkles" size={40} color="#8A2BE2" />
-          <Text style={styles.title}>Bienvenue sur LIBRE APP</Text>
+          <Text style={styles.title}>Welcome to Libre App</Text>
         </View>
 
-        <Text style={styles.subtitle}>
-          Choisissez votre mode d'utilisation.
+        <Text style={[styles.subtitle, { color: colors.subtext }]}>
+          {t('chooseMode') || 'Choisissez Votre Mode D\'Utilisation.'}
         </Text>
 
         <TouchableOpacity style={styles.button} onPress={handleOrganizerPress}>
           <Ionicons name="mic-circle-outline" size={24} color="#fff" style={styles.buttonIcon} />
-          <Text style={styles.buttonText}>ORGANISATEUR</Text>
+          <Text style={styles.buttonText}>{t('organizer') || 'ORGANISATEUR'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.button} onPress={handleVisitorPress}>
           <Ionicons name="eye-outline" size={24} color="#fff" style={styles.buttonIcon} />
-          <Text style={styles.buttonText}>VISITEUR</Text>
+          <Text style={styles.buttonText}>{t('visitor') || 'VISITEUR'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

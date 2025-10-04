@@ -15,8 +15,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../config/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useI18n } from "../i18n";
+import { useTheme } from "../theme";
 
 export default function LoginScreen({ navigation, route }) {
+  const { t } = useI18n();
+  const { colors } = useTheme();
   const [email, setEmail] = useState(route.params?.email || "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

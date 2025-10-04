@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
+import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 /**
  * Composant de l'écran d'inscription pour les organisateurs.
@@ -10,6 +12,8 @@ import { supabase } from '../config/supabase';
  * @param {object} navigation - L'objet de navigation de React Navigation.
  */
 export default function OrganizerScreen({ navigation }) {
+  const { t } = useI18n();
+  const { colors } = useTheme();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

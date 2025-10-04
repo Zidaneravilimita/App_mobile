@@ -78,7 +78,6 @@ export default function TicketScreen({ navigation, route }) {
 
         {!done ? (
           <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.label, { color: colors.subtext }]}>{t('firstName') || 'Prénom'}</Text>
             <TextInput
               value={firstName}
               onChangeText={setFirstName}
@@ -87,7 +86,6 @@ export default function TicketScreen({ navigation, route }) {
               placeholderTextColor={colors.subtext}
             />
 
-            <Text style={[styles.label, { color: colors.subtext }]}>{t('address') || 'Adresse'}</Text>
             <TextInput
               value={address}
               onChangeText={setAddress}
@@ -96,7 +94,6 @@ export default function TicketScreen({ navigation, route }) {
               placeholderTextColor={colors.subtext}
             />
 
-            <Text style={[styles.label, { color: colors.subtext }]}>{t('phoneTransfer') || 'N° de telephone du déposant'}</Text>
             <TextInput
               value={phone}
               onChangeText={setPhone}
@@ -105,39 +102,27 @@ export default function TicketScreen({ navigation, route }) {
               placeholder={t('phoneTransfer') || 'N° de telephone du déposant'}
               placeholderTextColor={colors.subtext}
             />
-
-            <Text style={[styles.label, { color: colors.subtext }]}>{t('wallet') || 'Portefeuille'}</Text>
             <View style={styles.walletRow}>
               <TouchableOpacity onPress={() => setWallet('orange')} hitSlop={{top:8,bottom:8,left:8,right:8}} style={[
                 styles.walletBtn,
-                { borderColor: wallet==='orange'? '#FF7900' : colors.border, backgroundColor: wallet==='orange'? '#FF7900': colors.card }
+                { borderColor: wallet==='orange'? '#FF7900' : colors.border, backgroundColor: wallet==='orange'? '#FFFFFF': colors.card }
               ]}> 
-                <View style={styles.walletContent}>
-                  <Image source={require('../../assets/mobile_money/orange_money.png')} style={styles.walletIcon} resizeMode="contain" />
-                  <Text style={[styles.walletText, { color: wallet==='orange'? '#fff' : colors.text }]}>{t('orangeMoney') || 'Orange Money'}</Text>
-                </View>
+                <Image source={require('../../assets/mobile_money/orange_money.png')} style={styles.walletIcon} resizeMode="contain" />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setWallet('mvola')} hitSlop={{top:8,bottom:8,left:8,right:8}} style={[
                 styles.walletBtn,
-                { borderColor: wallet==='mvola'? '#00A859' : colors.border, backgroundColor: wallet==='mvola'? '#00A859': colors.card }
+                { borderColor: '#00A859', backgroundColor: '#FFD700' }
               ]}> 
-                <View style={styles.walletContent}>
-                  <Image source={require('../../assets/mobile_money/mvola.png')} style={styles.walletIcon} resizeMode="contain" />
-                  <Text style={[styles.walletText, { color: wallet==='mvola'? '#fff' : colors.text }]}>{t('mvola') || 'Mvola'}</Text>
-                </View>
+                <Image source={require('../../assets/mobile_money/mvola.png')} style={styles.walletIcon} resizeMode="contain" />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => setWallet('airtel')} hitSlop={{top:8,bottom:8,left:8,right:8}} style={[
                 styles.walletBtn,
-                { borderColor: wallet==='airtel'? '#E62E2D' : colors.border, backgroundColor: wallet==='airtel'? '#E62E2D': colors.card }
+                { borderColor: '#E62E2D', backgroundColor: '#FFFFFF' }
               ]}> 
-                <View style={styles.walletContent}>
-                  <Image source={require('../../assets/mobile_money/airtel_money.png')} style={styles.walletIcon} resizeMode="contain" />
-                  <Text style={[styles.walletText, { color: wallet==='airtel'? '#fff' : colors.text }]}>{t('airtelMoney') || 'Airtel Money'}</Text>
-                </View>
+                <Image source={require('../../assets/mobile_money/airtel_money.png')} style={styles.walletIcon} resizeMode="contain" />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.label, { color: colors.subtext }]}>{t('amount') || "Montant d'achat"}</Text>
             <TextInput
               value={amount}
               onChangeText={setAmount}
@@ -184,7 +169,7 @@ const styles = StyleSheet.create({
   eventTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16 },
   formCard: { borderWidth: 1, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16 },
   label: { fontSize: 12, marginBottom: 6 },
-  input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12 },
+  input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginBottom: 12, fontSize: 16 },
   textarea: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, minHeight: 80, textAlignVertical: 'top' },
   submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, marginTop: 12, gap: 8 },
   submitText: { color: '#fff', fontWeight: '700' },
@@ -193,9 +178,6 @@ const styles = StyleSheet.create({
   hint: { fontSize: 12, marginTop: 6 },
   successTitle: { fontSize: 16, fontWeight: '700', marginTop: 10 },
   walletRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
-  walletBtn: { flex: 1, borderWidth: 2, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 12, alignItems: 'center' },
-  walletContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  walletIconBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  walletIcon: { width: 36, height: 36 },
-  walletText: { fontWeight: '700' },
+  walletBtn: { flex: 1, borderWidth: 2, borderRadius: 12, paddingVertical: 4, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  walletIcon: { width: 56, height: 56 },
 });

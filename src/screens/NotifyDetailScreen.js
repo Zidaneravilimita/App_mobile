@@ -7,12 +7,16 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 /**
  * NotifyDetailScreen
  * Affiche les détails complets d'une notification
  */
 export default function NotifyDetailScreen({ route, navigation }) {
+  const { t } = useI18n();
+  const { colors } = useTheme();
   const { notification } = route.params || {};
 
   if (!notification) {

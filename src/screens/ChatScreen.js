@@ -15,11 +15,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
 import { useTheme } from '../theme';
+import { useI18n } from '../i18n';
 
 export default function ChatScreen({ navigation, route }) {
   const { colors } = useTheme();
+  const { t } = useI18n();
   const chatId = route?.params?.chatId || 'global';
-  const title = route?.params?.title || 'Chat';
+  const title = route?.params?.title || t('chat') || 'Chat';
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');

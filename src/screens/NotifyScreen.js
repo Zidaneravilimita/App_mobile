@@ -15,6 +15,8 @@ import Constants from "expo-constants";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../config/supabase";
 import { useIsFocused } from "@react-navigation/native";
+import { useI18n } from "../i18n";
+import { useTheme } from "../theme";
 
 /**
  * NotifyScreen
@@ -29,6 +31,8 @@ import { useIsFocused } from "@react-navigation/native";
  * (ceci est une seule ligne à ajouter dans Header.js)
  */
 export default function NotifyScreen({ navigation }) {
+  const { t } = useI18n();
+  const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
   const [expoToken, setExpoToken] = useState(null);

@@ -3,9 +3,11 @@ import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, StatusBar, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 
 export default function PrivacyScreen({ navigation }) {
   const { t } = useI18n();
+  const { colors } = useTheme();
   const requestDeleteAccount = () => {
     Alert.alert(
       t('deleteConfirmTitle'),
@@ -18,18 +20,18 @@ export default function PrivacyScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('privacy')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('privacy')}</Text>
         <View style={{ width: 22 }} />
       </View>
 
       <View style={styles.container}>
-        <Text style={styles.text}>{t('policyComing')}</Text>
+        <Text style={[styles.text, { color: colors.subtext }]}>{t('policyComing')}</Text>
         <TouchableOpacity onPress={requestDeleteAccount} style={styles.dangerBtn}>
           <Ionicons name="trash" size={18} color="#fff" />
           <Text style={styles.dangerText}>{t('deleteAccount')}</Text>

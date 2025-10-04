@@ -195,42 +195,28 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           <View style={styles.rowFilters}>
-            <View
-              style={[
-                styles.pickerPill,
-                { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: '#000', overflow: 'hidden' },
-              ]}
-            >
-              <Ionicons name="location-outline" size={18} color={colors.primary} style={styles.pickerIcon} />
+            <View style={[styles.pickerWrapper, styles.sidePicker]}>
               <Picker
                 selectedValue={selectedVilleId}
                 onValueChange={(itemValue) => setSelectedVilleId(itemValue)}
-                mode="dropdown"
-                dropdownIconColor={colors.muted}
-                dropdownIconRippleColor="transparent"
-                style={[styles.pickerFlex, { color: colors.text, backgroundColor: 'transparent' }]}
+                style={styles.pickerStyle}
               >
                 <Picker.Item label="Toutes les villes" value="all" />
                 {villes.map((ville) => (
-                  <Picker.Item key={ville.id_ville} label={ville.nom_ville} value={ville.id_ville} />
+                  <Picker.Item
+                    key={ville.id_ville}
+                    label={ville.nom_ville}
+                    value={ville.id_ville}
+                  />
                 ))}
               </Picker>
             </View>
 
-            <View
-              style={[
-                styles.pickerPill,
-                { backgroundColor: colors.surface, borderColor: colors.border, shadowColor: '#000', overflow: 'hidden' },
-              ]}
-            >
-              <Ionicons name="calendar-outline" size={18} color={colors.primary} style={styles.pickerIcon} />
+            <View style={[styles.pickerWrapper, styles.sidePicker]}>
               <Picker
                 selectedValue={dateFilter}
                 onValueChange={(val) => setDateFilter(val)}
-                mode="dropdown"
-                dropdownIconColor={colors.muted}
-                dropdownIconRippleColor="transparent"
-                style={[styles.pickerFlex, { color: colors.text, backgroundColor: 'transparent' }]}
+                style={styles.pickerStyle}
               >
                 <Picker.Item label="Toutes les dates" value="all" />
                 <Picker.Item label="À venir" value="upcoming" />
@@ -280,23 +266,23 @@ const styles = StyleSheet.create({
   notificationText: { color: '#fff', fontSize: 12, fontWeight: '500' },
   sectionTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 15 },
   categoryContainer: { height: 140, marginVertical: 5, marginBottom: 20 },
-  rowFilters: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 10 },
-  pickerPill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+  rowFilters: { flexDirection: "row", alignItems: "center" },
+  pickerWrapper: {
+    marginVertical: 10,
     borderWidth: 1,
-    borderRadius: 22,
-    height: 44,
-    paddingHorizontal: 10,
-    // subtle shadow (Android + iOS)
-    elevation: 1,
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    borderColor: "#555",
+    borderRadius: 8,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    height: 40,
   },
-  pickerIcon: { marginRight: 8 },
-  pickerFlex: { flex: 1 },
+  sidePicker: {
+    flex: 1,
+    marginRight: 8,
+  },
+  pickerStyle: {
+    color: "#fff",
+  },
   loader: { marginTop: 20 },
   popularTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 15, marginBottom: 10 },
   noEventsContainer: { alignItems: 'center', padding: 40 },

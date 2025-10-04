@@ -16,8 +16,12 @@ import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../config/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useI18n } from "../i18n";
+import { useTheme } from "../theme";
 
 export default function SignupScreen({ navigation }) {
+  const { t } = useI18n();
+  const { colors } = useTheme();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
