@@ -67,32 +67,37 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
+node_modules/
 
 # Expo local state
 .expo/
-
 #yarn
 # Dépendances
 node_modules/
 .yarn/
 
-# Fichiers de build
-android/app/build/
-ios/build/
-dist/
-build/
+  # Fichiers de build
+  android/app/build/
+  android/build/
+  android/.gradle/
+  android/.cxx/
+  ios/build/
+  dist/
+  build/
+
+  # Artefacts de release Android
+  *.apk
+  *.aab
+  *.keystore
+  *.jks
+
+  # Expo (shared state)
+  .expo-shared/
 
 # Fichiers IDE
 .idea/
 .vscode/
 *.swp
-*.swo
 
 # Logs
 npm-debug.log*
@@ -107,3 +112,19 @@ yarn-error.log*
 
 # Expo
 .expo/
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules
+node_modules

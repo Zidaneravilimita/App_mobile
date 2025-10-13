@@ -1,3 +1,5 @@
 {
-    "CodeGPT.apiKey": "Anthropic"
+    "CodeGPT.apiKey": "Anthropic",
+    "git.ignoreLimitWarning": true,
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

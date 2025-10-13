@@ -4,10 +4,10 @@
     "slug": "MonApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/Maquette/LA logo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/Maquette/LA logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,27 +16,36 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/Maquette/LA logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.ravilimita.monapp"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/Maquette/LA logo.png"
     },
     "plugins": [
       "expo-font",
       "expo-secure-store",
       "expo-localization",
       "expo-notifications",
-      "expo-system-ui"
+      "expo-system-ui",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "gradlePluginVersion": "8.4.1",
+            "kotlinVersion": "1.9.23"
+          }
+        }
+      ]
     ],
+    "owner": "ravilimita",
     "extra": {
       "eas": {
-        "projectId": "791eb8c6-204b-4ee4-9db7-5898faf70d10"
+        "projectId": "fbd80883-78c1-4968-b1a5-b878f3f6d6a6"
       }
-    },
-    "owner": "ravilimita"
+    }
   }
 }

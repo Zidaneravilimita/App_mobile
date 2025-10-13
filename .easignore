@@ -1,0 +1,33 @@
+# VCS / IDE
+.git/
+.github/
+.idea/
+.vscode/
+
+# Node / logs
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.yarn/
+.yarnrc*
+
+# Android builds/caches
+android/build/
+android/app/build/
+android/.gradle/
+android/.cxx/
+
+# iOS (if present)
+ios/build/
+ios/Pods/
+
+# Release artifacts
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Misc
+*.log
+.DS_Store
+Thumbs.db

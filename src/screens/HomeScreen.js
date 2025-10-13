@@ -21,10 +21,12 @@ import { supabase } from "../config/supabase";
 import ImageUploader from "../components/ImageUploader";
 import { useTheme } from "../theme";
 import { useI18n } from "../i18n";
+import { useResponsive } from "../hooks/useResponsive";
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
   const { t } = useI18n();
+  const { spacing, isSmall } = useResponsive();
   const [currentContent, setCurrentContent] = useState("main");
   const [rawEvents, setRawEvents] = useState([]);
   const [events, setEvents] = useState([]);
@@ -188,8 +190,8 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('categories')}</Text>
+        <ScrollView contentContainerStyle={[styles.scrollViewContent, { paddingBottom: spacing * 1.25, paddingHorizontal: spacing }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: spacing }]}>{t('categories')}</Text>
           <View style={styles.categoryContainer}>
             <CategoryScroll categories={categories} onSelectCategory={(id) => setSelectedCategoryId(id)} />
           </View>
@@ -225,18 +227,18 @@ export default function HomeScreen({ navigation }) {
             </View>
           </View>
 
-          <Text style={{ color: colors.text, ...styles.popularTitle }}>{t('available_events')}</Text>
+          <Text style={{ color: colors.text, ...styles.popularTitle, marginTop: spacing, marginBottom: spacing * 0.75 }}>{t('available_events')}</Text>
           {loadingEvents ? (
-            <ActivityIndicator size="large" color={colors.primary} style={{ ...styles.loader }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ ...styles.loader, marginTop: spacing }} />
           ) : events.length > 0 ? (
             events.map((event) => (
               <EventCard key={event.id_event} event={event} onPress={() => handleEventPress(event)} />
             ))
           ) : (
-            <View style={{ ...styles.noEventsContainer }}>
+            <View style={{ ...styles.noEventsContainer, padding: spacing * 2.5 }}>
               <Ionicons name="search" size={60} color={colors.muted} />
               <Text style={{ color: colors.text, ...styles.noEventsText }}>Aucun événement trouvé</Text>
-              <Text style={{ color: colors.subtext, ...styles.noEventsSubtext }}>Essayez de changer les filtres ou revenez plus tard</Text>
+              <Text style={{ color: colors.subtext, ...styles.noEventsSubtext, marginBottom: spacing * 1.5 }}>Essayez de changer les filtres ou revenez plus tard</Text>
               <TouchableOpacity style={{ ...styles.resetButton }} onPress={() => { setSelectedVilleId("all"); setSelectedCategoryId(null); setDateFilter("all"); }}>
                 <Text style={{ color: "#fff", fontWeight: "bold", ...styles.resetButtonText }}>Réinitialiser les filtres</Text>
               </TouchableOpacity>
