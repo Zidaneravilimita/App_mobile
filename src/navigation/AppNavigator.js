@@ -1,7 +1,8 @@
 // src/navigation/AppNavigator.js
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { useTheme } from '../theme';
 
 // Écrans d'authentification et d'accueil
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -41,9 +42,21 @@ const Stack = createNativeStackNavigator();
  * Navigateur principal de l'application.
  */
 export default function AppNavigator() {
+  const { colors } = useTheme();
+  const navTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: colors.background,
+      card: colors.background,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+    },
+  };
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <NavigationContainer theme={navTheme}>
+      <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         {/* Écran initial de bienvenue */}
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
 

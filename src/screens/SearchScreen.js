@@ -19,6 +19,7 @@ import EventCard from "../components/EventCard";
 import { supabase } from "../config/supabase";
 import { useTheme } from "../theme";
 import { useI18n } from "../i18n";
+import { ms, hp, wp } from "../theme/responsive";
 
 export default function SearchScreen({ navigation }) {
   const { colors } = useTheme();
@@ -118,20 +119,17 @@ export default function SearchScreen({ navigation }) {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Header />
-
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={[styles.title, { color: colors.text }]}>Search Events</Text>
 
           <View style={styles.searchRow}>
-            <View style={[styles.inputWrapper, { backgroundColor: colors.surface }]}>
-              <Ionicons name="search" size={18} color={colors.muted} style={{ marginRight: 8 }} />
+            <View style={[styles.inputWrapper, { backgroundColor: colors.surface }]}> 
+              <Ionicons name="search" size={ms(16)} color={colors.muted} style={{ marginRight: ms(8) }} />
               <TextInput
                 placeholder="Search by title..."
                 placeholderTextColor={colors.subtext}
                 value={query}
                 onChangeText={setQuery}
-                onSubmitEditing={performSearch}
                 style={[styles.input, { color: colors.text }]}
                 returnKeyType="search"
               />
@@ -174,10 +172,10 @@ export default function SearchScreen({ navigation }) {
           <Text style={[styles.resultsTitle, { color: colors.text }]}>Results ({results.length})</Text>
 
           {loading ? (
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: ms(20) }} />
           ) : results.length === 0 ? (
             <View style={styles.empty}>
-              <Ionicons name="search" size={64} color={colors.muted} />
+              <Ionicons name="search" size={ms(56)} color={colors.muted} />
               <Text style={[styles.emptyText, { color: colors.text }]}>No Events Found</Text>
               <Text style={[styles.emptySub, { color: colors.subtext }]}>Try widening your filters or search terms.</Text>
             </View>
@@ -201,76 +199,76 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 20,
+    padding: ms(16),
   },
   title: {
-    fontSize: 24,
+    fontSize: ms(22),
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: ms(16),
     textAlign: 'center',
   },
   searchRow: {
     flexDirection: 'row',
-    marginBottom: 20,
-    gap: 10,
+    marginBottom: ms(16),
+    gap: ms(8),
   },
   inputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: ms(12),
+    paddingVertical: ms(10),
+    borderRadius: ms(10),
     borderWidth: 1,
     borderColor: '#333',
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: ms(16),
     paddingVertical: 0,
   },
   searchButton: {
-    padding: 12,
-    borderRadius: 10,
+    padding: ms(12),
+    borderRadius: ms(10),
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowFilters: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+    gap: ms(8),
+    marginBottom: ms(16),
   },
   pickerWrapper: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: ms(10),
     borderWidth: 1,
     overflow: 'hidden',
   },
   sidePicker: {
-    height: 50,
+    height: ms(46),
   },
   picker: {
-    height: 50,
-    fontSize: 16,
+    height: ms(46),
+    fontSize: ms(16),
   },
   resultsTitle: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: ms(12),
   },
   empty: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: ms(32),
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: ms(18),
     fontWeight: '600',
-    marginTop: 16,
+    marginTop: ms(12),
     textAlign: 'center',
   },
   emptySub: {
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: ms(12),
+    marginTop: ms(6),
     textAlign: 'center',
   },
 });

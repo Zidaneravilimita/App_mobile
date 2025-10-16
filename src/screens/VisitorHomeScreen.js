@@ -19,6 +19,7 @@ import EventCard from "../components/EventCard";
 import BottomNavBar from "../components/BottomNavBar";
 import { supabase } from "../config/supabase";
 import { useI18n } from "../i18n";
+import { ms, hp, wp } from "../theme/responsive";
 
 export default function VisitorHomeScreen({ navigation }) {
   const { t } = useI18n();
@@ -166,7 +167,7 @@ export default function VisitorHomeScreen({ navigation }) {
 
         {showNotification && (
           <View style={styles.notification}>
-            <Ionicons name="cloud-done" size={16} color="#fff" />
+            <Ionicons name="cloud-done" size={ms(16)} color="#fff" />
             <Text style={styles.notificationText}>Connecté à Supabase</Text>
           </View>
         )}
@@ -225,7 +226,7 @@ export default function VisitorHomeScreen({ navigation }) {
             ))
           ) : (
             <View style={styles.noEventsContainer}>
-              <Ionicons name="search" size={60} color="#666" />
+              <Ionicons name="search" size={ms(56)} color="#666" />
               <Text style={styles.noEventsText}>Aucun événement trouvé</Text>
               <Text style={styles.noEventsSubtext}>
                 Essayez de changer les filtres ou revenez plus tard
@@ -253,80 +254,80 @@ export default function VisitorHomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#1a1a1a" },
   container: { flex: 1, backgroundColor: "#1a1a1a" },
-  scrollViewContent: { paddingBottom: 20, paddingHorizontal: 15 },
+  scrollViewContent: { paddingBottom: ms(16), paddingHorizontal: ms(14) },
   notification: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#10b981",
-    paddingVertical: 8,
-    gap: 8,
+    paddingVertical: ms(8),
+    gap: ms(8),
   },
   notificationText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: ms(12),
     fontWeight: "500",
   },
   pickerWrapper: {
-    marginVertical: 10,
+    marginVertical: ms(10),
     borderWidth: 1,
     borderColor: "#555",
-    borderRadius: 8,
+    borderRadius: ms(8),
     backgroundColor: "#333",
     justifyContent: "center",
-    height: 40,
+    height: ms(40),
   },
   sidePicker: {
     flex: 1,
-    marginRight: 8,
+    marginRight: ms(8),
   },
   rowFilters: { flexDirection: "row", alignItems: "center" },
   pickerStyle: {
     color: "#fff",
   },
   categoryContainer: {
-    height: 140,
-    marginVertical: 5,
-    marginBottom: 20,
+    height: hp(18),
+    marginVertical: ms(4),
+    marginBottom: ms(16),
   },
   loader: {
-    marginTop: 20,
+    marginTop: ms(16),
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: ms(20),
     fontWeight: "bold",
     color: "#fff",
-    marginTop: 15,
+    marginTop: ms(12),
   },
   popularTitle: {
-    fontSize: 22,
+    fontSize: ms(20),
     fontWeight: "bold",
     color: "#fff",
-    marginTop: 15,
-    marginBottom: 10,
+    marginTop: ms(12),
+    marginBottom: ms(8),
   },
   noEventsContainer: {
     alignItems: "center",
-    padding: 40,
+    padding: ms(32),
   },
   noEventsText: {
-    fontSize: 20,
+    fontSize: ms(18),
     fontWeight: "bold",
     color: "#fff",
-    marginTop: 15,
-    marginBottom: 8,
+    marginTop: ms(12),
+    marginBottom: ms(6),
   },
   noEventsSubtext: {
-    fontSize: 14,
+    fontSize: ms(12),
     color: "#ccc",
     textAlign: "center",
-    marginBottom: 25,
+    marginBottom: ms(20),
   },
   resetButton: {
     backgroundColor: "#8A2BE2",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: ms(16),
+    paddingVertical: ms(10),
+    borderRadius: ms(8),
   },
   resetButtonText: {
     color: "#fff",

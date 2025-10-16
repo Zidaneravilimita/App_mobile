@@ -1,6 +1,7 @@
 // src/screens/SettingsScreen.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, TouchableOpacity, Switch } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, TouchableOpacity, Switch } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../i18n';

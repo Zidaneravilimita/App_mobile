@@ -9,6 +9,9 @@ import {
   ActivityIndicator
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { ms, hp, wp } from '../theme/responsive';
+
+
 
 export default function EventCard({ event = {}, onPress }) {
   const [imageError, setImageError] = useState(false);
@@ -31,29 +34,23 @@ export default function EventCard({ event = {}, onPress }) {
     }
   };
 
-  // ✅ Champs selon la table events avec jointures
+  // Champs selon la table events avec jointures
   const eventTitle = event.titre || "Titre non disponible";
   const eventDate = formatDate(event.date_event);
-  
-  // Récupérer la ville depuis la jointure ou directement
+  // Récupérer la ville
   const eventVille = event.ville?.nom_ville || event.nom_ville || "Ville non définie";
-
-  // Récupérer la catégorie depuis la jointure ou directement
+  // Récupérer la catégorie
   const eventType = event.category?.nom_category || event.nom_category || "Catégorie inconnue";
 
-  // ✅ Gestion avancée des images - SUPPRESSION COMPLÈTE DES PLACEHOLDERS EXTERNES
+  // Gestion des images avec cache-busting
   useEffect(() => {
-    // Réinitialiser les états
     setImageError(false);
     setImageLoaded(false);
-
     if (event.image_url && event.image_url.startsWith('http')) {
-      // Cache-busting pour forcer le rechargement
       const timestamp = new Date().getTime();
-      const imageUrl = event.image_url.includes('?') 
+      const imageUrl = event.image_url.includes('?')
         ? `${event.image_url}&t=${timestamp}`
         : `${event.image_url}?t=${timestamp}`;
-      
       setCurrentImageUri(imageUrl);
     } else {
       setCurrentImageUri(null);
@@ -63,7 +60,7 @@ export default function EventCard({ event = {}, onPress }) {
   const handleImageError = () => {
     console.log("❌ Erreur image pour:", eventTitle, "URL:", event.image_url);
     setImageError(true);
-    setCurrentImageUri(null); // Supprimer l'URL en cas d'erreur
+    setCurrentImageUri(null);
   };
 
   const handleImageLoad = () => {
@@ -87,7 +84,7 @@ export default function EventCard({ event = {}, onPress }) {
             colors={["rgba(0,0,0,0.6)", "transparent"]}
             style={styles.gradientOverlay}
           />
-          
+
           {/* Indicateur de chargement */}
           {!imageLoaded && (
             <View style={styles.imageLoadingContainer}>
@@ -123,9 +120,9 @@ export default function EventCard({ event = {}, onPress }) {
 const styles = StyleSheet.create({
   cardContainer: {
     backgroundColor: "#222",
-    borderRadius: 15,
+    borderRadius: ms(12),
     overflow: "hidden",
-    marginBottom: 20,
+    marginBottom: ms(16),
     elevation: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -134,7 +131,7 @@ const styles = StyleSheet.create({
   },
   eventImage: {
     width: "100%",
-    height: 180,
+    height: hp(22),
     backgroundColor: "#333",
   },
   imageLoadingContainer: {
@@ -149,59 +146,59 @@ const styles = StyleSheet.create({
   },
   noImageContainer: {
     width: "100%",
-    height: 180,
+    height: hp(22),
     backgroundColor: "#333",
     justifyContent: "center",
     alignItems: "center",
   },
   noImageText: {
-    fontSize: 40,
-    marginBottom: 10,
+    fontSize: ms(36),
+    marginBottom: ms(8),
   },
   noImageLabel: {
     color: "#888",
-    fontSize: 16,
+    fontSize: ms(14),
   },
   gradientOverlay: {
     ...StyleSheet.absoluteFillObject,
-    height: 180,
-    borderRadius: 15,
+    height: hp(22),
+    borderRadius: ms(12),
   },
   textContainer: {
     position: "absolute",
-    bottom: 15,
-    left: 15,
-    right: 15,
+    bottom: ms(12),
+    left: ms(12),
+    right: ms(12),
   },
   eventTitle: {
-    fontSize: 20,
+    fontSize: ms(18),
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 5,
+    marginBottom: ms(4),
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
   eventDetails: {
-    fontSize: 14,
+    fontSize: ms(12),
     color: "#ddd",
-    marginTop: 2,
+    marginTop: ms(2),
     textShadowColor: "rgba(0, 0, 0, 0.75)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
   badge: {
     position: "absolute",
-    top: 15,
-    left: 15,
+    top: ms(10),
+    left: ms(10),
     backgroundColor: "#8A2BE2",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    paddingVertical: ms(4),
+    paddingHorizontal: ms(10),
+    borderRadius: ms(10),
   },
   badgeText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: ms(10),
     fontWeight: "600",
   },
 });

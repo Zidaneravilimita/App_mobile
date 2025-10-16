@@ -242,7 +242,7 @@ export default function EventDetailsScreen({ route, navigation }) {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
-      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={[styles.container]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}

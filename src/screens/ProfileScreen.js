@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
   Image,
@@ -16,6 +15,7 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,6 +23,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../config/supabase';
 import { useI18n } from '../i18n';
 import { useTheme } from '../theme';
+import { ms, hp, wp } from '../theme/responsive';
+import { useResponsive } from '../hooks/useResponsive';
 
 const { width } = Dimensions.get('window');
 
@@ -68,6 +70,7 @@ const MENU_ITEMS = [
 export default function ProfileScreen({ navigation }) {
   const { t, lang } = useI18n();
   const { colors } = useTheme();
+  const { spacing, spacingTokens, font, isTablet } = useResponsive();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [userStats, setUserStats] = useState(DEFAULT_STATS);
@@ -542,46 +545,46 @@ export default function ProfileScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {/* Header avec gradient */}
-        <LinearGradient colors={['#8A2BE2', '#6A1B9A']} style={styles.headerGradient}>
-          <View style={styles.header}>
+        <LinearGradient colors={['#8A2BE2', '#6A1B9A']} style={[styles.headerGradient, { paddingBottom: ms(36) }]}>
+          <View style={[styles.header, { padding: spacing, paddingTop: spacingTokens.s }]}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Ionicons name="arrow-back" size={ms(22)} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>{t('profileTitle')}</Text>
+            <Text style={[styles.headerTitle, { fontSize: font(20, { min: 18, max: 22 }) }]}>{t('profileTitle')}</Text>
             <TouchableOpacity onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={24} color="#fff" />
+              <Ionicons name="log-out-outline" size={ms(22)} color="#fff" />
             </TouchableOpacity>
           </View>
 
           {/* Profil principal */}
           <Animated.View style={[styles.profileSection, { transform: [{ translateY: slideAnim }] }]}>
             <TouchableOpacity onPress={editing ? pickImage : null} style={styles.avatarContainer}>
-              <Image source={{ uri: newAvatar }} style={styles.avatar}
+              <Image source={{ uri: newAvatar }} style={[styles.avatar, { width: ms(116), height: ms(116), borderRadius: ms(58), borderWidth: ms(4) }]}
                 onError={() => setNewAvatar('https://i.ibb.co/2n9H0hZ/default-avatar.png')} />
               {editing && (
-                <View style={styles.avatarOverlay}>
-                  <Ionicons name="camera" size={24} color="#fff" />
+                <View style={[styles.avatarOverlay, { borderRadius: ms(58) }]}>
+                  <Ionicons name="camera" size={ms(20)} color="#fff" />
                 </View>
               )}
               <View style={[
                 styles.statusIndicator,
-                { backgroundColor: connectionStatus === 'connected' ? '#4CAF50' : '#FF6B6B' }
+                { backgroundColor: connectionStatus === 'connected' ? '#4CAF50' : '#FF6B6B', width: ms(18), height: ms(18), borderRadius: ms(9), borderWidth: ms(3) }
               ]} />
             </TouchableOpacity>
 
             {editing ? (
-              <View style={styles.editContainer}>
-                <TextInput style={[styles.editInput, { backgroundColor: colors.card, color: colors.text }]} value={newUsername} onChangeText={setNewUsername} placeholder="Nom d'utilisateur" placeholderTextColor={colors.subtext} />
-                <TextInput style={[styles.editInput, { backgroundColor: colors.card, color: colors.text }]} value={newEmail} onChangeText={setNewEmail} placeholder="Email" keyboardType="email-address" placeholderTextColor={colors.subtext} />
-                <TextInput style={[styles.editInput, styles.bioInput, { backgroundColor: colors.card, color: colors.text }]} value={newBio} onChangeText={setNewBio} placeholder="Bio (optionnelle)" placeholderTextColor={colors.subtext} multiline numberOfLines={3} />
+              <View style={[styles.editContainer, { marginBottom: spacingTokens.m }]}>
+                <TextInput style={[styles.editInput, { backgroundColor: colors.card, color: colors.text, padding: ms(14), borderRadius: ms(10), fontSize: font(16, { min: 14, max: 18 }) }]} value={newUsername} onChangeText={setNewUsername} placeholder="Nom d'utilisateur" placeholderTextColor={colors.subtext} />
+                <TextInput style={[styles.editInput, { backgroundColor: colors.card, color: colors.text, padding: ms(14), borderRadius: ms(10), fontSize: font(16, { min: 14, max: 18 }) }]} value={newEmail} onChangeText={setNewEmail} placeholder="Email" keyboardType="email-address" placeholderTextColor={colors.subtext} />
+                <TextInput style={[styles.editInput, styles.bioInput, { backgroundColor: colors.card, color: colors.text, padding: ms(14), borderRadius: ms(10), fontSize: font(14, { min: 13, max: 16 }) }]} value={newBio} onChangeText={setNewBio} placeholder="Bio (optionnelle)" placeholderTextColor={colors.subtext} multiline numberOfLines={3} />
               </View>
             ) : (
               <View style={styles.userInfo}>
-                <Text style={[styles.username, { color: colors.text }]}>{currentProfile.username || user.user_metadata?.username || 'Utilisateur'}</Text>
-                <Text style={[styles.email, { color: colors.subtext }]}>{user.email}</Text>
-                {currentProfile.bio ? <Text style={[styles.bio, { color: colors.subtext }]}>{currentProfile.bio}</Text> : null}
+                <Text style={[styles.username, { color: colors.text, fontSize: font(28, { min: 22, max: 30 }) }]}>{currentProfile.username || user.user_metadata?.username || 'Utilisateur'}</Text>
+                <Text style={[styles.email, { color: colors.subtext, fontSize: font(16, { min: 14, max: 18 }) }]}>{user.email}</Text>
+                {currentProfile.bio ? <Text style={[styles.bio, { color: colors.subtext, fontSize: font(14, { min: 13, max: 16 }) }]}>{currentProfile.bio}</Text> : null}
                 <View style={styles.membershipBadge}>
-                  <Ionicons name="diamond" size={14} color="#FFD700" />
+                  <Ionicons name="diamond" size={ms(12)} color="#FFD700" />
                   <Text style={styles.membershipText}>
                     {currentProfile.role === 'organisateur' ? 'Organisateur' : 'Membre'}
                   </Text>
@@ -590,7 +593,7 @@ export default function ProfileScreen({ navigation }) {
             )}
 
             <TouchableOpacity
-              style={[styles.editButton, editing && styles.saveButton]}
+              style={[styles.editButton, editing && styles.saveButton, { paddingHorizontal: ms(18), paddingVertical: ms(10), borderRadius: ms(24) }]}
               onPress={editing ? handleSaveProfile : () => setEditing(true)}
               disabled={loading}
             >
@@ -598,8 +601,8 @@ export default function ProfileScreen({ navigation }) {
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <Ionicons name={editing ? 'checkmark' : 'pencil'} size={18} color="#fff" />
-                  <Text style={styles.editText}>{editing ? t('save') : t('edit')}</Text>
+                  <Ionicons name={editing ? 'checkmark' : 'pencil'} size={ms(16)} color="#fff" />
+                  <Text style={[styles.editText, { fontSize: font(14, { min: 12, max: 16 }) }]}>{editing ? t('save') : t('edit')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -607,53 +610,53 @@ export default function ProfileScreen({ navigation }) {
         </LinearGradient>
 
         {/* Stats */}
-        <View style={[styles.statsContainer, { backgroundColor: colors.surface, shadowOpacity: 0.08 }]}>
+        <View style={[styles.statsContainer, { backgroundColor: colors.surface, shadowOpacity: 0.08, marginHorizontal: spacing, padding: spacing }]}>
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{userStats.eventsCreated}</Text>
-            <Text style={[styles.statLabel, { color: colors.subtext }]}>{t('eventsCreated')}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary, fontSize: font(22, { min: 18, max: 24 }) }]}>{userStats.eventsCreated}</Text>
+            <Text style={[styles.statLabel, { color: colors.subtext, fontSize: font(12, { min: 11, max: 13 }) }]}>{t('eventsCreated')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{userStats.eventsAttended}</Text>
-            <Text style={[styles.statLabel, { color: colors.subtext }]}>{t('participations')}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary, fontSize: font(22, { min: 18, max: 24 }) }]}>{userStats.eventsAttended}</Text>
+            <Text style={[styles.statLabel, { color: colors.subtext, fontSize: font(12, { min: 11, max: 13 }) }]}>{t('participations')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{userStats.followers}</Text>
-            <Text style={[styles.statLabel, { color: colors.subtext }]}>{t('followers')}</Text>
+            <Text style={[styles.statNumber, { color: colors.primary, fontSize: font(22, { min: 18, max: 24 }) }]}>{userStats.followers}</Text>
+            <Text style={[styles.statLabel, { color: colors.subtext, fontSize: font(12, { min: 11, max: 13 }) }]}>{t('followers')}</Text>
           </View>
         </View>
 
         {/* Menu */}
-        <View style={[styles.menuContainer, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.menuTitle, { color: colors.text }]}>{t('options')}</Text>
+        <View style={[styles.menuContainer, { backgroundColor: colors.surface, paddingHorizontal: spacing }]}>
+          <Text style={[styles.menuTitle, { color: colors.text, fontSize: font(18, { min: 16, max: 20 }), marginBottom: spacingTokens.s }]}>{t('options')}</Text>
           {MENU_ITEMS.map((item) => (
-            <TouchableOpacity key={item.id} style={[styles.menuItem, { backgroundColor: colors.surface }]} onPress={() => handleMenuPress(item.id)}>
-              <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
-                <Ionicons name={item.icon} size={22} color={item.color} />
+            <TouchableOpacity key={item.id} style={[styles.menuItem, { backgroundColor: colors.surface, padding: spacingTokens.m, borderRadius: ms(12) }]} onPress={() => handleMenuPress(item.id)}>
+              <View style={[styles.menuIcon, { backgroundColor: item.color + '20', width: ms(38), height: ms(38), borderRadius: ms(19), marginRight: spacingTokens.s }]}>
+                <Ionicons name={item.icon} size={ms(20)} color={item.color} />
               </View>
-              <Text style={[styles.menuText, { color: colors.text }]}>{t(`menu_${item.id}`)}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+              <Text style={[styles.menuText, { color: colors.text, fontSize: font(16, { min: 14, max: 18 }) }]}>{t(`menu_${item.id}`)}</Text>
+              <Ionicons name="chevron-forward" size={ms(18)} color={colors.muted} />
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={[styles.userInfoSection, { backgroundColor: colors.surface }]}>
+        <View style={[styles.userInfoSection, { backgroundColor: colors.surface, margin: spacing, padding: spacingTokens.m, borderRadius: ms(10), marginBottom: ms(36) }]}>
           <View style={styles.infoItem}>
-            <Text style={[styles.infoLabel, { color: colors.subtext }]}>Mode:</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>{isSupabaseAvailable ? t('connected') : t('offline')}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext, fontSize: font(14, { min: 12, max: 16 }) }]}>Mode:</Text>
+            <Text style={[styles.infoValue, { color: colors.text, fontSize: font(14, { min: 12, max: 16 }) }]}>{isSupabaseAvailable ? t('connected') : t('offline')}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={[styles.infoLabel, { color: colors.subtext }]}>ID:</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>{user.id.substring(0, 8)}...</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext, fontSize: font(14, { min: 12, max: 16 }) }]}>ID:</Text>
+            <Text style={[styles.infoValue, { color: colors.text, fontSize: font(14, { min: 12, max: 16 }) }]}>{user.id.substring(0, 8)}...</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={[styles.infoLabel, { color: colors.subtext }]}>Inscrit le:</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>{user.created_at ? new Date(user.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext, fontSize: font(14, { min: 12, max: 16 }) }]}>Inscrit le:</Text>
+            <Text style={[styles.infoValue, { color: colors.text, fontSize: font(14, { min: 12, max: 16 }) }]}>{user.created_at ? new Date(user.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
           </View>
           <View style={styles.infoItem}>
-            <Text style={[styles.infoLabel, { color: colors.subtext }]}>Dernière maj:</Text>
-            <Text style={[styles.infoValue, { color: colors.text }]}>{currentProfile.updated_at ? new Date(currentProfile.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
+            <Text style={[styles.infoLabel, { color: colors.subtext, fontSize: font(14, { min: 12, max: 16 }) }]}>Dernière maj:</Text>
+            <Text style={[styles.infoValue, { color: colors.text, fontSize: font(14, { min: 12, max: 16 }) }]}>{currentProfile.updated_at ? new Date(currentProfile.updated_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR') : '—'}</Text>
           </View>
         </View>
       </Animated.ScrollView>

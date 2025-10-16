@@ -1,6 +1,7 @@
 // src/screens/FavoritesScreen.js
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +9,7 @@ import { getFavorites, removeFavorite } from '../config/favorites';
 import { supabase } from '../config/supabase';
 import { useI18n } from '../i18n';
 import { useTheme } from '../theme';
+import { ms, hp, wp } from '../theme/responsive';
 
 export default function FavoritesScreen({ navigation }) {
   const { t } = useI18n();
@@ -86,7 +88,7 @@ export default function FavoritesScreen({ navigation }) {
         accessibilityRole="button"
         accessibilityLabel={t('removeFromFavorites')}
       >
-        <Ionicons name="trash" size={18} color="#fff" />
+        <Ionicons name="trash" size={ms(16)} color="#fff" />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -96,10 +98,10 @@ export default function FavoritesScreen({ navigation }) {
       <StatusBar barStyle="light-content" />
       <View style={[styles.header, { borderBottomColor: colors.border }] }>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+          <Ionicons name="arrow-back" size={ms(20)} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>{t('myFavorites')}</Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: ms(20) }} />
       </View>
 
       {loading ? (
@@ -109,7 +111,7 @@ export default function FavoritesScreen({ navigation }) {
         </View>
       ) : items.length === 0 ? (
         <View style={styles.centered}>
-          <Ionicons name="heart-outline" size={48} color={colors.muted} />
+          <Ionicons name="heart-outline" size={ms(44)} color={colors.muted} />
           <Text style={[styles.emptyText, { color: colors.text }]}>{t('emptyFavorites')}</Text>
           <Text style={[styles.emptySub, { color: colors.subtext }]}>{t('emptyFavoritesHint')}</Text>
         </View>
@@ -117,9 +119,9 @@ export default function FavoritesScreen({ navigation }) {
         <FlatList
           data={items}
           keyExtractor={(it) => String(it.id_event)}
-          contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+          contentContainerStyle={{ padding: ms(14), paddingBottom: ms(20) }}
           renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: ms(8) }} />}
         />
       )}
     </SafeAreaView>
@@ -128,18 +130,18 @@ export default function FavoritesScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
-  backBtn: { padding: 6 },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loading: { marginTop: 10 },
-  emptyText: { fontSize: 16, marginTop: 10, fontWeight: '600' },
-  emptySub: { fontSize: 13, marginTop: 4 },
-  card: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 10, borderWidth: 1, elevation: 1, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
-  thumb: { width: 90, height: 70, borderRadius: 8, borderWidth: 1 },
-  info: { flex: 1, marginLeft: 12 },
-  title: { fontSize: 16, fontWeight: '700' },
-  meta: { fontSize: 12, marginTop: 2 },
-  removeBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: ms(14), paddingVertical: ms(12), borderBottomWidth: 1 },
+  backBtn: { padding: ms(6) },
+  headerTitle: { fontSize: ms(16), fontWeight: '700' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: ms(20) },
+  loading: { marginTop: ms(8) },
+  emptyText: { fontSize: ms(14), marginTop: ms(8), fontWeight: '600' },
+  emptySub: { fontSize: ms(12), marginTop: ms(4) },
+  card: { flexDirection: 'row', alignItems: 'center', borderRadius: ms(12), padding: ms(10), borderWidth: 1, elevation: 1, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6 },
+  thumb: { width: ms(86), height: ms(66), borderRadius: ms(8), borderWidth: 1 },
+  info: { flex: 1, marginLeft: ms(10) },
+  title: { fontSize: ms(15), fontWeight: '700' },
+  meta: { fontSize: ms(12), marginTop: ms(2) },
+  removeBtn: { width: ms(32), height: ms(32), borderRadius: ms(16), alignItems: 'center', justifyContent: 'center', marginLeft: ms(8) },
 })
 ;

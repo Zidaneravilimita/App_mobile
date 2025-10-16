@@ -4,13 +4,13 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Text,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import Header from "../components/Header";
@@ -22,6 +22,7 @@ import ImageUploader from "../components/ImageUploader";
 import { useTheme } from "../theme";
 import { useI18n } from "../i18n";
 import { useResponsive } from "../hooks/useResponsive";
+import { ms, hp, wp } from "../theme/responsive";
 
 export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
@@ -178,20 +179,18 @@ export default function HomeScreen({ navigation }) {
         </View>
       );
     }
-
     return (
       <>
         <Header />
 
         {showNotification && (
           <View style={[styles.notification, { backgroundColor: colors.primary }]}>
-            <Ionicons name="cloud-done" size={16} color="#fff" />
-            <Text style={styles.notificationText}>Connecté à Supabase</Text>
+            <Ionicons name="cloud-done" size={ms(16)} color="#fff" />
+            <Text style={[styles.notificationText, { fontSize: ms(12) }]}>Connecté à Supabase</Text>
           </View>
         )}
 
-        <ScrollView contentContainerStyle={[styles.scrollViewContent, { paddingBottom: spacing * 1.25, paddingHorizontal: spacing }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: spacing }]}>{t('categories')}</Text>
+        <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={[styles.scrollViewContent, { paddingBottom: spacing * 1.25, paddingHorizontal: spacing }]}>
           <View style={styles.categoryContainer}>
             <CategoryScroll categories={categories} onSelectCategory={(id) => setSelectedCategoryId(id)} />
           </View>
@@ -236,7 +235,7 @@ export default function HomeScreen({ navigation }) {
             ))
           ) : (
             <View style={{ ...styles.noEventsContainer, padding: spacing * 2.5 }}>
-              <Ionicons name="search" size={60} color={colors.muted} />
+              <Ionicons name="search" size={ms(56)} color={colors.muted} />
               <Text style={{ color: colors.text, ...styles.noEventsText }}>Aucun événement trouvé</Text>
               <Text style={{ color: colors.subtext, ...styles.noEventsSubtext, marginBottom: spacing * 1.5 }}>Essayez de changer les filtres ou revenez plus tard</Text>
               <TouchableOpacity style={{ ...styles.resetButton }} onPress={() => { setSelectedVilleId("all"); setSelectedCategoryId(null); setDateFilter("all"); }}>
@@ -263,34 +262,34 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1 },
-  scrollViewContent: { paddingBottom: 20, paddingHorizontal: 15 },
-  notification: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, gap: 8 },
-  notificationText: { color: '#fff', fontSize: 12, fontWeight: '500' },
-  sectionTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 15 },
-  categoryContainer: { height: 140, marginVertical: 5, marginBottom: 20 },
+  scrollViewContent: { paddingBottom: ms(16), paddingHorizontal: ms(14) },
+  notification: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: ms(8), gap: ms(8) },
+  notificationText: { color: '#fff', fontSize: ms(12), fontWeight: '500' },
+  sectionTitle: { fontSize: ms(20), fontWeight: 'bold', marginTop: ms(12) },
+  categoryContainer: { height: hp(18), marginVertical: ms(4), marginBottom: ms(16) },
   rowFilters: { flexDirection: "row", alignItems: "center" },
   pickerWrapper: {
-    marginVertical: 10,
+    marginVertical: ms(10),
     borderWidth: 1,
     borderColor: "#555",
-    borderRadius: 8,
+    borderRadius: ms(8),
     backgroundColor: "#333",
     justifyContent: "center",
-    height: 40,
+    height: ms(40),
   },
   sidePicker: {
     flex: 1,
-    marginRight: 8,
+    marginRight: ms(8),
   },
   pickerStyle: {
     color: "#fff",
   },
-  loader: { marginTop: 20 },
-  popularTitle: { fontSize: 22, fontWeight: 'bold', marginTop: 15, marginBottom: 10 },
-  noEventsContainer: { alignItems: 'center', padding: 40 },
-  noEventsText: { fontSize: 20, fontWeight: 'bold', marginTop: 15, marginBottom: 8 },
-  noEventsSubtext: { fontSize: 14, textAlign: 'center', marginBottom: 25 },
-  resetButton: { backgroundColor: '#8A2BE2', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
+  loader: { marginTop: ms(16) },
+  popularTitle: { fontSize: ms(20), fontWeight: 'bold', marginTop: ms(12), marginBottom: ms(8) },
+  noEventsContainer: { alignItems: 'center', padding: ms(32) },
+  noEventsText: { fontSize: ms(18), fontWeight: 'bold', marginTop: ms(12), marginBottom: ms(6) },
+  noEventsSubtext: { fontSize: ms(12), textAlign: 'center', marginBottom: ms(20) },
+  resetButton: { backgroundColor: '#8A2BE2', paddingHorizontal: ms(16), paddingVertical: ms(10), borderRadius: ms(8) },
   resetButtonText: { color: '#fff', fontWeight: 'bold' },
-  backButton: { position: 'absolute', top: 60, left: 20, zIndex: 10 },
+  backButton: { position: 'absolute', top: ms(56), left: ms(16), zIndex: 10 },
 });

@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../theme";
 import { useI18n } from "../i18n";
+import { ms } from "../theme/responsive";
 
 export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false }) {
   const navigation = useNavigation();
@@ -21,7 +22,7 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
           navigation.navigate("Home");
         }}
       >
-        <Ionicons name="home-outline" size={24} color={colors.text} />
+        <Ionicons name="home-outline" size={ms(22)} color={colors.text} />
         <Text style={[styles.label, { color: colors.text }]}>{t('home')}</Text>
       </TouchableOpacity>
 
@@ -32,7 +33,7 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
           navigation.navigate("Search");
         }}
       >
-        <Ionicons name="search-outline" size={24} color={colors.text} />
+        <Ionicons name="search-outline" size={ms(22)} color={colors.text} />
         <Text style={[styles.label, { color: colors.text }]}>{t('search')}</Text>
       </TouchableOpacity>
 
@@ -45,10 +46,10 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
             else navigation.navigate("Add");
           }}
         >
-          <Ionicons name="add" size={32} color="#fff" />
+          <Ionicons name="add" size={ms(28)} color="#fff" />
         </TouchableOpacity>
       ) : (
-        <View style={{ width: 60 }} />
+        <View style={{ width: ms(56) }} />
       )}
 
       {/* Bouton Chat (inversé avec Profil) */}
@@ -56,7 +57,7 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
         style={styles.navItem}
         onPress={() => navigation.navigate("Chat")}
       >
-        <Ionicons name="chatbubble-outline" size={24} color={colors.text} />
+        <Ionicons name="chatbubble-outline" size={ms(22)} color={colors.text} />
         <Text style={[styles.label, { color: colors.text }]}>{t('chat')}</Text>
       </TouchableOpacity>
 
@@ -65,7 +66,7 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
         style={styles.navItem}
         onPress={() => navigation.navigate("Profile")}
       >
-        <Ionicons name="person-outline" size={24} color={colors.text} />
+        <Ionicons name="person-outline" size={ms(22)} color={colors.text} />
         <Text style={[styles.label, { color: colors.text }]}>{t('profile')}</Text>
       </TouchableOpacity>
     </View>
@@ -74,30 +75,30 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
 
 const styles = StyleSheet.create({
   navBarContainer: {
-    height: 80,
+    height: ms(72),
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: ms(10),
     borderTopWidth: 1,
-    paddingBottom: 20,
+    paddingBottom: ms(16),
   },
   navItem: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 5,
+    paddingVertical: ms(6),
   },
   addButton: {
-    borderRadius: 30,
-    width: 60,
-    height: 60,
+    borderRadius: ms(28),
+    width: ms(56),
+    height: ms(56),
     justifyContent: 'center',
     alignItems: 'center',
-    bottom: 20,
+    bottom: ms(16),
     borderWidth: 4,
   },
   label: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: ms(11),
+    marginTop: ms(4),
   },
 });

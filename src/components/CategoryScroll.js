@@ -14,6 +14,7 @@ import { supabase } from "../config/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../theme";
 import { useI18n } from "../i18n";
+import { ms, hp, wp } from "../theme/responsive";
 
 export default function CategoryScroll({ onSelectCategory }) {
   const { colors } = useTheme();
@@ -119,7 +120,7 @@ export default function CategoryScroll({ onSelectCategory }) {
           onPress={handleShowAllPress}
         >
           <View style={styles.showAllIconContainer}>
-            <Ionicons name="grid-outline" size={40} color={colors.primary} />
+            <Ionicons name="grid-outline" size={ms(36)} color={colors.primary} />
           </View>
           <Text style={[styles.categoryTitle, { color: colors.text }]}>{t('category_all')}</Text>
         </TouchableOpacity>
@@ -155,25 +156,25 @@ export default function CategoryScroll({ onSelectCategory }) {
 
 const styles = StyleSheet.create({
   container: {
-    height: 140,
+    height: hp(18),
   },
   scrollView: {
     flex: 1,
   },
   scrollViewContent: {
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: ms(10),
   },
   categoryCard: {
-    width: 100,
-    height: 120,
-    borderRadius: 12,
-    marginHorizontal: 6,
+    width: ms(96),
+    height: ms(116),
+    borderRadius: ms(12),
+    marginHorizontal: ms(6),
     justifyContent: "flex-start",
     alignItems: "center",
     borderWidth: 2,
     // borderColor themed inline
-    padding: 6,
+    padding: ms(6),
     elevation: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -190,15 +191,15 @@ const styles = StyleSheet.create({
   },
   categoryImage: {
     width: "100%",
-    height: 70,
-    borderRadius: 8,
-    marginBottom: 8,
+    height: ms(64),
+    borderRadius: ms(8),
+    marginBottom: ms(8),
   },
   categoryTitle: {
     fontWeight: "bold",
-    fontSize: 11,
+    fontSize: ms(10),
     textAlign: "center",
-    lineHeight: 14,
+    lineHeight: ms(14),
   },
   activityIndicator: {
     flex: 1,
@@ -209,22 +210,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: ms(16),
   },
   errorText: {
     color: "red",
-    fontSize: 14,
+    fontSize: ms(12),
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: ms(8),
   },
   retryButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: ms(14),
+    paddingVertical: ms(8),
+    borderRadius: ms(6),
   },
   retryButtonText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: ms(11),
     fontWeight: "bold",
   },
   noCategoriesContainer: {
@@ -233,6 +234,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   noCategoriesText: {
-    fontSize: 14,
+    fontSize: ms(12),
   },
 });
