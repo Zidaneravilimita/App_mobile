@@ -26,11 +26,7 @@
       "favicon": "./assets/Maquette/LA logo.png"
     },
     "plugins": [
-      "expo-font",
-      "expo-secure-store",
-      "expo-localization",
       "expo-notifications",
-      "expo-system-ui",
       [
         "expo-build-properties",
         {

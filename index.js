@@ -1,7 +1,3 @@
-import fetch from 'cross-fetch';
-
-if (!globalThis.fetch) globalThis.fetch = fetch;
-
 import { registerRootComponent } from 'expo';
 
 import App from './App';
