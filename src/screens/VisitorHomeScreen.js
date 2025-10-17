@@ -1,5 +1,5 @@
 // src/screens/VisitorHomeScreen.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from 'expo-location';
 import Header from "../components/Header";
 import CategoryScroll from "../components/CategoryScroll";
 import EventCard from "../components/EventCard";
@@ -33,6 +34,7 @@ export default function VisitorHomeScreen({ navigation }) {
 
   const [villes, setVilles] = useState([]);
   const [selectedVilleId, setSelectedVilleId] = useState("all");
+  const [autoLocating, setAutoLocating] = useState(false);
 
   // Seul filtre de date (all | upcoming | past)
   const [dateFilter, setDateFilter] = useState("all");
@@ -41,7 +43,7 @@ export default function VisitorHomeScreen({ navigation }) {
     try {
       const { data, error } = await supabase
         .from("ville")
-        .select("id_ville, nom_ville")
+        .select("id_ville, nom_ville, latitude, longitude, alternate_names")
         .order("nom_ville", { ascending: true });
       if (error) throw error;
       setVilles(data || []);
@@ -138,6 +140,41 @@ export default function VisitorHomeScreen({ navigation }) {
     setEvents(list);
   };
 
+  const normalize = (s) =>
+    (s || "")
+      .toString()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}+/gu, '')
+      .toLowerCase()
+      .trim();
+
+  const autoSelectCityByLocation = useCallback(async () => {
+    if (autoLocating) return;
+    try {
+      setAutoLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced, maximumAge: 60000 });
+      const geos = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      const geo = geos && geos.length > 0 ? geos[0] : null;
+      const cityName = geo?.city || geo?.region || geo?.subregion || '';
+      const cityNorm = normalize(cityName);
+      if (!cityNorm) return;
+      const match = villes.find(v => {
+        const nameNorm = normalize(v.nom_ville);
+        const alt = Array.isArray(v.alternate_names) ? v.alternate_names.map(normalize) : [];
+        return (
+          (nameNorm && (nameNorm.includes(cityNorm) || cityNorm.includes(nameNorm))) ||
+          alt.some(a => a && (a.includes(cityNorm) || cityNorm.includes(a)))
+        );
+      });
+      if (match) setSelectedVilleId(match.id_ville);
+    } catch {}
+    finally {
+      setAutoLocating(false);
+    }
+  }, [villes, autoLocating]);
+
   useEffect(() => {
     fetchVilles();
     fetchCategories();
@@ -145,6 +182,13 @@ export default function VisitorHomeScreen({ navigation }) {
     const timer = setTimeout(() => setShowNotification(false), 3000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (villes.length > 0 && selectedVilleId === 'all') {
+      autoSelectCityByLocation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [villes]);
 
   useEffect(() => {
     fetchEvents();

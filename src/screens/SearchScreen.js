@@ -46,7 +46,7 @@ export default function SearchScreen({ navigation }) {
     try {
       const { data, error } = await supabase
         .from('ville')
-        .select('id_ville, nom_ville')
+        .select('id_ville, nom_ville, latitude, longitude, alternate_names')
         .order('nom_ville');
       
       if (error) throw error;
