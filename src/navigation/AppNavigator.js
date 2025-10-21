@@ -1,5 +1,6 @@
 // src/navigation/AppNavigator.js
 import React from 'react';
+import { StatusBar } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { useTheme } from '../theme';
@@ -56,6 +57,7 @@ export default function AppNavigator() {
   };
   return (
     <NavigationContainer theme={navTheme}>
+      <StatusBar backgroundColor={colors.background} barStyle={colors.isDark ? 'light-content' : 'dark-content'} translucent={false} />
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         {/* Écran initial de bienvenue */}
         <Stack.Screen name="Welcome" component={WelcomeScreen} />

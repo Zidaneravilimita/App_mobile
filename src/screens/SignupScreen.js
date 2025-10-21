@@ -27,7 +27,7 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedCityId, setSelectedCityId] = useState("");
+  const [selectedCityId, setSelectedCityId] = useState(null);
   const [cities, setCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(true);
 
@@ -104,7 +104,7 @@ export default function SignupScreen({ navigation }) {
         email: email.trim(),
         role: "visiteur",
         avatar_url: "https://i.ibb.co/2n9H0hZ/default-avatar.png",
-        id_ville: selectedCityId ? parseInt(selectedCityId, 10) : null,
+        id_ville: selectedCityId ?? null,
       }]);
       if (profileError) throw profileError;
 
@@ -167,17 +167,18 @@ export default function SignupScreen({ navigation }) {
             ) : (
               <Picker
                 selectedValue={selectedCityId}
-                onValueChange={setSelectedCityId}
-                style={styles.picker}
+                onValueChange={(val) => setSelectedCityId(val)}
+                style={[styles.picker, { height: 46 }]}
+                mode="dropdown"
                 dropdownIconColor="#fff"
                 enabled={!loading}
               >
-                <Picker.Item label="Choisissez votre ville" value="" />
+                <Picker.Item label="Choisissez votre ville" value={null} />
                 {cities.map((ville) => (
                   <Picker.Item
                     key={ville.id_ville}
                     label={ville.nom_ville}
-                    value={String(ville.id_ville)}
+                    value={ville.id_ville}
                   />
                 ))}
               </Picker>
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
   input: { width: "100%", height: 50, backgroundColor: "#333", borderRadius: 8, paddingHorizontal: 15, fontSize: 16, color: "#fff", marginBottom: 12, borderWidth: 1, borderColor: "#555" },
   pickerContainer: { width: "100%", marginBottom: 12 },
   pickerLabel: { color: "#fff", marginBottom: 5, fontSize: 14, fontWeight: "500" },
-  picker: { color: "#fff", backgroundColor: "#333" },
+  picker: { color: "#fff", backgroundColor: "#333", height: 46 },
   button: { width: "100%", padding: 15, borderRadius: 10, backgroundColor: "#8A2BE2", alignItems: "center", marginTop: 8, flexDirection: "row", justifyContent: "center", gap: 8 },
   buttonDisabled: { backgroundColor: "#666", opacity: 0.7 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },

@@ -126,7 +126,7 @@ export default function Header() {
         {
           backgroundColor: colors.background,
           borderBottomColor: colors.border,
-          paddingTop: Math.max(insets.top, ms(8)),
+          paddingTop: ms(8),
           paddingHorizontal: ms(16),
         },
       ]}

@@ -60,7 +60,7 @@ export default function HomeScreen({ navigation }) {
     try {
       const { data, error } = await supabase
         .from("ville")
-        .select("id_ville, nom_ville, latitude, longitude, alternate_names")
+        .select("id_ville, nom_ville")
         .order("nom_ville", { ascending: true });
       if (error) throw error;
       setVilles(data || []);
