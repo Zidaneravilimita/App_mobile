@@ -11,24 +11,69 @@ export async function ensureOrganizerDm({ event, userId, initialText }) {
   if (!event?.id_event || !event?.id_user || !userId) {
     throw new Error('Missing event or user information');
   }
-  const chatId = buildOrganizerChatId(event.id_event, userId, event.id_user);
-
+  const organizerId = event.id_user;
   const text = (initialText || 'Bonjour, je suis intéressé par votre événement.').slice(0, 1000);
 
   try {
-    // Insert a message to create the thread implicitly. It's okay if multiple exist.
-    const { error } = await supabase.from('messages').insert({
-      chat_id: chatId,
-      user_id: userId,
-      text,
-    });
-    if (error) {
-      // If duplicate or RLS prevents insert, still return chatId so navigation can proceed
-      console.warn('ensureOrganizerDm insert error:', error);
+    // 1) Find existing conversation: intersection of memberships
+    const { data: aRows, error: aErr } = await supabase
+      .from('conversation_members')
+      .select('conversation_id')
+      .eq('user_id', userId);
+    if (aErr) throw aErr;
+
+    let conversationId = null;
+    if (Array.isArray(aRows) && aRows.length > 0) {
+      const ids = aRows.map(r => r.conversation_id).filter(Boolean);
+      if (ids.length) {
+        const { data: bRows, error: bErr } = await supabase
+          .from('conversation_members')
+          .select('conversation_id')
+          .in('conversation_id', ids)
+          .eq('user_id', organizerId)
+          .limit(1);
+        if (bErr) throw bErr;
+        if (bRows && bRows.length > 0) {
+          conversationId = bRows[0].conversation_id;
+        }
+      }
     }
+
+    // 2) If not found, create conversation and add current user as member
+    if (!conversationId) {
+      const { data: conv, error: cErr } = await supabase
+        .from('conversations')
+        .insert({ created_by: userId })
+        .select('id')
+        .single();
+      if (cErr) throw cErr;
+      conversationId = conv.id;
+
+      // upsert only the current user membership (RLS allows inserting own membership)
+      const { error: mErr } = await supabase
+        .from('conversation_members')
+        .upsert([
+          { conversation_id: conversationId, user_id: userId },
+        ], { onConflict: 'conversation_id,user_id' });
+      if (mErr) throw mErr;
+    }
+
+    // 3) Insert initial message (tolerate RLS/duplicate errors silently)
+    const { error: msgErr } = await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender_id: userId,
+      user_id: userId,
+      content: text,
+      type: 'text',
+    });
+    if (msgErr) {
+      console.warn('ensureOrganizerDm insert message warning:', msgErr);
+    }
+
+    return conversationId;
   } catch (e) {
     console.warn('ensureOrganizerDm error:', e);
+    // Best effort: do not block navigation; return a null to let caller handle
+    return null;
   }
-
-  return chatId;
 }

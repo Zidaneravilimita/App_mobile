@@ -219,12 +219,16 @@ export default function EventDetailsScreen({ route, navigation }) {
         return;
       }
 
-      const chatId = await ensureOrganizerDm({
+      const conversationId = await ensureOrganizerDm({
         event: ev,
         userId: currentUserId,
         initialText: t('participate_intro') || `Je souhaite participer à "${ev?.titre || ''}"`,
       });
-      navigation.navigate('Chat', { chatId, title: ev?.titre || 'Chat' });
+      if (!conversationId) {
+        Alert.alert('Erreur', t('genericError') || "Impossible d'ouvrir la conversation.");
+        return;
+      }
+      navigation.navigate('Chat', { conversationId, title: ev?.titre || 'Chat' });
     } catch (e) {
       console.warn('handleParticipate error', e);
       Alert.alert('Erreur', t('genericError') || 'Une erreur est survenue.');

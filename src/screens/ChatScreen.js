@@ -20,7 +20,7 @@ import { useI18n } from '../i18n';
 export default function ChatScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { t } = useI18n();
-  const chatId = route?.params?.chatId || 'global';
+  const conversationId = route?.params?.conversationId || route?.params?.chatId || null;
   const title = route?.params?.title || t('chat') || 'Chat';
 
   const [messages, setMessages] = useState([]);
@@ -31,20 +31,28 @@ export default function ChatScreen({ navigation, route }) {
 
   const mapRowToItem = (row) => ({
     id: String(row.id),
-    text: row.text,
-    sender: row.user_id === currentUserRef.current?.id ? 'me' : 'other',
+    text: row.content ?? row.text,
+    sender: row.sender_id
+      ? (row.sender_id === currentUserRef.current?.id ? 'me' : 'other')
+      : (row.user_id === currentUserRef.current?.id ? 'me' : 'other'),
     created_at: row.created_at,
   });
 
   const loadMessages = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('messages')
-        .select('*')
-        .eq('chat_id', chatId)
-        .order('created_at', { ascending: true })
-        .limit(200);
+        .select('id, conversation_id, sender_id, user_id, content, created_at');
+
+      if (conversationId) {
+        query = query.eq('conversation_id', conversationId);
+      } else if (currentUserRef.current?.id) {
+        // Fallback: afficher seulement les propres messages de l'utilisateur si pas de conversationId
+        query = query.eq('sender_id', currentUserRef.current.id);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: true }).limit(200);
       if (error) throw error;
       setMessages((data || []).map(mapRowToItem));
     } catch (e) {
@@ -65,15 +73,17 @@ export default function ChatScreen({ navigation, route }) {
       }
       await loadMessages();
 
-      // realtime subscription for new messages in this chat
-      const channel = supabase.channel(`chat:${chatId}`)
+      // realtime subscription for new messages
+      const channel = supabase.channel(`chat:${conversationId || 'self'}`)
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `chat_id=eq.${chatId}`,
+          ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {}),
         }, (payload) => {
           const row = payload.new;
+          // If no conversation filter, only append if it's my own message (privacy)
+          if (!conversationId && row?.sender_id && row.sender_id !== currentUserRef.current?.id) return;
           setMessages((prev) => [...prev, mapRowToItem(row)]);
           // slight delay to ensure list updates before scrolling
           setTimeout(() => listRef.current?.scrollToEnd?.({ animated: true }), 50);
@@ -85,7 +95,7 @@ export default function ChatScreen({ navigation, route }) {
       };
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatId]);
+  }, [conversationId]);
 
   const sendMessage = async () => {
     const text = newMessage.trim();
@@ -95,12 +105,18 @@ export default function ChatScreen({ navigation, route }) {
       console.warn('No authenticated user');
       return;
     }
+    if (!conversationId) {
+      console.warn('No conversationId provided');
+      return;
+    }
     try {
       setNewMessage('');
       const { error } = await supabase.from('messages').insert({
-        chat_id: chatId,
+        conversation_id: conversationId,
+        sender_id: user.id,
         user_id: user.id,
-        text,
+        content: text,
+        type: 'text',
       });
       if (error) throw error;
       // The realtime listener will append the message when INSERT succeeds.

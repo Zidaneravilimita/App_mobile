@@ -55,8 +55,9 @@ export default function TicketScreen({ navigation, route }) {
       const { data } = await supabase.auth.getUser();
       const userId = data?.user?.id;
       if (!userId) { Alert.alert('Info', t('loginRequired') || 'Veuillez vous connecter.'); return; }
-      const chatId = await ensureOrganizerDm({ event, userId, initialText: t('ticket_request_msg') || 'Bonjour, je souhaite acheter un billet.' });
-      navigation.navigate('Chat', { chatId, title: event?.titre || 'Chat' });
+      const conversationId = await ensureOrganizerDm({ event, userId, initialText: t('ticket_request_msg') || 'Bonjour, je souhaite acheter un billet.' });
+      if (!conversationId) { Alert.alert('Erreur', t('genericError') || "Impossible d'ouvrir la conversation."); return; }
+      navigation.navigate('Chat', { conversationId, title: event?.titre || 'Chat' });
     } catch {}
   };
 
