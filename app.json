@@ -3,52 +3,14 @@
     "name": "MonApp",
     "slug": "MonApp",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/Maquette/LA logo.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/Maquette/LA logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Cette application utilise votre localisation pour afficher les événements à proximité."
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/Maquette/LA logo.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.ravilimita.monapp",
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/Maquette/LA logo.png"
-    },
-    "plugins": [
-      "expo-notifications",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "gradlePluginVersion": "8.4.1",
-            "kotlinVersion": "1.9.23"
-          }
-        }
-      ]
-    ],
     "owner": "ravilimita",
     "extra": {
       "eas": {
         "projectId": "fbd80883-78c1-4968-b1a5-b878f3f6d6a6"
       }
+    },
+    "android": {
+      "package": "com.ravilimita.MonApp"
     }
   }
 }
