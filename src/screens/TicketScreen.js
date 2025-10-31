@@ -57,7 +57,7 @@ export default function TicketScreen({ navigation, route }) {
       if (!userId) { Alert.alert('Info', t('loginRequired') || 'Veuillez vous connecter.'); return; }
       const conversationId = await ensureOrganizerDm({ event, userId, initialText: t('ticket_request_msg') || 'Bonjour, je souhaite acheter un billet.' });
       if (!conversationId) { Alert.alert('Erreur', t('genericError') || "Impossible d'ouvrir la conversation."); return; }
-      navigation.navigate('Chat', { conversationId, title: event?.titre || 'Chat' });
+      navigation.navigate('Chat', { conversationId, title: event?.titre || 'Chat', other_user_id: event?.id_user });
     } catch {}
   };
 

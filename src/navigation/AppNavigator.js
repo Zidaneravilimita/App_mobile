@@ -36,6 +36,8 @@ import SearchScreen from '../screens/SearchScreen';
 // Écran des notifications
 import NotifyScreen from '../screens/NotifyScreen';
 import NotifyDetailScreen from '../screens/NotifyDetailScreen';
+// Écran liste des messages
+import MessagesListScreen from '../screens/MessagesListScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -92,6 +94,9 @@ export default function AppNavigator() {
         {/* Chat (optionnel) */}
         <Stack.Screen name="Chat" component={ChatScreen} />
 
+        {/* Liste des messages */}
+        <Stack.Screen name="MessagesList" component={MessagesListScreen} />
+
         {/* Upload / Add */}
         <Stack.Screen name="Add" component={ImageUploader} />
 
@@ -104,3 +109,4 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+

@@ -56,19 +56,22 @@ export async function ensureOrganizerDm({ event, userId, initialText }) {
           { conversation_id: conversationId, user_id: userId },
         ], { onConflict: 'conversation_id,user_id' });
       if (mErr) throw mErr;
+
+      // Best-effort: add the organizer as a member too so they can see the DM.
+      // Depending on RLS, this may fail when executed by the visitor; we ignore errors silently.
+      try {
+        await supabase
+          .from('conversation_members')
+          .upsert([
+            { conversation_id: conversationId, user_id: organizerId },
+          ], { onConflict: 'conversation_id,user_id' });
+      } catch (e) {
+        console.warn('ensureOrganizerDm organizer upsert warning:', e);
+      }
     }
 
     // 3) Insert initial message (tolerate RLS/duplicate errors silently)
-    const { error: msgErr } = await supabase.from('messages').insert({
-      conversation_id: conversationId,
-      sender_id: userId,
-      user_id: userId,
-      content: text,
-      type: 'text',
-    });
-    if (msgErr) {
-      console.warn('ensureOrganizerDm insert message warning:', msgErr);
-    }
+    // Removed: do not auto-insert any initial message. Let the user send the first message.
 
     return conversationId;
   } catch (e) {

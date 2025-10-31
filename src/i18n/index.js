@@ -119,6 +119,9 @@ const messages = {
     purchase_success: 'Demande de billet envoyée',
     purchase_info: "L'organisateur vous enverra le code QR après validation de l'achat.",
     ticket_request_msg: 'Bonjour, je souhaite acheter un billet.',
+    // Messages list actions
+    markUnread: 'marquer comme non lu',
+    deleteConversation: 'Supprimer la Conversation',
   },
   en: {
     settings: 'Settings',
@@ -240,6 +243,9 @@ const messages = {
     purchase_success: 'Ticket Request Sent',
     purchase_info: 'The organizer will send you the QR code after purchase validation.',
     ticket_request_msg: 'Hello, I would like to buy a ticket.',
+    // Messages list actions
+    markUnread: 'mark unread',
+    deleteConversation: 'Delete Conversation',
   },
 };
 

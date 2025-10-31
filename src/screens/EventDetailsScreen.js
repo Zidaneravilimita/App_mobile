@@ -228,7 +228,7 @@ export default function EventDetailsScreen({ route, navigation }) {
         Alert.alert('Erreur', t('genericError') || "Impossible d'ouvrir la conversation.");
         return;
       }
-      navigation.navigate('Chat', { conversationId, title: ev?.titre || 'Chat' });
+      navigation.navigate('Chat', { conversationId, title: ev?.titre || 'Chat', other_user_id: ev?.id_user });
     } catch (e) {
       console.warn('handleParticipate error', e);
       Alert.alert('Erreur', t('genericError') || 'Une erreur est survenue.');

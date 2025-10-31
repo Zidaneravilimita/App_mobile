@@ -55,7 +55,7 @@ export default function BottomNavBar({ onHomePress, onAddPress, hideAdd = false 
       {/* Bouton Chat (inversé avec Profil) */}
       <TouchableOpacity
         style={styles.navItem}
-        onPress={() => navigation.navigate("Chat")}
+        onPress={() => navigation.navigate("MessagesList")}
       >
         <Ionicons name="chatbubble-outline" size={ms(22)} color={colors.text} />
         <Text style={[styles.label, { color: colors.text }]}>{t('chat')}</Text>

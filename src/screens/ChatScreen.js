@@ -10,24 +10,30 @@ import {
   TextInput, 
   FlatList,
   KeyboardAvoidingView,
-  Platform 
+  Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
 import { useTheme } from '../theme';
 import { useI18n } from '../i18n';
+import { ms } from '../theme/responsive';
 
 export default function ChatScreen({ navigation, route }) {
   const { colors } = useTheme();
   const { t } = useI18n();
   const conversationId = route?.params?.conversationId || route?.params?.chatId || null;
-  const title = route?.params?.title || t('chat') || 'Chat';
+  const initialTitle = route?.params?.title || t('chat') || 'Chat';
+  const avatarUrl = route?.params?.avatar_url || null;
+  const otherUserId = route?.params?.other_user_id || null;
 
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const currentUserRef = useRef(null);
   const listRef = useRef(null);
+  const [headerTitle, setHeaderTitle] = useState(initialTitle);
+  const [headerAvatar, setHeaderAvatar] = useState(avatarUrl);
 
   const mapRowToItem = (row) => ({
     id: String(row.id),
@@ -71,6 +77,69 @@ export default function ChatScreen({ navigation, route }) {
       } catch (e) {
         console.warn('getUser error:', e);
       }
+      // Always try to resolve the other participant's profile to set title/avatar
+      // Prefer direct lookup if other_user_id is provided
+      if (otherUserId) {
+        try {
+          const { data: prof, error: pErr } = await supabase
+            .from('profiles')
+            .select('full_name,username,avatar_url')
+            .eq('id', otherUserId)
+            .maybeSingle();
+          if (!pErr && prof) {
+            setHeaderTitle(prof.username || prof.full_name || initialTitle);
+            if (!headerAvatar && prof.avatar_url) setHeaderAvatar(prof.avatar_url);
+          }
+        } catch {}
+      } else if (conversationId) {
+        try {
+          const me = currentUserRef.current?.id;
+          if (me) {
+            const { data: members, error: mErr } = await supabase
+              .from('conversation_members')
+              .select('conversation_id,user_id')
+              .eq('conversation_id', conversationId);
+            if (!mErr && Array.isArray(members)) {
+              const other = members.find(m => m.user_id !== me);
+              if (other?.user_id) {
+                const { data: prof, error: pErr } = await supabase
+                  .from('profiles')
+                  .select('full_name,username,avatar_url')
+                  .eq('id', other.user_id)
+                  .maybeSingle();
+                if (!pErr && prof) {
+                  setHeaderTitle(prof.username || prof.full_name || initialTitle);
+                  if (!headerAvatar && prof.avatar_url) setHeaderAvatar(prof.avatar_url);
+                }
+              } else {
+                // Fallback: resolve from last message sender
+                const { data: lastMsgs, error: lErr } = await supabase
+                  .from('messages')
+                  .select('sender_id')
+                  .eq('conversation_id', conversationId)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+                if (!lErr && Array.isArray(lastMsgs) && lastMsgs.length > 0) {
+                  const candidate = lastMsgs[0]?.sender_id;
+                  if (candidate && candidate !== me) {
+                    const { data: prof2, error: p2Err } = await supabase
+                      .from('profiles')
+                      .select('full_name,username,avatar_url')
+                      .eq('id', candidate)
+                      .maybeSingle();
+                    if (!p2Err && prof2) {
+                      setHeaderTitle(prof2.username || prof2.full_name || initialTitle);
+                      if (!headerAvatar && prof2.avatar_url) setHeaderAvatar(prof2.avatar_url);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          // ignore, keep initial title
+        }
+      }
       await loadMessages();
 
       // realtime subscription for new messages
@@ -95,7 +164,7 @@ export default function ChatScreen({ navigation, route }) {
       };
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId]);
+  }, [conversationId, otherUserId, route?.params?.title]);
 
   const sendMessage = async () => {
     const text = newMessage.trim();
@@ -155,7 +224,14 @@ export default function ChatScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>{title}</Text>
+        <View style={styles.headerCenter}>
+          {headerAvatar ? (
+            <Image source={{ uri: headerAvatar }} style={[styles.headerAvatar, { borderColor: colors.border }]} />
+          ) : (
+            <Ionicons name="person-circle" size={ms(28)} color={colors.muted} />
+          )}
+          <Text numberOfLines={1} style={[styles.headerTitle, { color: colors.text }]}>{headerTitle}</Text>
+        </View>
       </View>
 
       {/* Chat body */}
@@ -199,10 +275,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     
   },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 15,
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginLeft: 15,
+    marginLeft: 10,
+    flexShrink: 1,
+  },
+  headerAvatar: {
+    width: ms(28),
+    height: ms(28),
+    borderRadius: ms(14),
+    borderWidth: 1,
   },
   messagesContainer: {
     padding: 10,
