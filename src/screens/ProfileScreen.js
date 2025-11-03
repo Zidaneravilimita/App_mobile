@@ -106,7 +106,7 @@ export default function ProfileScreen({ navigation }) {
     if (!pathOrUrl) return null;
     if (pathOrUrl.startsWith('http')) return pathOrUrl;
     try {
-      const { data } = supabase.storage.from('images').getPublicUrl(pathOrUrl);
+      const { data } = supabase.storage.from('avatar').getPublicUrl(pathOrUrl);
       // supabase v1/v2 returns data.publicUrl or data.publicURL
       return data?.publicUrl || data?.publicURL || null;
     } catch (e) {
@@ -344,17 +344,17 @@ export default function ProfileScreen({ navigation }) {
 
           const extMatch = (newAvatar.match(/\.(\w+)(\?.*)?$/) || [])[1];
           const ext = extMatch ? extMatch.replace(/\?.*$/, '') : 'jpg';
-          const filePath = `avatars/${user.id}_${Date.now()}.${ext}`;
+          const filePath = `${user.id}_${Date.now()}.${ext}`;
 
           const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('images')
+            .from('avatar')
             .upload(filePath, blob, { upsert: true });
 
           if (uploadError) {
             console.warn('Upload avatar échoué:', uploadError);
           } else {
             // get public URL
-            const { data: publicData } = supabase.storage.from('images').getPublicUrl(filePath);
+            const { data: publicData } = supabase.storage.from('avatar').getPublicUrl(filePath);
             avatarUrlToSave = publicData?.publicUrl || publicData?.publicURL || avatarUrlToSave;
           }
         } catch (e) {
