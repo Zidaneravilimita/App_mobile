@@ -69,29 +69,63 @@ export default function MessagesListScreen({ navigation }) {
         return;
       }
 
-      // 3) load all members for these conversations to find the "other" user per 1:1 convo
-      const { data: allMembers, error: allMemErr } = await supabase
-        .from('conversation_members')
-        .select('conversation_id,user_id')
-        .in('conversation_id', convIds);
-      if (allMemErr) throw allMemErr;
-
-      // Map conversation -> otherUserId (pick anyone that's not me; if group, pick first other)
-      const otherMap = new Map();
-      for (const cid of convIds) {
-        const members = (allMembers || []).filter(m => m.conversation_id === cid);
-        const other = members.find(m => m.user_id !== user.id);
-        otherMap.set(cid, other?.user_id || null);
-      }
-
-      // 4) load messages for these conversations (latest first)
+      // 3) load messages for these conversations (latest first) - AVANT de trouver l'autre utilisateur
       const { data: msgs, error: msgErr } = await supabase
         .from('messages')
         .select('id, conversation_id, sender_id, content, created_at')
         .in('conversation_id', convIds)
         .order('created_at', { ascending: false })
         .limit(500);
-      if (msgErr) throw msgErr;
+      if (msgErr) {
+        console.error('❌ Erreur lors de la récupération des messages:', msgErr);
+        throw msgErr;
+      }
+
+      // 4) load all members for these conversations to find the "other" user per 1:1 convo
+      const { data: allMembers, error: allMemErr } = await supabase
+        .from('conversation_members')
+        .select('conversation_id,user_id')
+        .in('conversation_id', convIds);
+      if (allMemErr) {
+        console.error('❌ Erreur lors de la récupération des membres:', allMemErr);
+        throw allMemErr;
+      }
+
+      console.log('📋 MessagesListScreen: Membres trouvés:', allMembers?.length || 0);
+      console.log('📋 MessagesListScreen: Messages trouvés:', msgs?.length || 0);
+      
+      // Map conversation -> otherUserId (pick anyone that's not me; if group, pick first other)
+      const otherMap = new Map();
+      for (const cid of convIds) {
+        const members = (allMembers || []).filter(m => m.conversation_id === cid);
+        console.log(`📋 Conversation ${cid}: ${members.length} membres`, members.map(m => m.user_id));
+        
+        const other = members.find(m => m.user_id !== user.id);
+        if (other?.user_id) {
+          otherMap.set(cid, other.user_id);
+          console.log(`✅ Autre utilisateur trouvé pour ${cid}: ${other.user_id}`);
+        } else {
+          console.warn(`⚠️ Aucun autre utilisateur trouvé dans conversation_members pour ${cid}`);
+          // Fallback: chercher dans les messages (maintenant disponibles)
+          console.log(`🔍 Tentative de recherche dans les messages pour ${cid}...`);
+          const convMessages = (msgs || []).filter(m => m.conversation_id === cid);
+          if (convMessages.length > 0) {
+            for (const msg of convMessages) {
+              if (msg.sender_id && msg.sender_id !== user.id) {
+                otherMap.set(cid, msg.sender_id);
+                console.log(`✅ Autre utilisateur trouvé via messages pour ${cid}: ${msg.sender_id}`);
+                break;
+              }
+            }
+          }
+          
+          // Si toujours rien, mettre null
+          if (!otherMap.has(cid)) {
+            otherMap.set(cid, null);
+            console.warn(`⚠️ Aucun autre utilisateur trouvé pour ${cid}, otherId sera null`);
+          }
+        }
+      }
 
       // 5) build per-conversation aggregates: last message and received count (messages from others)
       const lastByConv = new Map();
@@ -107,21 +141,71 @@ export default function MessagesListScreen({ navigation }) {
       const otherIds = Array.from(new Set(Array.from(otherMap.values()).filter(Boolean)));
       let profilesById = new Map();
       if (otherIds.length > 0) {
+        console.log('🔍 MessagesListScreen: Récupération des profils pour', otherIds.length, 'utilisateurs');
+        console.log('🔍 IDs des autres utilisateurs:', otherIds);
+        
         const { data: profs, error: profErr } = await supabase
           .from('profiles')
-          .select('id, full_name, username, avatar_url')
+          .select('id, username, email, avatar_url, full_name')
           .in('id', otherIds);
-        if (profErr) throw profErr;
-        profilesById = new Map((profs || []).map(p => [p.id, p]));
+        
+        if (profErr) {
+          console.error('❌ MessagesListScreen: Erreur lors de la récupération des profils:', profErr);
+          console.error('Code erreur:', profErr.code);
+          console.error('Message:', profErr.message);
+          console.error('💡 Vérifiez les politiques RLS sur la table profiles');
+          console.error('💡 Les utilisateurs doivent pouvoir lire les profiles des autres utilisateurs');
+          // Ne pas throw, continuer avec des profils vides
+        } else {
+          console.log('✅ MessagesListScreen: Profils récupérés:', profs?.length || 0, 'sur', otherIds.length);
+          if (profs && profs.length > 0) {
+            profilesById = new Map((profs || []).map(p => [p.id, p]));
+            // Log pour déboguer
+            profs.forEach(p => {
+              console.log(`  ✅ ${p.id}: username="${p.username}", full_name="${p.full_name}", email="${p.email}", hasAvatar=${!!p.avatar_url}`);
+            });
+          } else {
+            console.warn('⚠️ Aucun profil retourné (probablement RLS ou profils inexistants)');
+            console.warn('⚠️ IDs recherchés:', otherIds);
+          }
+        }
+      } else {
+        console.warn('⚠️ Aucun otherId trouvé pour récupérer les profils');
       }
 
       const list = convIds.map(cid => {
         const last = lastByConv.get(cid) || null;
         const otherId = otherMap.get(cid);
         const prof = otherId ? profilesById.get(otherId) : null;
-        const title = prof?.username || prof?.full_name || t('chat');
+        
+        // Priorité 1: username (surnom), puis full_name, puis email, puis fallback
+        let title = 'Chat'; // Fallback par défaut
+        if (prof) {
+          console.log(`📋 MessagesListScreen: Profil trouvé pour ${otherId}:`, {
+            username: prof.username,
+            full_name: prof.full_name,
+            email: prof.email
+          });
+          if (prof.username && prof.username.trim()) {
+            title = prof.username.trim();
+            console.log(`✅ Utilisation du username: ${title}`);
+          } else if (prof.full_name && prof.full_name.trim()) {
+            title = prof.full_name.trim();
+            console.log(`✅ Utilisation du full_name: ${title}`);
+          } else if (prof.email && prof.email.trim()) {
+            // Utiliser la partie avant @ de l'email
+            title = prof.email.split('@')[0];
+            console.log(`✅ Utilisation de l'email: ${title}`);
+          } else {
+            console.warn(`⚠️ Aucun nom disponible pour le profil ${otherId}`);
+          }
+        } else {
+          console.warn(`⚠️ Aucun profil trouvé pour otherId: ${otherId}, titre restera: ${title}`);
+        }
+        
         const snippet = last?.content || '';
         const count = receivedCount.get(cid) || 0;
+        
         return {
           id: String(cid),
           conversation_id: cid,
@@ -236,9 +320,20 @@ export default function MessagesListScreen({ navigation }) {
       >
         <View style={styles.left}>
           {item.avatar_url ? (
-            <Image source={{ uri: item.avatar_url }} style={[styles.avatar, { borderColor: colors.border }]} />
+            <Image 
+              source={{ uri: item.avatar_url }} 
+              style={[styles.avatar, { borderColor: colors.border }]} 
+              resizeMode="cover"
+              onError={(e) => {
+                console.warn('❌ Erreur de chargement de l\'avatar dans MessagesListScreen:', item.avatar_url);
+              }}
+            />
           ) : (
-            <Ionicons name="person-circle" size={ms(40)} color={colors.muted} />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary + '40', borderColor: colors.border }]}>
+              <Text style={[styles.avatarPlaceholderText, { color: colors.primary }]}>
+                {item.title ? item.title.charAt(0).toUpperCase() : '?'}
+              </Text>
+            </View>
           )}
         </View>
         <View style={styles.center}>
@@ -332,6 +427,18 @@ const styles = StyleSheet.create({
   center: { flex: 1, paddingHorizontal: ms(12) },
   right: { width: ms(48), alignItems: 'flex-end', justifyContent: 'center' },
   avatar: { width: ms(40), height: ms(40), borderRadius: ms(20), borderWidth: 1 },
+  avatarPlaceholder: {
+    width: ms(40),
+    height: ms(40),
+    borderRadius: ms(20),
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarPlaceholderText: {
+    fontSize: ms(16),
+    fontWeight: '700',
+  },
   title: { fontSize: ms(14), fontWeight: '600' },
   snippet: { fontSize: ms(12), marginTop: ms(2) },
   badge: { minWidth: ms(22), paddingHorizontal: ms(6), height: ms(22), borderRadius: ms(11), alignItems: 'center', justifyContent: 'center' },
