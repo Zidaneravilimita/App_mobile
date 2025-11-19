@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MonApp",
+    "name": "Libre",
     "slug": "MonApp",
     "version": "1.0.0",
     "icon": "./assets/Maquette/LA logo.png",
@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.ravilimita.MonApp",
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/Maquette/LA logo.png",
         "backgroundColor": "#180021"
