@@ -3,7 +3,7 @@
     "name": "Libre",
     "slug": "MonApp",
     "version": "1.0.0",
-    "icon": "./assets/Maquette/LA logo.png",
+    "icon": "./assets/icon.png",
     "owner": "ravilimita",
     "extra": {
       "eas": {
@@ -14,7 +14,7 @@
       "package": "com.ravilimita.MonApp",
       "versionCode": 2,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/Maquette/LA logo.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#180021"
       }
     }

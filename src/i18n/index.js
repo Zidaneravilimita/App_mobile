@@ -90,7 +90,8 @@ const messages = {
     search: 'Recherche',
     chat: 'Chat',
     profile: 'Profil',
-    categories: 'Catégories',
+    categories: 'Tout Categories',
+    category_all: 'Tout Categories',
     available_events: 'Événements disponibles',
     // Tickets & messaging
     sendMessage: 'Envoyer un message',
@@ -206,7 +207,8 @@ const messages = {
     updateFail: 'Update Failed',
 
     // Home/Lists
-    categories: 'Categories',
+    categories: 'Category all',
+    category_all: 'Category all',
     available_events: 'Available Events',
 
     // Tickets & messaging
