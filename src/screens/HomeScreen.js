@@ -306,8 +306,17 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1 },
-  scrollViewContent: { paddingBottom: ms(16), paddingHorizontal: ms(14) },
-  notification: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: ms(8), gap: ms(8) },
+  scrollViewContent: { 
+  paddingBottom: ms(16), 
+ paddingHorizontal: ms(14) 
+},
+  notification: { 
+  flexDirection: 'row', 
+  alignItems: 'center', 
+  justifyContent: 'center', 
+  paddingVertical: ms(8), 
+  gap: ms(8) 
+},
   notificationText: { color: '#fff', fontSize: ms(12), fontWeight: '500' },
   sectionTitle: { fontSize: ms(20), fontWeight: 'bold', marginTop: ms(12) },
   categoryContainer: { height: hp(18), marginVertical: ms(4), marginBottom: ms(16) },

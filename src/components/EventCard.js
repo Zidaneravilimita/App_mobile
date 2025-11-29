@@ -10,13 +10,28 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ms, hp, wp } from '../theme/responsive';
+import { useOptimizedImage } from '../hooks/useOptimizedImage';
 
 
 
 export default function EventCard({ event = {}, onPress }) {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [currentImageUri, setCurrentImageUri] = useState(null);
+
+  // Hook pour la conversion automatique en WebP avec cache
+  const { 
+    uri: optimizedUri, 
+    isLoading: isImageOptimizing, 
+    error: optimizationError,
+    refresh: refreshImage 
+  } = useOptimizedImage(event.image_url, {
+    quality: 0.8,
+    maxWidth: 800,
+    autoConvert: true,
+    fallbackToOriginal: true,
+    retryOnError: true,
+    maxRetries: 2
+  });
 
   // Fonction pour formater la date
   const formatDate = (dateString) => {
@@ -42,39 +57,34 @@ export default function EventCard({ event = {}, onPress }) {
   // Récupérer la catégorie
   const eventType = event.category?.nom_category || event.nom_category || "Catégorie inconnue";
 
-  // Gestion des images avec cache-busting
+  // Gestion des images avec conversion WebP
   useEffect(() => {
     setImageError(false);
     setImageLoaded(false);
-    if (event.image_url && event.image_url.startsWith('http')) {
-      const timestamp = new Date().getTime();
-      const imageUrl = event.image_url.includes('?')
-        ? `${event.image_url}&t=${timestamp}`
-        : `${event.image_url}?t=${timestamp}`;
-      setCurrentImageUri(imageUrl);
-    } else {
-      setCurrentImageUri(null);
-    }
-  }, [event.image_url]);
+  }, [optimizedUri]);
 
   const handleImageError = () => {
-    console.log("❌ Erreur image pour:", eventTitle, "URL:", event.image_url);
+    console.log("❌ Erreur image optimisée pour:", eventTitle, "URI:", optimizedUri);
     setImageError(true);
-    setCurrentImageUri(null);
+    
+    // Tente de rafraîchir l'image si c'est une erreur de conversion
+    if (optimizationError && !imageError) {
+      refreshImage();
+    }
   };
 
   const handleImageLoad = () => {
-    console.log("✅ Image chargée avec succès:", eventTitle);
+    console.log("✅ Image optimisée chargée:", eventTitle);
     setImageLoaded(true);
   };
 
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
       {/* Image + overlay */}
-      {currentImageUri && !imageError ? (
+      {optimizedUri && !imageError ? (
         <>
           <Image
-            source={{ uri: currentImageUri }}
+            source={{ uri: optimizedUri }}
             style={styles.eventImage}
             resizeMode="cover"
             onError={handleImageError}
@@ -85,17 +95,30 @@ export default function EventCard({ event = {}, onPress }) {
             style={styles.gradientOverlay}
           />
 
-          {/* Indicateur de chargement */}
-          {!imageLoaded && (
+          {/* Indicateur de chargement (optimisation en cours) */}
+          {(!imageLoaded || isImageOptimizing) && (
             <View style={styles.imageLoadingContainer}>
               <ActivityIndicator size="small" color="#8A2BE2" />
+              {isImageOptimizing && (
+                <Text style={styles.optimizingText}>Optimisation...</Text>
+              )}
             </View>
           )}
         </>
       ) : (
         <View style={styles.noImageContainer}>
           <Text style={styles.noImageText}>📷</Text>
-          <Text style={styles.noImageLabel}>Aucune image</Text>
+          <Text style={styles.noImageLabel}>
+            {imageError ? "Erreur de chargement" : "Aucune image"}
+          </Text>
+          {imageError && (
+            <TouchableOpacity 
+              style={styles.retryButton} 
+              onPress={refreshImage}
+            >
+              <Text style={styles.retryText}>Réessayer</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -200,5 +223,23 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: ms(10),
     fontWeight: "600",
+  },
+  retryButton: {
+    marginTop: ms(8),
+    backgroundColor: "#8A2BE2",
+    paddingVertical: ms(6),
+    paddingHorizontal: ms(12),
+    borderRadius: ms(6),
+  },
+  retryText: {
+    color: "#fff",
+    fontSize: ms(12),
+    fontWeight: "500",
+  },
+  optimizingText: {
+    color: "#fff",
+    fontSize: ms(10),
+    marginTop: ms(4),
+    textAlign: "center",
   },
 });

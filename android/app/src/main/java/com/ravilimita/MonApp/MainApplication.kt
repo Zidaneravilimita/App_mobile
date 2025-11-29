@@ -1,4 +1,4 @@
-package com.monapp
+package com.ravilimita.MonApp
 
 import android.app.Application
 import android.content.res.Configuration
