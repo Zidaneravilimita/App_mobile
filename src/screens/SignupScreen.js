@@ -27,7 +27,7 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedCityId, setSelectedCityId] = useState(null);
+  const [selectedCityId, setSelectedCityId] = useState("");
   const [cities, setCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(true);
 
@@ -39,14 +39,64 @@ export default function SignupScreen({ navigation }) {
   const loadCities = async () => {
     try {
       setLoadingCities(true);
-      const { data, error } = await supabase
-        .from("ville")
-        .select("id_ville, nom_ville")
-        .order("nom_ville", { ascending: true });
-      if (error) throw error;
-      setCities(data || []);
+      console.log("🔄 Chargement des villes depuis Supabase...");
+      
+      // Vérifier d'abord si l'utilisateur est authentifié
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log("👤 Utilisateur authentifié:", user ? "Oui" : "Non");
+      if (authError) console.log("🔐 Erreur auth:", authError.message);
+      
+      // Essayer avec et sans authentification
+      const attempts = [
+        { name: "Sans authentification", useAuth: false },
+        { name: "Avec authentification", useAuth: !!user }
+      ];
+      
+      for (const attempt of attempts) {
+        console.log(`🔍 Tentative: ${attempt.name}`);
+        
+        let query = supabase
+          .from("ville")
+          .select("id_ville, nom_ville")
+          .order("nom_ville", { ascending: true });
+        
+        // Si nous avons un utilisateur et que nous voulons utiliser l'auth
+        if (attempt.useAuth && user) {
+          // La requête utilise automatiquement le contexte de l'utilisateur
+        }
+        
+        const { data, error } = await query;
+        
+        console.log(`📊 Résultat ${attempt.name}:`, { 
+          count: data?.length || 0, 
+          error: error?.message,
+          data: data?.slice(0, 3) // Afficher les 3 premiers pour déboguer
+        });
+        
+        if (!error && data && data.length > 0) {
+          console.log(`✅ Succès avec: ${attempt.name}`);
+          setCities(data);
+          return;
+        }
+      }
+      
+      // Si aucune tentative n'a fonctionné, essayer une requête SQL directe
+      console.log("🔍 Tentative avec requête SQL directe");
+      const { data: sqlData, error: sqlError } = await supabase
+        .rpc('get_villes'); // Si vous avez une fonction RPC
+      
+      if (!sqlError && sqlData) {
+        console.log("✅ Succès avec RPC");
+        setCities(sqlData);
+        return;
+      }
+      
+      console.error("❌ Toutes les tentatives ont échoué");
+      console.log("📋 Dernière erreur:", sqlError || error);
+      setCities([]);
+      
     } catch (err) {
-      console.error("Erreur chargement villes:", err);
+      console.error("❌ Erreur générale:", err);
       setCities([]);
     } finally {
       setLoadingCities(false);
@@ -104,7 +154,7 @@ export default function SignupScreen({ navigation }) {
         email: email.trim(),
         role: "visiteur",
         avatar_url: "https://i.ibb.co/2n9H0hZ/default-avatar.png",
-        id_ville: selectedCityId ?? null,
+        id_ville: selectedCityId || null,
       }]);
       if (profileError) throw profileError;
 
@@ -125,6 +175,18 @@ export default function SignupScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      {/* Header avec bouton de retour */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Créer un compte</Text>
+        <View style={styles.placeholder} />
+      </View>
+
       <Animated.View
         style={[
           styles.notificationContainer,
@@ -137,8 +199,6 @@ export default function SignupScreen({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
-          <Text style={styles.title}>Créer un compte</Text>
-
           <TextInput
             style={styles.input}
             placeholder="Nom d'utilisateur *"
@@ -163,25 +223,35 @@ export default function SignupScreen({ navigation }) {
           <View style={styles.pickerContainer}>
             <Text style={styles.pickerLabel}>Ville</Text>
             {loadingCities ? (
-              <ActivityIndicator size="small" color="#8A2BE2" />
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#8A2BE2" />
+                <Text style={styles.loadingText}>Chargement des villes...</Text>
+              </View>
+            ) : cities.length === 0 ? (
+              <View style={styles.noCitiesContainer}>
+                <Text style={styles.noCitiesText}>Aucune ville disponible</Text>
+              </View>
             ) : (
-              <Picker
-                selectedValue={selectedCityId}
-                onValueChange={(val) => setSelectedCityId(val)}
-                style={[styles.picker, { height: 46 }]}
-                mode="dropdown"
-                dropdownIconColor="#fff"
-                enabled={!loading}
-              >
-                <Picker.Item label="Choisissez votre ville" value={null} />
-                {cities.map((ville) => (
-                  <Picker.Item
-                    key={ville.id_ville}
-                    label={ville.nom_ville}
-                    value={ville.id_ville}
-                  />
-                ))}
-              </Picker>
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={selectedCityId}
+                  onValueChange={(val) => setSelectedCityId(val)}
+                  style={[styles.picker, { height: 46 }]}
+                  mode="dropdown"
+                  dropdownIconColor="#fff"
+                  enabled={!loading}
+                >
+                  <Picker.Item label="Choisissez votre ville" value="" />
+                  {cities.map((ville) => (
+                    <Picker.Item
+                      key={ville.id_ville}
+                      label={ville.nom_ville}
+                      value={ville.id_ville}
+                    />
+                  ))}
+                </Picker>
+                <Text style={styles.citiesCount}>{cities.length} villes disponibles</Text>
+              </View>
             )}
           </View>
 
@@ -234,13 +304,83 @@ export default function SignupScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#1a1a1a" },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  placeholder: {
+    width: 40,
+  },
   scrollContainer: { flexGrow: 1, paddingVertical: 20 },
   container: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { fontSize: 28, fontWeight: "700", color: "#fff", marginBottom: 20, textAlign: "center" },
   input: { width: "100%", height: 50, backgroundColor: "#333", borderRadius: 8, paddingHorizontal: 15, fontSize: 16, color: "#fff", marginBottom: 12, borderWidth: 1, borderColor: "#555" },
   pickerContainer: { width: "100%", marginBottom: 12 },
   pickerLabel: { color: "#fff", marginBottom: 5, fontSize: 14, fontWeight: "500" },
-  picker: { color: "#fff", backgroundColor: "#333", height: 46 },
+  pickerWrapper: { width: "100%" },
+  picker: { 
+    color: "#fff", 
+    backgroundColor: "#333", 
+    height: 46,
+    borderWidth: 1,
+    borderColor: "#555",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 4,
+  },
+  loadingContainer: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    justifyContent: "center",
+    padding: 15,
+    backgroundColor: "#333",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#555",
+  },
+  loadingText: { 
+    color: "#ccc", 
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  noCitiesContainer: { 
+    alignItems: "center",
+    padding: 15,
+    backgroundColor: "#333",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#555",
+  },
+  noCitiesText: { 
+    color: "#ccc", 
+    fontSize: 14,
+  },
+  citiesCount: { 
+    color: "#888", 
+    fontSize: 12, 
+    textAlign: "center",
+    marginTop: 4,
+  },
   button: { width: "100%", padding: 15, borderRadius: 10, backgroundColor: "#8A2BE2", alignItems: "center", marginTop: 8, flexDirection: "row", justifyContent: "center", gap: 8 },
   buttonDisabled: { backgroundColor: "#666", opacity: 0.7 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },

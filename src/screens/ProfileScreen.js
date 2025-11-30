@@ -210,18 +210,22 @@ export default function ProfileScreen({ navigation }) {
         initializeEditFields(savedUser, savedProfile);
         console.log('Profil chargé depuis le cache local');
       } else {
-        setUser(DEFAULT_USER);
-        setProfile(DEFAULT_PROFILE);
-        initializeEditFields(DEFAULT_USER, DEFAULT_PROFILE);
-        console.log('Utilisation du profil de démonstration');
+        // Ne plus utiliser l'utilisateur démo par défaut
+        // Rediriger vers WelcomeScreen pour forcer l'authentification
+        setUser(null);
+        setProfile(null);
+        setConnectionStatus('offline');
+        console.log('Aucun profil local trouvé - redirection vers WelcomeScreen');
+        navigation.replace('Welcome');
       }
       setUserStats(DEFAULT_STATS);
       setConnectionStatus('offline');
     } catch (error) {
       console.error('Erreur chargement local:', error);
-      setUser(DEFAULT_USER);
-      setProfile(DEFAULT_PROFILE);
-      initializeEditFields(DEFAULT_USER, DEFAULT_PROFILE);
+      // En cas d'erreur, rediriger vers WelcomeScreen
+      setUser(null);
+      setProfile(null);
+      navigation.replace('Welcome');
     }
   };
 

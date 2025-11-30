@@ -27,7 +27,8 @@ export default function FavoritesScreen({ navigation }) {
       const u = raw ? JSON.parse(raw) : null;
       if (u?.id) return u.id;
     } catch {}
-    return 'demo-user-123';
+    // Ne plus retourner d'utilisateur démo
+    return null;
   };
 
   const loadFavorites = useCallback(async () => {

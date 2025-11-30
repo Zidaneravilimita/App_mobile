@@ -43,7 +43,8 @@ export default function EventDetailsScreen({ route, navigation }) {
       const u = raw ? JSON.parse(raw) : null;
       if (u?.id) return u.id;
     } catch {}
-    return 'demo-user-123';
+    // Ne plus retourner d'utilisateur démo
+    return null;
   };
 
   const formatDate = (dateString) => {

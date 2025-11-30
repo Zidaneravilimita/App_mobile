@@ -1,8 +1,9 @@
 // src/navigation/AppNavigator.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme';
 
 // Écrans d'authentification et d'accueil
@@ -46,6 +47,41 @@ const Stack = createNativeStackNavigator();
  */
 export default function AppNavigator() {
   const { colors } = useTheme();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Nettoyer complètement toutes les données utilisateur au démarrage
+    const clearAllUserData = async () => {
+      try {
+        const keysToRemove = [
+          'user_data',
+          'user_profile', 
+          'current_user',
+          'last_login',
+          'ml_unread_conversations',
+          'ml_archived_conversations',
+          'ml_hidden_conversations'
+        ];
+        
+        await Promise.all(keysToRemove.map(key => AsyncStorage.removeItem(key)));
+        console.log('Toutes les données utilisateur nettoyées au démarrage');
+        
+        // Forcer le redémarrage de l'application sur WelcomeScreen
+        await AsyncStorage.setItem('force_welcome_screen', 'true');
+      } catch (error) {
+        console.error('Erreur nettoyage complet:', error);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    clearAllUserData();
+  }, []);
+
+  if (!isReady) {
+    return null; // Ou un écran de chargement
+  }
+
   const navTheme = {
     ...DefaultTheme,
     colors: {
@@ -60,7 +96,10 @@ export default function AppNavigator() {
   return (
     <NavigationContainer theme={navTheme}>
       <StatusBar backgroundColor={colors.background} barStyle={colors.isDark ? 'light-content' : 'dark-content'} translucent={false} />
-      <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Navigator 
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
+      initialRouteName="Welcome"
+    >
         {/* Écran initial de bienvenue */}
         <Stack.Screen name="Welcome" component={WelcomeScreen} />
 

@@ -99,6 +99,7 @@ export function useOptimizedImage(imageUrl, options = {}) {
   // Effet principal pour la conversion automatique
   useEffect(() => {
     if (autoConvert && originalUrl) {
+      clearOptimized();
       convertImage(originalUrl, 0);
     } else if (!autoConvert) {
       setOptimizedUri(originalUrl);

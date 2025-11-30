@@ -1,5 +1,5 @@
 // src/screens/LoginScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   button: { width: "100%", padding: 15, borderRadius: 10, backgroundColor: "#8A2BE2", alignItems: "center", marginBottom: 15 },
   buttonDisabled: { backgroundColor: "#666", opacity: 0.7 },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  signupContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 20 },
+  signupContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 20, paddingHorizontal: 20 },
   signupText: { color: "#ccc", fontSize: 14 },
   signupLink: { fontWeight: "700", color: "#8A2BE2", fontSize: 14 },
   notificationContainer: { position: "absolute", left: 10, right: 10, padding: 12, borderRadius: 8, zIndex: 1000 },

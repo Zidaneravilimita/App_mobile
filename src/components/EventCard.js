@@ -79,7 +79,11 @@ export default function EventCard({ event = {}, onPress }) {
   };
 
   return (
-    <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
+    <TouchableOpacity 
+      key={`${event.id_event}-${event.image_url}`}
+      style={styles.cardContainer} 
+      onPress={onPress}
+    >
       {/* Image + overlay */}
       {optimizedUri && !imageError ? (
         <>
@@ -104,6 +108,21 @@ export default function EventCard({ event = {}, onPress }) {
               )}
             </View>
           )}
+        </>
+      ) : event.image_url && event.image_url !== optimizedUri ? (
+        // Fallback vers l'image originale si l'optimisation échoue
+        <>
+          <Image
+            source={{ uri: event.image_url }}
+            style={styles.eventImage}
+            resizeMode="cover"
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+          />
+          <LinearGradient
+            colors={["rgba(0,0,0,0.6)", "transparent"]}
+            style={styles.gradientOverlay}
+          />
         </>
       ) : (
         <View style={styles.noImageContainer}>
@@ -156,6 +175,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: hp(22),
     backgroundColor: "#333",
+    resizeMode: "cover",
   },
   imageLoadingContainer: {
     position: "absolute",
