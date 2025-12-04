@@ -1,6 +1,6 @@
 // src/components/Header.js
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ms } from '../theme/responsive';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useTheme } from '../theme';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 export default function Header() {
   const { colors } = useTheme();
@@ -62,6 +64,31 @@ export default function Header() {
     };
     loadAvatar();
   }, []);
+
+  const clearBadgeAndNavigate = useCallback(async () => {
+    try {
+      // Marquer toutes les notifications comme lues dans la base de données
+      await supabase
+        .from('notifications_queue')
+        .update({ is_sent: true, sent_at: new Date().toISOString() })
+        .neq('is_sent', true);
+      
+      // Réinitialiser le badge système (sauf sur Web et Expo Go)
+      if (Platform.OS !== 'web' && Constants?.appOwnership !== 'expo') {
+        await Notifications.setBadgeCountAsync(0);
+      }
+      
+      // Mettre à jour le compteur local
+      setUnreadCount(0);
+      
+      // Naviguer vers l'écran Notify
+      navigation.navigate('Notify');
+    } catch (e) {
+      console.warn('Error clearing badge:', e);
+      // En cas d'erreur, quand même naviguer
+      navigation.navigate('Notify');
+    }
+  }, [navigation]);
 
   const loadUnreadCount = useCallback(async () => {
     try {
@@ -156,7 +183,7 @@ export default function Header() {
       </View>
       <TouchableOpacity 
         style={styles.notificationContainer}
-        onPress={() => navigation.navigate('Notify')}
+        onPress={clearBadgeAndNavigate}
       >
         <Ionicons name="notifications" size={ms(22)} color={colors.text} />
         {unreadCount > 0 && (

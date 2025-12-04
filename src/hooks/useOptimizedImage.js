@@ -13,6 +13,7 @@ export function useOptimizedImage(imageUrl, options = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [originalUrl, setOriginalUrl] = useState(imageUrl);
+  const [conversionId, setConversionId] = useState(0); // Ajout d'un ID de conversion
 
   // Options par défaut
   const {
@@ -36,6 +37,8 @@ export function useOptimizedImage(imageUrl, options = {}) {
 
     setIsLoading(true);
     setError(null);
+    const currentConversionId = Date.now(); // ID unique pour cette conversion
+    setConversionId(currentConversionId);
 
     try {
       console.log(`🔄 Conversion image (tentative ${retryAttempt + 1}):`, url);
@@ -46,31 +49,40 @@ export function useOptimizedImage(imageUrl, options = {}) {
         forceRefresh: retryAttempt > 0
       });
 
-      setOptimizedUri(optimized);
-      console.log('✅ Image optimisée avec succès');
+      // Vérifie que cette conversion est toujours la plus récente
+      if (currentConversionId === conversionId || retryAttempt > 0) {
+        setOptimizedUri(optimized);
+        console.log('✅ Image optimisée avec succès');
+      }
     } catch (conversionError) {
       console.error('❌ Erreur conversion image:', conversionError);
       
-      if (retryOnError && retryAttempt < maxRetries) {
-        console.log(`🔄 Nouvelle tentative dans 1s... (${retryAttempt + 1}/${maxRetries})`);
-        setTimeout(() => {
-          convertImage(url, retryAttempt + 1);
-        }, 1000);
-        return;
-      }
+      // Vérifie que cette conversion est toujours la plus récente
+      if (currentConversionId === conversionId || retryAttempt > 0) {
+        if (retryOnError && retryAttempt < maxRetries) {
+          console.log(`🔄 Nouvelle tentative dans 1s... (${retryAttempt + 1}/${maxRetries})`);
+          setTimeout(() => {
+            convertImage(url, retryAttempt + 1);
+          }, 1000);
+          return;
+        }
 
-      setError(conversionError);
-      
-      // Fallback vers l'image originale si activé
-      if (fallbackToOriginal) {
-        console.log('⚠️ Fallback vers l\'image originale');
-        setOptimizedUri(url);
+        setError(conversionError);
+        
+        // Fallback vers l'image originale si activé
+        if (fallbackToOriginal) {
+          console.log('⚠️ Fallback vers l\'image originale');
+          setOptimizedUri(url);
+        }
       }
     } finally {
-      setIsLoading(false);
-      setRetryCount(retryAttempt);
+      // Nettoie uniquement si c'est toujours la conversion active
+      if (currentConversionId === conversionId) {
+        setIsLoading(false);
+        setRetryCount(retryAttempt);
+      }
     }
-  }, [quality, maxWidth, fallbackToOriginal, retryOnError, maxRetries]);
+  }, [quality, maxWidth, fallbackToOriginal, retryOnError, maxRetries, conversionId]);
 
   // Efface l'image optimisée actuelle
   const clearOptimized = useCallback(() => {
@@ -108,8 +120,9 @@ export function useOptimizedImage(imageUrl, options = {}) {
 
     // Nettoyage si l'URL change
     return () => {
+      // Force le nettoyage quand l'URL change
       if (originalUrl !== imageUrl) {
-        clearOptimized();
+        setConversionId(prev => prev + 1); // Invalide les conversions en cours
       }
     };
   }, [imageUrl, autoConvert]); // Dépend de l'URL externe

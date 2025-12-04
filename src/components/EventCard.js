@@ -18,6 +18,9 @@ export default function EventCard({ event = {}, onPress }) {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Clé unique pour cet événement spécifique
+  const eventKey = `${event.id_event || 'unknown'}-${event.image_url || 'no-image'}`;
+
   // Hook pour la conversion automatique en WebP avec cache
   const { 
     uri: optimizedUri, 
@@ -61,7 +64,7 @@ export default function EventCard({ event = {}, onPress }) {
   useEffect(() => {
     setImageError(false);
     setImageLoaded(false);
-  }, [optimizedUri]);
+  }, [eventKey]); // Utilise eventKey au lieu de optimizedUri
 
   const handleImageError = () => {
     console.log("❌ Erreur image optimisée pour:", eventTitle, "URI:", optimizedUri);
@@ -80,7 +83,7 @@ export default function EventCard({ event = {}, onPress }) {
 
   return (
     <TouchableOpacity 
-      key={`${event.id_event}-${event.image_url}`}
+      key={eventKey}
       style={styles.cardContainer} 
       onPress={onPress}
     >

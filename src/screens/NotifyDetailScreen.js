@@ -53,27 +53,7 @@ export default function NotifyDetailScreen({ route, navigation }) {
     }
   };
 
-  const renderPayload = (payload) => {
-    if (!payload) return null;
-    
-    try {
-      const payloadString = typeof payload === 'string' 
-        ? payload 
-        : JSON.stringify(payload, null, 2);
-      
-      return (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Données supplémentaires</Text>
-          <View style={styles.codeBlock}>
-            <Text style={styles.codeText}>{payloadString}</Text>
-          </View>
-        </View>
-      );
-    } catch (e) {
-      return null;
-    }
-  };
-
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -136,9 +116,7 @@ export default function NotifyDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Payload / Données supplémentaires */}
-        {renderPayload(notification.payload)}
-      </ScrollView>
+              </ScrollView>
     </View>
   );
 }
@@ -220,20 +198,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 8,
   },
-  codeBlock: {
-    backgroundColor: '#111',
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#8A2BE2',
-  },
-  codeText: {
-    color: '#ccc',
-    fontSize: 12,
-    fontFamily: 'monospace',
-    lineHeight: 16,
-  },
-  errorContainer: {
+    errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

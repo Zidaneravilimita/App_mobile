@@ -14,10 +14,26 @@ class ImageConverter {
    * Génère une clé de cache unique pour une URL d'image
    */
   generateCacheKey(imageUrl) {
-    // Crée un hash simple de l'URL pour utiliser comme nom de fichier
-    return imageUrl
-      .replace(/[^a-zA-Z0-9]/g, '_')
-      .substring(0, 50) + '.webp';
+    // Crée un hash plus robuste de l'URL pour utiliser comme nom de fichier
+    // Utilise une combinaison de hash et de timestamp pour éviter les collisions
+    const urlHash = this.simpleHash(imageUrl);
+    const timestamp = Date.now().toString(36);
+    return `${urlHash}_${timestamp}.webp`;
+  }
+
+  /**
+   * Fonction de hash simple pour les URLs
+   */
+  simpleHash(str) {
+    let hash = 0;
+    if (str.length === 0) return hash.toString();
+    
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
   }
 
   /**
@@ -25,13 +41,24 @@ class ImageConverter {
    */
   async getCachedImagePath(imageUrl) {
     try {
-      const cacheKey = this.generateCacheKey(imageUrl);
-      const cachedPath = `${this.cacheDirectory}${cacheKey}`;
+      // Récupère le registre du cache pour trouver l'entrée correspondante
+      const existingCache = await AsyncStorage.getItem(this.webpCacheKey);
+      const cacheData = existingCache ? JSON.parse(existingCache) : {};
       
-      const fileInfo = await FileSystem.getInfoAsync(cachedPath);
-      if (fileInfo.exists) {
-        console.log('✅ Image trouvée dans le cache:', cacheKey);
-        return cachedPath;
+      // Cherche une entrée avec cette URL
+      if (cacheData[imageUrl]) {
+        const cacheKey = cacheData[imageUrl].cacheKey;
+        const cachedPath = `${this.cacheDirectory}${cacheKey}`;
+        
+        const fileInfo = await FileSystem.getInfoAsync(cachedPath);
+        if (fileInfo.exists) {
+          console.log('✅ Image trouvée dans le cache:', cacheKey);
+          return cachedPath;
+        } else {
+          // Le fichier n'existe plus, nettoie l'entrée
+          delete cacheData[imageUrl];
+          await AsyncStorage.setItem(this.webpCacheKey, JSON.stringify(cacheData));
+        }
       }
       return null;
     } catch (error) {
